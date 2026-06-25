@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OverlayTransitionRenderJob",
+  "type": "object",
+  "required": [
+    "job_name",
+    "effect",
+    "inputs",
+    "render"
+  ],
+  "properties": {
+    "job_name": {
+      "type": "string",
+      "minLength": 3
+    },
+    "effect": {
+      "type": "object",
+      "required": [
+        "fx_id",
+        "category"
+      ],
+      "properties": {
+        "fx_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1
+        },
+        "effect_spec": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "uniforms": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
+    },
+    "inputs": {
+      "type": "object",
+      "required": [
+        "source_a",
+        "source_b"
+      ],
+      "properties": {
+        "source_a": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_b": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_transition": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "render": {
+      "type": "object",
+      "required": [
+        "width",
+        "height",
+        "fps",
+        "frame_count",
+        "output_format"
+      ],
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 16
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 16
+        },
+        "fps": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "frame_count": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "output_format": {
+          "type": "string",
+          "enum": [
+            "png_sequence"
+          ]
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "allowed_categories": [
+    "single_pass"
+  ],
+  "forbidden_features": [
+    "external_resources",
+    "multi_pass",
+    "custom_geometry",
+    "runtime_video_decode"
+  ],
+  "required_inputs": [
+    "source_a",
+    "source_b"
+  ],
+  "required_uniforms": [
+    "progress"
+  ]
+}

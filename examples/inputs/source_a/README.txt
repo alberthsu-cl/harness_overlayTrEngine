@@ -1,0 +1,1 @@
+Place extracted source A frames here for local harness runs.

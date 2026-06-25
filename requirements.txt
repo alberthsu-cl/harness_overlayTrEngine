@@ -1,0 +1,2 @@
+# The initial scaffold uses Python standard library only.
+# Add optional evaluation/runtime dependencies here as the renderer and metrics mature.

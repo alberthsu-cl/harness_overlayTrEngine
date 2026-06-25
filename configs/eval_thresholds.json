@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "metrics": {
+    "mse": {
+      "warn": 0.08,
+      "fail": 0.15
+    },
+    "ssim": {
+      "warn": 0.85,
+      "fail": 0.75
+    },
+    "edge_difference": {
+      "warn": 0.12,
+      "fail": 0.2
+    }
+  }
+}

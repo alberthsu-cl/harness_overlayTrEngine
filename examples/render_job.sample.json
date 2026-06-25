@@ -1,0 +1,23 @@
+{
+  "job_name": "sample_seamless_sliding",
+  "effect": {
+    "fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
+    "category": "single_pass",
+    "effect_spec": null,
+    "uniforms": {
+      "progress": 0.0
+    }
+  },
+  "inputs": {
+    "source_a": "harness/examples/inputs/source_a",
+    "source_b": "harness/examples/inputs/source_b",
+    "reference_transition": null
+  },
+  "render": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "frame_count": 30,
+    "output_format": "png_sequence"
+  }
+}
