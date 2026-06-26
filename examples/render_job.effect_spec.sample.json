@@ -3,7 +3,7 @@
   "effect": {
     "fx_id": "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4",
     "category": "single_pass",
-    "effect_spec": "harness/examples/effect_specs/generated_glitch_placeholder.json",
+    "effect_spec": "harness/examples/effect_specs/generated_SeamlessSliding_placeholder.json",
     "uniforms": {
       "progress": 0.0
     }

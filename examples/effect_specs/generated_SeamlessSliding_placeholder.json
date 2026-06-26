@@ -1,0 +1,11 @@
+{
+  "name": "Generated Sliding Placeholder",
+  "runtime": {
+    "effect_source": "generated",
+    "fallback_fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC"
+  },
+  "generation": {
+    "status": "placeholder",
+    "note": "Use fallback_fx_id until generated shaders are compiled and registered into the plugin DLL. Seamless sliding is used here because it is visually obvious on flat-color A/B fixtures."
+  }
+}
