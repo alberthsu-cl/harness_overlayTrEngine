@@ -1,0 +1,23 @@
+{
+  "job_name": "sample_generated_placeholder",
+  "effect": {
+    "fx_id": "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4",
+    "category": "single_pass",
+    "effect_spec": "harness/examples/effect_specs/generated_glitch_placeholder.json",
+    "uniforms": {
+      "progress": 0.0
+    }
+  },
+  "inputs": {
+    "source_a": "harness/examples/inputs/source_a",
+    "source_b": "harness/examples/inputs/source_b",
+    "reference_transition": null
+  },
+  "render": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "frame_count": 30,
+    "output_format": "png_sequence"
+  }
+}

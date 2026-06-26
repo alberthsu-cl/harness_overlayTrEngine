@@ -1,0 +1,16 @@
+{
+  "color": {
+    "input": "blue",
+    "rgb": [
+      0,
+      0,
+      255
+    ]
+  },
+  "format": "bmp_sequence",
+  "fps": 30,
+  "frame_count": 30,
+  "height": 1080,
+  "mode": "solid_color",
+  "width": 1920
+}

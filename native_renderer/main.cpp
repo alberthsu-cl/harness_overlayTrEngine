@@ -16,6 +16,8 @@
 #include "DBGSrc/D3DDumpUtil.h"
 #include "SavePNGUtil.h"
 #include "rapidjson/document.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 
 namespace fs = std::filesystem;
 
@@ -27,11 +29,34 @@ struct RenderRequest
     fs::path outputDir;
     fs::path sourceA;
     fs::path sourceB;
+    fs::path effectSpecPath;
     std::string fxId;
     UINT width = 0;
     UINT height = 0;
     UINT fps = 0;
     UINT frameCount = 0;
+};
+
+struct EffectResolution
+{
+    std::string effectSource = "builtin";
+    std::string resolvedFxId;
+    std::string fallbackFxId;
+};
+
+struct RenderResult
+{
+    std::string status = "failed";
+    std::string summary;
+    std::string errorField;
+    std::string errorDetail;
+    std::string engineDllPath;
+    std::string outputDir;
+    std::string effectSource;
+    std::string resolvedFxId;
+    std::string effectSpecPath;
+    UINT framesRequested = 0;
+    UINT framesRendered = 0;
 };
 
 std::wstring Utf8ToWide(const std::string& value)
@@ -72,61 +97,184 @@ HRESULT ReadTextFile(const fs::path& filePath, std::string& contents)
     return S_OK;
 }
 
-HRESULT ParseRenderRequest(const fs::path& requestPath, RenderRequest& request)
+HRESULT FailValidation(const char* field, const char* detail, std::string& errorField, std::string& errorDetail)
+{
+    errorField = field;
+    errorDetail = detail;
+    return E_INVALIDARG;
+}
+
+HRESULT ReadStringMember(const rapidjson::Value& value, const char* member, std::string& output, std::string& errorField, std::string& errorDetail)
+{
+    if (!value.HasMember(member))
+        return FailValidation(member, "missing required string field", errorField, errorDetail);
+    if (!value[member].IsString())
+        return FailValidation(member, "field must be a string", errorField, errorDetail);
+
+    output = value[member].GetString();
+    if (output.empty())
+        return FailValidation(member, "field must not be empty", errorField, errorDetail);
+
+    return S_OK;
+}
+
+HRESULT ReadUintMember(const rapidjson::Value& value, const char* member, UINT& output, std::string& errorField, std::string& errorDetail)
+{
+    if (!value.HasMember(member))
+        return FailValidation(member, "missing required unsigned integer field", errorField, errorDetail);
+    if (!value[member].IsUint())
+        return FailValidation(member, "field must be an unsigned integer", errorField, errorDetail);
+
+    output = value[member].GetUint();
+    if (output == 0)
+        return FailValidation(member, "field must be greater than zero", errorField, errorDetail);
+
+    return S_OK;
+}
+
+std::string WideToUtf8(const std::wstring& value)
+{
+    if (value.empty())
+        return std::string();
+
+    const int size = WideCharToMultiByte(CP_UTF8, 0, value.c_str(), -1, nullptr, 0, nullptr, nullptr);
+    std::string utf8(size - 1, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, value.c_str(), -1, utf8.data(), size, nullptr, nullptr);
+    return utf8;
+}
+
+void WriteRendererResult(const fs::path& resultPath, const RenderResult& result)
+{
+    rapidjson::Document document;
+    document.SetObject();
+    auto& allocator = document.GetAllocator();
+
+    document.AddMember("status", rapidjson::Value(result.status.c_str(), allocator), allocator);
+    document.AddMember("summary", rapidjson::Value(result.summary.c_str(), allocator), allocator);
+    document.AddMember("error_field", rapidjson::Value(result.errorField.c_str(), allocator), allocator);
+    document.AddMember("error_detail", rapidjson::Value(result.errorDetail.c_str(), allocator), allocator);
+    document.AddMember("engine_dll_path", rapidjson::Value(result.engineDllPath.c_str(), allocator), allocator);
+    document.AddMember("output_dir", rapidjson::Value(result.outputDir.c_str(), allocator), allocator);
+    document.AddMember("effect_source", rapidjson::Value(result.effectSource.c_str(), allocator), allocator);
+    document.AddMember("resolved_fx_id", rapidjson::Value(result.resolvedFxId.c_str(), allocator), allocator);
+    document.AddMember("effect_spec_path", rapidjson::Value(result.effectSpecPath.c_str(), allocator), allocator);
+    document.AddMember("frames_requested", result.framesRequested, allocator);
+    document.AddMember("frames_rendered", result.framesRendered, allocator);
+
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    document.Accept(writer);
+
+    std::ofstream stream(resultPath, std::ios::binary | std::ios::trunc);
+    if (!stream)
+        return;
+
+    stream << buffer.GetString() << std::endl;
+}
+
+HRESULT ParseRenderRequest(const fs::path& requestPath, RenderRequest& request, std::string& errorField, std::string& errorDetail)
 {
     std::string rawJson;
     HRESULT hr = ReadTextFile(requestPath, rawJson);
     if (FAILED(hr))
+    {
+        errorField = "request_file";
+        errorDetail = "request file could not be opened";
         return hr;
+    }
 
     rapidjson::Document document;
     document.Parse(rawJson.c_str());
     if (document.HasParseError())
-        return E_FAIL;
+        return FailValidation("request_json", "JSON parse error", errorField, errorDetail);
 
     if (!document.HasMember("repo_root") || !document["repo_root"].IsString())
-        return E_INVALIDARG;
+        return FailValidation("repo_root", "missing or invalid repo_root", errorField, errorDetail);
     if (!document.HasMember("output_dir") || !document["output_dir"].IsString())
-        return E_INVALIDARG;
+        return FailValidation("output_dir", "missing or invalid output_dir", errorField, errorDetail);
     if (!document.HasMember("job") || !document["job"].IsObject())
-        return E_INVALIDARG;
+        return FailValidation("job", "missing or invalid job object", errorField, errorDetail);
 
     const auto& job = document["job"];
     if (!job.HasMember("inputs") || !job["inputs"].IsObject())
-        return E_INVALIDARG;
+        return FailValidation("job.inputs", "missing or invalid inputs object", errorField, errorDetail);
     if (!job.HasMember("effect") || !job["effect"].IsObject())
-        return E_INVALIDARG;
+        return FailValidation("job.effect", "missing or invalid effect object", errorField, errorDetail);
     if (!job.HasMember("render") || !job["render"].IsObject())
-        return E_INVALIDARG;
+        return FailValidation("job.render", "missing or invalid render object", errorField, errorDetail);
 
     const auto& inputs = job["inputs"];
     const auto& effect = job["effect"];
     const auto& render = job["render"];
 
-    if (!inputs.HasMember("source_a") || !inputs["source_a"].IsString())
-        return E_INVALIDARG;
-    if (!inputs.HasMember("source_b") || !inputs["source_b"].IsString())
-        return E_INVALIDARG;
-    if (!effect.HasMember("fx_id") || !effect["fx_id"].IsString())
-        return E_INVALIDARG;
-    if (!render.HasMember("width") || !render["width"].IsUint())
-        return E_INVALIDARG;
-    if (!render.HasMember("height") || !render["height"].IsUint())
-        return E_INVALIDARG;
-    if (!render.HasMember("fps") || !render["fps"].IsUint())
-        return E_INVALIDARG;
-    if (!render.HasMember("frame_count") || !render["frame_count"].IsUint())
-        return E_INVALIDARG;
+    std::string repoRoot;
+    std::string outputDir;
+    std::string sourceA;
+    std::string sourceB;
 
-    request.repoRoot = fs::path(Utf8ToWide(document["repo_root"].GetString()));
-    request.outputDir = fs::path(Utf8ToWide(document["output_dir"].GetString()));
-    request.sourceA = fs::path(Utf8ToWide(inputs["source_a"].GetString()));
-    request.sourceB = fs::path(Utf8ToWide(inputs["source_b"].GetString()));
-    request.fxId = effect["fx_id"].GetString();
-    request.width = render["width"].GetUint();
-    request.height = render["height"].GetUint();
-    request.fps = render["fps"].GetUint();
-    request.frameCount = render["frame_count"].GetUint();
+    hr = ReadStringMember(document, "repo_root", repoRoot, errorField, errorDetail);
+    if (FAILED(hr))
+        return hr;
+    hr = ReadStringMember(document, "output_dir", outputDir, errorField, errorDetail);
+    if (FAILED(hr))
+        return hr;
+    hr = ReadStringMember(inputs, "source_a", sourceA, errorField, errorDetail);
+    if (FAILED(hr))
+    {
+        errorField = "job.inputs.source_a";
+        return hr;
+    }
+    hr = ReadStringMember(inputs, "source_b", sourceB, errorField, errorDetail);
+    if (FAILED(hr))
+    {
+        errorField = "job.inputs.source_b";
+        return hr;
+    }
+    hr = ReadStringMember(effect, "fx_id", request.fxId, errorField, errorDetail);
+    if (FAILED(hr))
+    {
+        errorField = "job.effect.fx_id";
+        return hr;
+    }
+    hr = ReadUintMember(render, "width", request.width, errorField, errorDetail);
+    if (FAILED(hr))
+    {
+        errorField = "job.render.width";
+        return hr;
+    }
+    hr = ReadUintMember(render, "height", request.height, errorField, errorDetail);
+    if (FAILED(hr))
+    {
+        errorField = "job.render.height";
+        return hr;
+    }
+    hr = ReadUintMember(render, "fps", request.fps, errorField, errorDetail);
+    if (FAILED(hr))
+    {
+        errorField = "job.render.fps";
+        return hr;
+    }
+    hr = ReadUintMember(render, "frame_count", request.frameCount, errorField, errorDetail);
+    if (FAILED(hr))
+    {
+        errorField = "job.render.frame_count";
+        return hr;
+    }
+
+    request.repoRoot = fs::path(Utf8ToWide(repoRoot));
+    request.outputDir = fs::path(Utf8ToWide(outputDir));
+    request.sourceA = fs::path(Utf8ToWide(sourceA));
+    request.sourceB = fs::path(Utf8ToWide(sourceB));
+
+    if (effect.HasMember("effect_spec") && effect["effect_spec"].IsString())
+    {
+        request.effectSpecPath = fs::path(Utf8ToWide(effect["effect_spec"].GetString()));
+    }
+
+    if (request.width < 16 || request.height < 16)
+        return FailValidation("job.render", "width and height must be at least 16", errorField, errorDetail);
+    if ((request.width % 2) != 0 || (request.height % 2) != 0)
+        return FailValidation("job.render", "width and height must be even numbers", errorField, errorDetail);
 
     if (request.sourceA.is_relative())
         request.sourceA = fs::weakly_canonical(request.repoRoot / request.sourceA);
@@ -134,8 +282,98 @@ HRESULT ParseRenderRequest(const fs::path& requestPath, RenderRequest& request)
         request.sourceB = fs::weakly_canonical(request.repoRoot / request.sourceB);
     if (request.outputDir.is_relative())
         request.outputDir = fs::weakly_canonical(request.repoRoot / request.outputDir);
+    if (!request.effectSpecPath.empty() && request.effectSpecPath.is_relative())
+        request.effectSpecPath = fs::weakly_canonical(request.repoRoot / request.effectSpecPath);
+
+    if (!fs::exists(request.repoRoot))
+        return FailValidation("repo_root", "repo_root does not exist", errorField, errorDetail);
+    if (!request.effectSpecPath.empty() && !fs::exists(request.effectSpecPath))
+        return FailValidation("job.effect.effect_spec", "effect_spec path does not exist", errorField, errorDetail);
 
     return S_OK;
+}
+
+HRESULT ResolveEffect(const RenderRequest& request, EffectResolution& resolution, std::string& errorField, std::string& errorDetail)
+{
+    resolution.resolvedFxId = request.fxId;
+
+    if (request.effectSpecPath.empty())
+        return S_OK;
+
+    std::string rawJson;
+    HRESULT hr = ReadTextFile(request.effectSpecPath, rawJson);
+    if (FAILED(hr))
+    {
+        errorField = "job.effect.effect_spec";
+        errorDetail = "effect_spec file could not be opened";
+        return hr;
+    }
+
+    rapidjson::Document document;
+    document.Parse(rawJson.c_str());
+    if (document.HasParseError())
+        return FailValidation("job.effect.effect_spec", "effect_spec JSON parse error", errorField, errorDetail);
+
+    if (!document.IsObject())
+        return FailValidation("job.effect.effect_spec", "effect_spec root must be an object", errorField, errorDetail);
+
+    if (!document.HasMember("runtime") || !document["runtime"].IsObject())
+        return FailValidation("job.effect.effect_spec.runtime", "effect_spec must contain a runtime object", errorField, errorDetail);
+
+    const auto& runtime = document["runtime"];
+    std::string effectSource;
+    hr = ReadStringMember(runtime, "effect_source", effectSource, errorField, errorDetail);
+    if (FAILED(hr))
+    {
+        errorField = "job.effect.effect_spec.runtime.effect_source";
+        return hr;
+    }
+
+    resolution.effectSource = effectSource;
+
+    if (runtime.HasMember("fallback_fx_id") && runtime["fallback_fx_id"].IsString())
+        resolution.fallbackFxId = runtime["fallback_fx_id"].GetString();
+
+    if (effectSource == "builtin")
+    {
+        std::string builtinFxId;
+        hr = ReadStringMember(runtime, "fx_id", builtinFxId, errorField, errorDetail);
+        if (FAILED(hr))
+        {
+            errorField = "job.effect.effect_spec.runtime.fx_id";
+            return hr;
+        }
+        resolution.resolvedFxId = builtinFxId;
+        return S_OK;
+    }
+
+    if (effectSource == "generated")
+    {
+        if (runtime.HasMember("registered_fx_id") && runtime["registered_fx_id"].IsString())
+        {
+            resolution.resolvedFxId = runtime["registered_fx_id"].GetString();
+            if (!resolution.resolvedFxId.empty())
+                return S_OK;
+        }
+
+        if (!resolution.fallbackFxId.empty())
+        {
+            resolution.resolvedFxId = resolution.fallbackFxId;
+            return S_OK;
+        }
+
+        return FailValidation(
+            "job.effect.effect_spec.runtime",
+            "generated effect specs must provide runtime.registered_fx_id or runtime.fallback_fx_id",
+            errorField,
+            errorDetail);
+    }
+
+    return FailValidation(
+        "job.effect.effect_spec.runtime.effect_source",
+        "effect_source must be 'builtin' or 'generated'",
+        errorField,
+        errorDetail);
 }
 
 std::vector<fs::path> EnumerateInputFrames(const fs::path& source)
@@ -489,11 +727,17 @@ int wmain(int argc, wchar_t* argv[])
     }
 
     const fs::path requestPath = argv[2];
+    const fs::path resultPath = requestPath.parent_path() / L"renderer_result.json";
+    RenderResult result;
 
     HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
     const bool comInitialized = SUCCEEDED(hr) || hr == RPC_E_CHANGED_MODE;
     if (!comInitialized)
     {
+        result.summary = "Failed to initialize COM";
+        result.errorField = "runtime";
+        result.errorDetail = WideToUtf8(HrMessage(hr));
+        WriteRendererResult(resultPath, result);
         std::wcerr << L"Failed to initialize COM: " << HrMessage(hr) << std::endl;
         return 1;
     }
@@ -501,26 +745,60 @@ int wmain(int argc, wchar_t* argv[])
     int exitCode = 0;
     {
         RenderRequest request;
-        hr = ParseRenderRequest(requestPath, request);
+        std::string errorField;
+        std::string errorDetail;
+        hr = ParseRenderRequest(requestPath, request, errorField, errorDetail);
         if (FAILED(hr))
         {
-            std::wcerr << L"Failed to parse render request: " << HrMessage(hr) << std::endl;
+            result.summary = "Render request validation failed";
+            result.errorField = errorField;
+            result.errorDetail = errorDetail.empty() ? WideToUtf8(HrMessage(hr)) : errorDetail;
+            WriteRendererResult(resultPath, result);
+            std::wcerr << L"Failed to parse render request: " << Utf8ToWide(result.errorField) << L" - " << Utf8ToWide(result.errorDetail) << std::endl;
             exitCode = 1;
             goto cleanup;
         }
 
+        result.outputDir = WideToUtf8(request.outputDir.wstring());
+        result.effectSpecPath = WideToUtf8(request.effectSpecPath.wstring());
+        result.framesRequested = request.frameCount;
+
+        EffectResolution effectResolution;
+        hr = ResolveEffect(request, effectResolution, errorField, errorDetail);
+        if (FAILED(hr))
+        {
+            result.summary = "Effect specification resolution failed";
+            result.errorField = errorField;
+            result.errorDetail = errorDetail.empty() ? WideToUtf8(HrMessage(hr)) : errorDetail;
+            WriteRendererResult(resultPath, result);
+            std::wcerr << L"Failed to resolve effect spec: " << Utf8ToWide(result.errorField) << L" - " << Utf8ToWide(result.errorDetail) << std::endl;
+            exitCode = 1;
+            goto cleanup;
+        }
+        result.effectSource = effectResolution.effectSource;
+        result.resolvedFxId = effectResolution.resolvedFxId;
+
         const fs::path engineDllPath = ResolveEngineDllPath(request.repoRoot);
         if (engineDllPath.empty())
         {
+            result.summary = "OverlayTrEngine.dll could not be located";
+            result.errorField = "engine_dll";
+            result.errorDetail = "checked repository output folders and current working directory";
+            WriteRendererResult(resultPath, result);
             std::wcerr << L"Could not locate OverlayTrEngine.dll under the repository root." << std::endl;
             exitCode = 1;
             goto cleanup;
         }
+        result.engineDllPath = WideToUtf8(engineDllPath.wstring());
 
         const auto sourceAFrames = EnumerateInputFrames(request.sourceA);
         const auto sourceBFrames = EnumerateInputFrames(request.sourceB);
         if (sourceAFrames.empty() || sourceBFrames.empty())
         {
+            result.summary = "Input source discovery failed";
+            result.errorField = sourceAFrames.empty() ? "job.inputs.source_a" : "job.inputs.source_b";
+            result.errorDetail = "input source must be an image file or a folder containing supported images";
+            WriteRendererResult(resultPath, result);
             std::wcerr << L"Input sources must be image files or folders containing images." << std::endl;
             exitCode = 1;
             goto cleanup;
@@ -530,6 +808,10 @@ int wmain(int argc, wchar_t* argv[])
         fs::create_directories(request.outputDir, directoryError);
         if (directoryError)
         {
+            result.summary = "Failed to create output directory";
+            result.errorField = "output_dir";
+            result.errorDetail = directoryError.message();
+            WriteRendererResult(resultPath, result);
             std::wcerr << L"Failed to create output directory: " << request.outputDir << std::endl;
             exitCode = 1;
             goto cleanup;
@@ -543,6 +825,10 @@ int wmain(int argc, wchar_t* argv[])
             IID_PPV_ARGS(&wicFactory));
         if (FAILED(hr))
         {
+            result.summary = "Failed to create WIC imaging factory";
+            result.errorField = "runtime";
+            result.errorDetail = WideToUtf8(HrMessage(hr));
+            WriteRendererResult(resultPath, result);
             std::wcerr << L"Failed to create WIC imaging factory: " << HrMessage(hr) << std::endl;
             exitCode = 1;
             goto cleanup;
@@ -553,15 +839,23 @@ int wmain(int argc, wchar_t* argv[])
         hr = CreateD3DDevice(device, context);
         if (FAILED(hr))
         {
+            result.summary = "Failed to create D3D11 device";
+            result.errorField = "runtime";
+            result.errorDetail = WideToUtf8(HrMessage(hr));
+            WriteRendererResult(resultPath, result);
             std::wcerr << L"Failed to create D3D11 device: " << HrMessage(hr) << std::endl;
             exitCode = 1;
             goto cleanup;
         }
 
         OverlayEngineSession session;
-        hr = session.Initialize(engineDllPath, request.fxId);
+        hr = session.Initialize(engineDllPath, effectResolution.resolvedFxId);
         if (FAILED(hr))
         {
+            result.summary = "Failed to initialize overlay engine";
+            result.errorField = "engine_init";
+            result.errorDetail = WideToUtf8(HrMessage(hr));
+            WriteRendererResult(resultPath, result);
             std::wcerr << L"Failed to initialize overlay engine: " << HrMessage(hr) << std::endl;
             exitCode = 1;
             goto cleanup;
@@ -578,6 +872,10 @@ int wmain(int argc, wchar_t* argv[])
             hr = LoadBitmapBGRA(wicFactory, frameA, request.width, request.height, bufferA);
             if (FAILED(hr))
             {
+                result.summary = "Failed to load source A frame";
+                result.errorField = "job.inputs.source_a";
+                result.errorDetail = WideToUtf8(frameA.wstring()) + " | " + WideToUtf8(HrMessage(hr));
+                WriteRendererResult(resultPath, result);
                 std::wcerr << L"Failed to load source A frame: " << frameA << L" - " << HrMessage(hr) << std::endl;
                 exitCode = 1;
                 goto cleanup;
@@ -586,6 +884,10 @@ int wmain(int argc, wchar_t* argv[])
             hr = LoadBitmapBGRA(wicFactory, frameB, request.width, request.height, bufferB);
             if (FAILED(hr))
             {
+                result.summary = "Failed to load source B frame";
+                result.errorField = "job.inputs.source_b";
+                result.errorDetail = WideToUtf8(frameB.wstring()) + " | " + WideToUtf8(HrMessage(hr));
+                WriteRendererResult(resultPath, result);
                 std::wcerr << L"Failed to load source B frame: " << frameB << L" - " << HrMessage(hr) << std::endl;
                 exitCode = 1;
                 goto cleanup;
@@ -602,13 +904,25 @@ int wmain(int argc, wchar_t* argv[])
             hr = session.RenderFrame(device, context, bufferA, bufferB, request.width, request.height, progress, outputPath);
             if (FAILED(hr))
             {
+                result.summary = "Frame render failed";
+                result.errorField = "render";
+                result.errorDetail = std::string("frame=") + std::to_string(frameIndex) + " | " + WideToUtf8(HrMessage(hr));
+                WriteRendererResult(resultPath, result);
                 std::wcerr << L"Render failed at frame " << frameIndex << L": " << HrMessage(hr) << std::endl;
                 exitCode = 1;
                 goto cleanup;
             }
 
+            result.framesRendered = frameIndex + 1;
+
             std::wcout << L"Rendered " << outputPath << std::endl;
         }
+
+        result.status = "succeeded";
+        result.summary = "Renderer completed successfully";
+        result.errorField.clear();
+        result.errorDetail.clear();
+        WriteRendererResult(resultPath, result);
     }
 
 cleanup:

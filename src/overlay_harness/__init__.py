@@ -7,5 +7,6 @@ __all__ = [
     "renderer",
     "report",
     "validator",
+    "video_prep",
     "workspace",
 ]

@@ -1,0 +1,11 @@
+{
+  "name": "Generated Glitch Placeholder",
+  "runtime": {
+    "effect_source": "generated",
+    "fallback_fx_id": "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4"
+  },
+  "generation": {
+    "status": "placeholder",
+    "note": "Use fallback_fx_id until generated shaders are compiled and registered into the plugin DLL."
+  }
+}

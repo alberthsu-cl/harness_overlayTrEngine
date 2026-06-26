@@ -1,0 +1,7 @@
+{
+  "name": "Builtin Seamless Sliding",
+  "runtime": {
+    "effect_source": "builtin",
+    "fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC"
+  }
+}
