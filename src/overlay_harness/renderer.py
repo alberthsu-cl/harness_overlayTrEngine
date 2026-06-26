@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import subprocess
 
 from .models import RenderJob
 from .workspace import JobWorkspace, write_json
@@ -14,6 +15,9 @@ class RenderInvocation:
     expected_output_dir: Path
     status: str
     message: str
+    exit_code: int | None = None
+    stdout: str = ""
+    stderr: str = ""
 
 
 def prepare_render_invocation(
@@ -37,12 +41,29 @@ def prepare_render_invocation(
     if renderer_executable:
         renderer_path = Path(renderer_executable)
         if renderer_path.exists():
+            completed = subprocess.run(
+                [str(renderer_path), "--request", str(request_file)],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            status = "succeeded" if completed.returncode == 0 else "failed"
+            message = (
+                "renderer completed successfully"
+                if completed.returncode == 0
+                else f"renderer exited with code {completed.returncode}"
+            )
+
             return RenderInvocation(
                 renderer_executable=renderer_executable,
                 request_file=request_file,
                 expected_output_dir=workspace.artifacts_dir,
-                status="ready",
-                message="renderer executable exists; CLI integration can be wired next",
+                status=status,
+                message=message,
+                exit_code=completed.returncode,
+                stdout=completed.stdout,
+                stderr=completed.stderr,
             )
 
     return RenderInvocation(
