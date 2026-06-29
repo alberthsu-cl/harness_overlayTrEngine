@@ -8,6 +8,7 @@ import sys
 
 from .config import load_allowed_effects, load_eval_thresholds
 from .models import load_render_job
+from .planner import build_planned_job, planner_modes, planner_preset, planner_presets
 from .renderer import prepare_render_invocation
 from .report import HarnessReport
 from .validator import validate_job
@@ -43,6 +44,8 @@ def main(argv: list[str] | None = None) -> int:
         return _handle_prepare_video(args, repo_root)
     if args.command == "prepare-pair":
         return _handle_prepare_pair(args, repo_root)
+    if args.command == "plan-job":
+        return _handle_plan_job(args, repo_root, config_dir)
     if args.command == "smoke-test":
         return _handle_smoke_test(args, repo_root, harness_root, config_dir, default_renderer)
     if args.command == "real-smoke-test":
@@ -117,6 +120,46 @@ def _build_parser() -> argparse.ArgumentParser:
     prepare_pair.add_argument("--height", type=int, default=1080, help="Target output height")
     prepare_pair.add_argument("--fps", type=int, default=30, help="Frame rate metadata for the fixture manifests")
     prepare_pair.add_argument("--frame-count", type=int, default=30, help="Frame count for both fixture sequences")
+
+    plan_job = subparsers.add_parser(
+        "plan-job",
+        help="Create a render job from prepared inputs using a rule-based effect mode",
+    )
+    plan_job.add_argument(
+        "--preset",
+        required=False,
+        choices=planner_presets(),
+        help="Optional shortcut for a common plan-job workflow",
+    )
+    plan_job.add_argument("--source-a", required=False, help="Path to the prepared source A frames")
+    plan_job.add_argument("--source-b", required=False, help="Path to the prepared source B frames")
+    plan_job.add_argument("--job-output", required=False, help="Output path for the planned render job JSON")
+    plan_job.add_argument(
+        "--mode",
+        required=False,
+        choices=planner_modes(),
+        help="Planner effect mode",
+    )
+    plan_job.add_argument("--job-name", required=False, help="Optional explicit job_name override")
+    plan_job.add_argument(
+        "--effect-spec-output",
+        required=False,
+        help="Optional output path for a copied effect_spec template when using a generated-placeholder mode",
+    )
+    plan_job.add_argument(
+        "--reference-transition",
+        required=False,
+        help="Optional reference transition path to store in the planned job",
+    )
+    plan_job.add_argument("--width", type=int, default=1920, help="Target output width")
+    plan_job.add_argument("--height", type=int, default=1080, help="Target output height")
+    plan_job.add_argument("--fps", type=int, default=30, help="Target render fps")
+    plan_job.add_argument("--frame-count", type=int, default=30, help="Target render frame count")
+    plan_job.add_argument(
+        "--output-format",
+        default="png_sequence",
+        help="Target output format; the current scaffold supports png_sequence",
+    )
 
     smoke_test = subparsers.add_parser(
         "smoke-test",
@@ -323,6 +366,91 @@ def _handle_prepare_pair(args, repo_root: Path) -> int:
     return 0
 
 
+def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
+    preset = planner_preset(args.preset) if args.preset else {}
+
+    source_a_raw = args.source_a or preset.get("source_a")
+    source_b_raw = args.source_b or preset.get("source_b")
+    job_output_raw = args.job_output or preset.get("job_output")
+    mode = args.mode or preset.get("mode")
+    job_name = args.job_name or preset.get("job_name")
+    effect_spec_output_raw = args.effect_spec_output or preset.get("effect_spec_output")
+
+    missing_fields = [
+        field_name
+        for field_name, field_value in {
+            "source_a": source_a_raw,
+            "source_b": source_b_raw,
+            "job_output": job_output_raw,
+            "mode": mode,
+        }.items()
+        if not field_value
+    ]
+    if missing_fields:
+        print(
+            "plan-job failed: missing required arguments after preset resolution: "
+            + ", ".join(missing_fields)
+        )
+        return 1
+
+    source_a = _resolve_path_argument(str(source_a_raw), repo_root)
+    source_b = _resolve_path_argument(str(source_b_raw), repo_root)
+    job_output = _resolve_path_argument(str(job_output_raw), repo_root)
+    effect_spec_output = (
+        _resolve_path_argument(str(effect_spec_output_raw), repo_root)
+        if effect_spec_output_raw
+        else None
+    )
+    reference_transition = (
+        _resolve_path_argument(args.reference_transition, repo_root)
+        if args.reference_transition
+        else None
+    )
+
+    try:
+        job, effect_spec_payload = build_planned_job(
+            repo_root=repo_root,
+            source_a=source_a,
+            source_b=source_b,
+            mode=str(mode),
+            width=args.width,
+            height=args.height,
+            fps=args.fps,
+            frame_count=args.frame_count,
+            output_format=args.output_format,
+            job_name=job_name,
+            reference_transition=reference_transition,
+            effect_spec_output=effect_spec_output,
+        )
+
+        if effect_spec_output is not None and effect_spec_payload is not None:
+            write_json(effect_spec_output, effect_spec_payload)
+
+        write_json(job_output, job.to_dict())
+
+        validation = validate_job(job, repo_root, load_allowed_effects(config_dir))
+    except Exception as exc:
+        print(f"plan-job failed: {exc}")
+        return 1
+
+    result = {
+        "job_output": str(job_output),
+        "mode": mode,
+        "preset": args.preset,
+        "job_name": job.job_name,
+        "validation_valid": validation.is_valid,
+        "issues": [
+            {"field": issue.field, "level": issue.level, "message": issue.message}
+            for issue in validation.issues
+        ],
+    }
+    if effect_spec_output is not None and effect_spec_payload is not None:
+        result["effect_spec_output"] = str(effect_spec_output)
+
+    print(json.dumps(result, indent=2))
+    return 0 if validation.is_valid else 1
+
+
 def _handle_smoke_test(
     args,
     repo_root: Path,
@@ -437,6 +565,13 @@ def _run_smoke_test_suite(
 
     print(json.dumps({"smoke_test_report": str(summary_path), "results": results}, indent=2))
     return overall_exit_code
+
+
+def _resolve_path_argument(raw_path: str, repo_root: Path) -> Path:
+    candidate = Path(raw_path)
+    if candidate.is_absolute():
+        return candidate.resolve()
+    return (repo_root / candidate).resolve()
 
 
 def _resolve_default_renderer(repo_root: Path) -> str | None:

@@ -61,6 +61,7 @@ Run from the repository root:
 
 ```powershell
 py -3 harness/src/main.py prepare-pair --output-root harness/examples/fixtures/blue_green --color-a blue --color-b green --width 1920 --height 1080 --frame-count 30
+py -3 harness/src/main.py plan-job --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --job-output harness/examples/planned.render_job.json --mode builtin-seamless
 py -3 harness/src/main.py validate --job harness/examples/render_job.sample.json
 py -3 harness/src/main.py prepare --job harness/examples/render_job.sample.json
 py -3 harness/src/main.py run --job harness/examples/render_job.sample.json
@@ -82,7 +83,7 @@ If you want a different build output, pass `--renderer` explicitly.
 Use the current phase in this order:
 
 1. Prepare source A and source B frames.
-2. Choose one of the sample render jobs.
+2. Choose a sample render job or generate one with `plan-job`.
 3. Run the Python harness.
 4. Inspect the output frames and generated reports.
 
@@ -100,6 +101,48 @@ This creates:
 - `harness/examples/fixtures/blue_green/source_b/`
 
 If you want to prepare only one side, use `prepare-video` instead.
+
+### 1b. Plan a job from prepared inputs
+
+Use `plan-job` to create a valid render job from prepared A/B inputs without hand-editing JSON:
+
+```powershell
+py -3 harness/src/main.py plan-job --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --job-output harness/examples/planned.render_job.json --mode builtin-seamless
+py -3 harness/src/main.py plan-job --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --job-output harness/examples/planned.effect_spec.render_job.json --mode generated-glitch-placeholder --effect-spec-output harness/examples/planned.generated_glitch_placeholder.json
+```
+
+For common workflows, you can use presets instead of repeating the same paths and mode selection:
+
+```powershell
+py -3 harness/src/main.py plan-job --preset real-smoke-seamless
+py -3 harness/src/main.py plan-job --preset real-smoke-glitch
+py -3 harness/src/main.py plan-job --preset real-smoke-generated-glitch
+py -3 harness/src/main.py plan-job --preset fixture-smoke-seamless
+```
+
+Preset values can still be overridden explicitly. For example:
+
+```powershell
+py -3 harness/src/main.py plan-job --preset real-smoke-seamless --job-output harness/examples/custom.real.render_job.json
+```
+
+Supported modes in the first planner slice are:
+
+- `builtin-seamless`
+- `builtin-glitch`
+- `generated-seamless-placeholder`
+- `generated-glitch-placeholder`
+
+For generated-placeholder modes, `--effect-spec-output` is optional. If you provide it, the planner copies the matching template effect spec to that location and points the planned job at the copied file.
+
+Supported presets in the first planner slice are:
+
+- `real-smoke-seamless`
+- `real-smoke-glitch`
+- `real-smoke-generated-glitch`
+- `fixture-smoke-seamless`
+
+The older shortcut names `real-smoke` and `fixture-smoke` are still accepted as aliases.
 
 ### 2. Choose a sample job
 
