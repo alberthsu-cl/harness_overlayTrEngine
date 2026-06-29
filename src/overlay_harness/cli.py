@@ -20,6 +20,11 @@ OFFICIAL_SMOKE_TEST_JOBS = (
     "harness/examples/render_job.effect_spec.sample.json",
 )
 
+OFFICIAL_REAL_SMOKE_TEST_JOBS = (
+    "harness/examples/render_job.sample.real.json",
+    "harness/examples/render_job.effect_spec.sample.real.json",
+)
+
 DEFAULT_RENDERER_RELATIVE_PATH = Path(
     "harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe"
 )
@@ -40,6 +45,8 @@ def main(argv: list[str] | None = None) -> int:
         return _handle_prepare_pair(args, repo_root)
     if args.command == "smoke-test":
         return _handle_smoke_test(args, repo_root, harness_root, config_dir, default_renderer)
+    if args.command == "real-smoke-test":
+        return _handle_real_smoke_test(args, repo_root, harness_root, config_dir, default_renderer)
 
     result = _execute_job_command(
         repo_root=repo_root,
@@ -72,11 +79,11 @@ def _build_parser() -> argparse.ArgumentParser:
             command.add_argument(
                 "--renderer",
                 required=False,
-                    help=(
-                        "Path to the headless renderer executable; defaults to "
-                        "harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe "
-                        "when that file exists"
-                    ),
+                help=(
+                    "Path to the headless renderer executable; defaults to "
+                    "harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe "
+                    "when that file exists"
+                ),
             )
 
     prepare_video = subparsers.add_parser(
@@ -118,11 +125,25 @@ def _build_parser() -> argparse.ArgumentParser:
     smoke_test.add_argument(
         "--renderer",
         required=False,
-            help=(
-                "Optional path to the native renderer executable for full render smoke tests; "
-                "defaults to harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe "
-                "when that file exists"
-            ),
+        help=(
+            "Optional path to the native renderer executable for full render smoke tests; "
+            "defaults to harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe "
+            "when that file exists"
+        ),
+    )
+
+    real_smoke_test = subparsers.add_parser(
+        "real-smoke-test",
+        help="Run the two official real-video smoke-test jobs",
+    )
+    real_smoke_test.add_argument(
+        "--renderer",
+        required=False,
+        help=(
+            "Optional path to the native renderer executable for full real-video smoke tests; "
+            "defaults to harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe "
+            "when that file exists"
+        ),
     )
 
     return parser
@@ -309,14 +330,52 @@ def _handle_smoke_test(
     config_dir: Path,
     default_renderer: str | None,
 ) -> int:
-    smoke_test_root = harness_root / "work" / f"smoke_test_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}"
+    return _run_smoke_test_suite(
+        args=args,
+        repo_root=repo_root,
+        harness_root=harness_root,
+        config_dir=config_dir,
+        default_renderer=default_renderer,
+        suite_name="smoke_test",
+        job_paths=OFFICIAL_SMOKE_TEST_JOBS,
+    )
+
+
+def _handle_real_smoke_test(
+    args,
+    repo_root: Path,
+    harness_root: Path,
+    config_dir: Path,
+    default_renderer: str | None,
+) -> int:
+    return _run_smoke_test_suite(
+        args=args,
+        repo_root=repo_root,
+        harness_root=harness_root,
+        config_dir=config_dir,
+        default_renderer=default_renderer,
+        suite_name="real_smoke_test",
+        job_paths=OFFICIAL_REAL_SMOKE_TEST_JOBS,
+    )
+
+
+def _run_smoke_test_suite(
+    args,
+    repo_root: Path,
+    harness_root: Path,
+    config_dir: Path,
+    default_renderer: str | None,
+    suite_name: str,
+    job_paths: tuple[str, ...],
+) -> int:
+    smoke_test_root = harness_root / "work" / f"{suite_name}_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}"
     smoke_test_root.mkdir(parents=True, exist_ok=False)
 
     results: list[dict] = []
     overall_exit_code = 0
     renderer = _resolve_renderer_argument(args.renderer, default_renderer)
 
-    for relative_job_path in OFFICIAL_SMOKE_TEST_JOBS:
+    for relative_job_path in job_paths:
         job_path = (repo_root / relative_job_path).resolve()
         validation_result = _execute_job_command(
             repo_root=repo_root,
@@ -369,6 +428,7 @@ def _handle_smoke_test(
 
     summary = {
         "status": "succeeded" if overall_exit_code == 0 else "failed",
+        "suite": suite_name,
         "renderer": renderer,
         "results": results,
     }

@@ -66,12 +66,14 @@ py -3 harness/src/main.py prepare --job harness/examples/render_job.sample.json
 py -3 harness/src/main.py run --job harness/examples/render_job.sample.json
 py -3 harness/src/main.py validate --job harness/examples/render_job.effect_spec.sample.json
 py -3 harness/src/main.py smoke-test
-py -3 harness/src/main.py smoke-test --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
+py -3 harness/src/main.py real-smoke-test
 py -3 harness/src/main.py run --job harness/examples/render_job.effect_spec.sample.json --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
 py -3 harness/src/main.py run --job harness/examples/render_job.sample.json --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
+py -3 harness/src/main.py smoke-test --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
+py -3 harness/src/main.py real-smoke-test --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
 ```
 
-If `harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe` exists, `run` and `smoke-test` will use it automatically when `--renderer` is omitted.
+If `harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe` exists, `run`, `smoke-test`, and `real-smoke-test` will use it automatically when `--renderer` is omitted.
 
 If you want a different build output, pass `--renderer` explicitly.
 
@@ -101,27 +103,43 @@ If you want to prepare only one side, use `prepare-video` instead.
 
 ### 2. Choose a sample job
 
-There are two official smoke-test jobs for the current phase:
+There are two smoke-test tiers for the current phase.
+
+The fast synthetic tier uses:
 
 - `harness/examples/render_job.sample.json`
   baseline built-in effect render using the dedicated blue/green fixture pair
 - `harness/examples/render_job.effect_spec.sample.json`
   effect-spec routing test that exercises generated-placeholder resolution through a fallback built-in effect
 
-Treat these two files as the phase-1 smoke-test contract:
+Treat these two files as the primary smoke-test contract:
 
 1. `harness/examples/render_job.sample.json`
 2. `harness/examples/render_job.effect_spec.sample.json`
 
-You can run both together with the helper command:
+The real-video regression tier uses:
+
+- `harness/examples/render_job.sample.real.json`
+  real-video built-in effect render using the prepared real A/B inputs
+- `harness/examples/render_job.effect_spec.sample.real.json`
+  real-video effect-spec routing test using the prepared real A/B inputs
+
+Run the synthetic smoke tier with:
 
 ```powershell
 py -3 harness/src/main.py smoke-test
 py -3 harness/src/main.py smoke-test --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
 ```
 
-Without `--renderer`, the helper validates both smoke-test jobs if the default renderer path is not present.
-With a built default renderer or an explicit `--renderer`, it validates and renders both jobs, then writes a combined smoke-test summary report.
+Run the real-video smoke tier with:
+
+```powershell
+py -3 harness/src/main.py real-smoke-test
+py -3 harness/src/main.py real-smoke-test --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
+```
+
+Without `--renderer`, each helper validates its job pair if the default renderer path is not present.
+With a built default renderer or an explicit `--renderer`, each helper validates and renders its job pair, then writes a combined summary report.
 
 Use `validate` first if you want a quick contract check before rendering:
 
@@ -170,6 +188,7 @@ If the run failed, start with:
 For the helper command, inspect:
 
 - `harness/work/smoke_test_.../smoke_test_report.json`
+- `harness/work/real_smoke_test_.../smoke_test_report.json`
 
 ## Source clips A and B
 
