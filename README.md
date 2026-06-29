@@ -30,6 +30,31 @@ harness/
   src/
 ```
 
+## Conda environment
+
+The harness Python code currently uses the standard library only, but `prepare-video --source-video` requires the `ffmpeg` executable.
+
+Use the checked-in Conda environment file to create or restore the expected environment:
+
+```powershell
+conda env create -f harness/environment.yml
+conda activate harness
+```
+
+If the environment already exists and you want to sync it to the repo definition:
+
+```powershell
+conda env update -f harness/environment.yml --prune
+conda activate harness
+```
+
+Verify that `ffmpeg` is available inside the active environment:
+
+```powershell
+ffmpeg -version
+Get-Command ffmpeg
+```
+
 ## Commands
 
 Run from the repository root:
@@ -162,8 +187,6 @@ For the common test-fixture case, `prepare-pair` generates both sides together u
 - `source_a/`
 - `source_b/`
 
-`ffmpeg` is not installed in this environment, so only the solid-color path is runnable here today.
-
 For quick harness testing, blue/green fixtures are a good baseline because they make transition behavior obvious without source-content noise.
 
 Both official smoke-test jobs now point to the dedicated blue/green fixture pair under `harness/examples/fixtures/blue_green/`.
@@ -177,7 +200,3 @@ See:
 
 - `harness/examples/effect_specs/builtin_seamless_sliding.json`
 - `harness/examples/effect_specs/generated_SeamlessSliding_placeholder.json`
-
-## Next step
-
-Add a small headless renderer executable that accepts the prepared render request written by this harness and emits an image sequence for evaluation.
