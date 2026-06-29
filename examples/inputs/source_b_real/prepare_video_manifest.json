@@ -1,0 +1,10 @@
+{
+  "ffmpeg": "C:\\Users\\albert_hsu.CLT\\AppData\\Local\\miniconda3\\envs\\harness\\Library\\bin\\ffmpeg.EXE",
+  "format": "png_sequence",
+  "fps": 30,
+  "frame_count": 301,
+  "height": 1080,
+  "mode": "extract_video",
+  "source_video": "D:\\AI_Harness\\harness\\Skateboard02.mp4",
+  "width": 1920
+}
