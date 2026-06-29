@@ -39,8 +39,8 @@ def prepare_render_invocation(
         "repo_root": str(repo_root),
         "output_dir": str(workspace.artifacts_dir),
         "notes": [
-            "This request file is the contract for the future headless C++ renderer shim.",
-            "The current Python scaffold does not render frames yet.",
+            "This request file is the contract between the Python harness and the headless C++ renderer shim.",
+            "Rendering works when a built native renderer executable is provided via --renderer.",
         ],
     }
     write_json(request_file, payload)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import UTC, datetime
 import json
 from pathlib import Path
 import sys
@@ -12,6 +13,12 @@ from .report import HarnessReport
 from .validator import validate_job
 from .video_prep import extract_video_frames, prepare_solid_color_frames
 from .workspace import create_job_workspace, write_json
+
+
+OFFICIAL_SMOKE_TEST_JOBS = (
+    "harness/examples/render_job.sample.json",
+    "harness/examples/render_job.effect_spec.sample.json",
+)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -26,51 +33,27 @@ def main(argv: list[str] | None = None) -> int:
         return _handle_prepare_video(args, repo_root)
     if args.command == "prepare-pair":
         return _handle_prepare_pair(args, repo_root)
+    if args.command == "smoke-test":
+        return _handle_smoke_test(args, repo_root, harness_root, config_dir)
 
-    job = load_render_job(Path(args.job).resolve())
-    allowed_effects = load_allowed_effects(config_dir)
-    validation = validate_job(job, repo_root, allowed_effects)
+    result = _execute_job_command(
+        repo_root=repo_root,
+        harness_root=harness_root,
+        config_dir=config_dir,
+        job_path=Path(args.job).resolve(),
+        command_name=args.command,
+        renderer=getattr(args, "renderer", None),
+    )
 
     if args.command == "validate":
-        return _handle_validate(validation)
-
-    if not validation.is_valid:
-        _print_validation(validation)
-        return 1
-
-    workspace = create_job_workspace(harness_root, job)
-    write_json(workspace.inputs_dir / "job.normalized.json", job.to_dict())
-    write_json(workspace.inputs_dir / "allowed_effects.json", allowed_effects)
-    write_json(workspace.inputs_dir / "eval_thresholds.json", load_eval_thresholds(config_dir))
+        return result["exit_code"]
 
     if args.command == "prepare":
-        print(f"Prepared workspace: {workspace.root}")
-        return 0
+        print(f"Prepared workspace: {result['workspace']}")
+        return result["exit_code"]
 
-    invocation = prepare_render_invocation(repo_root, workspace, job, args.renderer)
-    report = HarnessReport(
-        status=invocation.status,
-        summary=invocation.message,
-        data={
-            "workspace": str(workspace.root),
-            "renderer_executable": invocation.renderer_executable,
-            "request_file": str(invocation.request_file),
-            "renderer_result_file": str(invocation.result_file),
-            "expected_output_dir": str(invocation.expected_output_dir),
-            "exit_code": invocation.exit_code,
-            "stdout": invocation.stdout,
-            "stderr": invocation.stderr,
-            "produced_frame_count": invocation.produced_frame_count,
-            "expected_frame_count": invocation.expected_frame_count,
-            "output_check_message": invocation.output_check_message,
-            "renderer_result": invocation.renderer_result,
-        },
-    )
-    report_path = workspace.reports_dir / "run_report.json"
-    report.write(report_path)
-
-    print(json.dumps({"workspace": str(workspace.root), "report": str(report_path)}, indent=2))
-    return 0
+    print(json.dumps({"workspace": result["workspace"], "report": result["report"]}, indent=2))
+    return result["exit_code"]
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -119,7 +102,91 @@ def _build_parser() -> argparse.ArgumentParser:
     prepare_pair.add_argument("--fps", type=int, default=30, help="Frame rate metadata for the fixture manifests")
     prepare_pair.add_argument("--frame-count", type=int, default=30, help="Frame count for both fixture sequences")
 
+    smoke_test = subparsers.add_parser(
+        "smoke-test",
+        help="Run the two official current-phase smoke-test jobs",
+    )
+    smoke_test.add_argument(
+        "--renderer",
+        required=False,
+        help="Optional path to the native renderer executable for full render smoke tests",
+    )
+
     return parser
+
+
+def _execute_job_command(
+    repo_root: Path,
+    harness_root: Path,
+    config_dir: Path,
+    job_path: Path,
+    command_name: str,
+    renderer: str | None = None,
+) -> dict:
+    job = load_render_job(job_path)
+    allowed_effects = load_allowed_effects(config_dir)
+    validation = validate_job(job, repo_root, allowed_effects)
+
+    if command_name == "validate":
+        _print_validation(validation)
+        return {
+            "exit_code": 0 if validation.is_valid else 1,
+            "validation_valid": validation.is_valid,
+            "job_path": str(job_path),
+        }
+
+    if not validation.is_valid:
+        _print_validation(validation)
+        return {
+            "exit_code": 1,
+            "validation_valid": False,
+            "job_path": str(job_path),
+        }
+
+    workspace = create_job_workspace(harness_root, job)
+    write_json(workspace.inputs_dir / "job.normalized.json", job.to_dict())
+    write_json(workspace.inputs_dir / "allowed_effects.json", allowed_effects)
+    write_json(workspace.inputs_dir / "eval_thresholds.json", load_eval_thresholds(config_dir))
+
+    if command_name == "prepare":
+        return {
+            "exit_code": 0,
+            "validation_valid": True,
+            "job_path": str(job_path),
+            "workspace": str(workspace.root),
+        }
+
+    invocation = prepare_render_invocation(repo_root, workspace, job, renderer)
+    report = HarnessReport(
+        status=invocation.status,
+        summary=invocation.message,
+        data={
+            "workspace": str(workspace.root),
+            "renderer_executable": invocation.renderer_executable,
+            "request_file": str(invocation.request_file),
+            "renderer_result_file": str(invocation.result_file),
+            "expected_output_dir": str(invocation.expected_output_dir),
+            "exit_code": invocation.exit_code,
+            "stdout": invocation.stdout,
+            "stderr": invocation.stderr,
+            "produced_frame_count": invocation.produced_frame_count,
+            "expected_frame_count": invocation.expected_frame_count,
+            "output_check_message": invocation.output_check_message,
+            "renderer_result": invocation.renderer_result,
+        },
+    )
+    report_path = workspace.reports_dir / "run_report.json"
+    report.write(report_path)
+
+    return {
+        "exit_code": 0 if invocation.status in {"succeeded", "blocked"} else 1,
+        "validation_valid": True,
+        "job_path": str(job_path),
+        "workspace": str(workspace.root),
+        "report": str(report_path),
+        "status": invocation.status,
+        "summary": invocation.message,
+    }
 
 
 def _handle_prepare_video(args, repo_root: Path) -> int:
@@ -220,6 +287,76 @@ def _handle_prepare_pair(args, repo_root: Path) -> int:
         )
     )
     return 0
+
+
+def _handle_smoke_test(args, repo_root: Path, harness_root: Path, config_dir: Path) -> int:
+    smoke_test_root = harness_root / "work" / f"smoke_test_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}"
+    smoke_test_root.mkdir(parents=True, exist_ok=False)
+
+    results: list[dict] = []
+    overall_exit_code = 0
+
+    for relative_job_path in OFFICIAL_SMOKE_TEST_JOBS:
+        job_path = (repo_root / relative_job_path).resolve()
+        validation_result = _execute_job_command(
+            repo_root=repo_root,
+            harness_root=harness_root,
+            config_dir=config_dir,
+            job_path=job_path,
+            command_name="validate",
+        )
+
+        job_result = {
+            "job": relative_job_path,
+            "validate_exit_code": validation_result["exit_code"],
+            "validation_valid": validation_result["validation_valid"],
+        }
+
+        if validation_result["exit_code"] != 0:
+            overall_exit_code = 1
+            results.append(job_result)
+            continue
+
+        if args.renderer:
+            run_result = _execute_job_command(
+                repo_root=repo_root,
+                harness_root=harness_root,
+                config_dir=config_dir,
+                job_path=job_path,
+                command_name="run",
+                renderer=args.renderer,
+            )
+            job_result.update(
+                {
+                    "run_exit_code": run_result["exit_code"],
+                    "run_status": run_result.get("status"),
+                    "run_summary": run_result.get("summary"),
+                    "workspace": run_result.get("workspace"),
+                    "report": run_result.get("report"),
+                }
+            )
+            if run_result["exit_code"] != 0:
+                overall_exit_code = 1
+        else:
+            job_result.update(
+                {
+                    "run_status": "not-run",
+                    "run_summary": "renderer not provided; smoke test performed validation only",
+                }
+            )
+
+        results.append(job_result)
+
+    summary = {
+        "status": "succeeded" if overall_exit_code == 0 else "failed",
+        "renderer": args.renderer,
+        "results": results,
+    }
+    summary_path = smoke_test_root / "smoke_test_report.json"
+    write_json(summary_path, summary)
+
+    print(json.dumps({"smoke_test_report": str(summary_path), "results": results}, indent=2))
+    return overall_exit_code
 
 
 def _handle_validate(validation) -> int:

@@ -9,8 +9,8 @@
     }
   },
   "inputs": {
-    "source_a": "harness/examples/inputs/source_a",
-    "source_b": "harness/examples/inputs/source_b",
+    "source_a": "harness/examples/fixtures/blue_green/source_a",
+    "source_b": "harness/examples/fixtures/blue_green/source_b",
     "reference_transition": null
   },
   "render": {

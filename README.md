@@ -15,7 +15,7 @@ The scaffold added here provides:
 - a native Visual Studio console project scaffold for the headless renderer
 - example `effect_spec.json` files for built-in and generated-placeholder routing
 
-It does not yet render frames. That dependency belongs to the next implementation slice: a headless C++ renderer shim around `OverlayTrEngine`.
+The headless C++ renderer shim now exists and can render frames when it is built locally and provided via `--renderer`.
 
 The native renderer project now exists under `harness/native_renderer/`, but it must be built by the user before the Python harness can launch it.
 
@@ -35,16 +35,115 @@ harness/
 Run from the repository root:
 
 ```powershell
+py -3 harness/src/main.py prepare-pair --output-root harness/examples/fixtures/blue_green --color-a blue --color-b green --width 1920 --height 1080 --frame-count 30
 py -3 harness/src/main.py validate --job harness/examples/render_job.sample.json
 py -3 harness/src/main.py prepare --job harness/examples/render_job.sample.json
 py -3 harness/src/main.py run --job harness/examples/render_job.sample.json
-py -3 harness/src/main.py prepare-pair --output-root harness/examples/fixtures/blue_green --color-a blue --color-b green --width 1920 --height 1080 --frame-count 30
+py -3 harness/src/main.py validate --job harness/examples/render_job.effect_spec.sample.json
+py -3 harness/src/main.py smoke-test
+py -3 harness/src/main.py smoke-test --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
+py -3 harness/src/main.py run --job harness/examples/render_job.effect_spec.sample.json --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
 py -3 harness/src/main.py run --job harness/examples/render_job.sample.json --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
 ```
 
 `run` currently validates the job, creates a deterministic work folder, and writes a stub report describing the missing renderer dependency.
 
 If `--renderer` points to a built executable, `run` will invoke it with the generated `render_request.json` file.
+
+## Current Workflow
+
+Use the current phase in this order:
+
+1. Prepare source A and source B frames.
+2. Choose one of the sample render jobs.
+3. Run the Python harness.
+4. Inspect the output frames and generated reports.
+
+### 1. Prepare A/B inputs
+
+For the default fixture-based workflow, generate a paired A/B set:
+
+```powershell
+py -3 harness/src/main.py prepare-pair --output-root harness/examples/fixtures/blue_green --color-a blue --color-b green --width 1920 --height 1080 --frame-count 30
+```
+
+This creates:
+
+- `harness/examples/fixtures/blue_green/source_a/`
+- `harness/examples/fixtures/blue_green/source_b/`
+
+If you want to prepare only one side, use `prepare-video` instead.
+
+### 2. Choose a sample job
+
+There are two official smoke-test jobs for the current phase:
+
+- `harness/examples/render_job.sample.json`
+  baseline built-in effect render using the dedicated blue/green fixture pair
+- `harness/examples/render_job.effect_spec.sample.json`
+  effect-spec routing test that exercises generated-placeholder resolution through a fallback built-in effect
+
+Treat these two files as the phase-1 smoke-test contract:
+
+1. `harness/examples/render_job.sample.json`
+2. `harness/examples/render_job.effect_spec.sample.json`
+
+You can run both together with the helper command:
+
+```powershell
+py -3 harness/src/main.py smoke-test
+py -3 harness/src/main.py smoke-test --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
+```
+
+Without `--renderer`, the helper validates both smoke-test jobs.
+With `--renderer`, it validates and renders both jobs, then writes a combined smoke-test summary report.
+
+Use `validate` first if you want a quick contract check before rendering:
+
+```powershell
+py -3 harness/src/main.py validate --job harness/examples/render_job.sample.json
+py -3 harness/src/main.py validate --job harness/examples/render_job.effect_spec.sample.json
+```
+
+### 3. Run the renderer
+
+Once the native renderer is built, run one of the sample jobs:
+
+```powershell
+py -3 harness/src/main.py run --job harness/examples/render_job.sample.json --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
+py -3 harness/src/main.py run --job harness/examples/render_job.effect_spec.sample.json --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
+```
+
+Each run creates a new work folder under `harness/work/` named after the job and timestamp.
+
+### 4. Inspect outputs and reports
+
+Each run writes these key artifacts inside its work folder:
+
+- `artifacts/`
+  rendered output frames such as `frame_0000.png`
+- `render/render_request.json`
+  the exact request passed from Python to the native renderer
+- `render/renderer_result.json`
+  native renderer result summary, including resolved effect information
+- `reports/run_report.json`
+  Python-side summary containing process output, frame-count checks, and renderer result data
+
+If the run succeeded, you should expect:
+
+- PNG frames in `artifacts/`
+- `status: succeeded` in `reports/run_report.json`
+- `status: succeeded` in `render/renderer_result.json`
+
+If the run failed, start with:
+
+1. `reports/run_report.json`
+2. `render/renderer_result.json`
+3. whether `artifacts/` contains any frames at all
+
+For the helper command, inspect:
+
+- `harness/work/smoke_test_.../smoke_test_report.json`
 
 ## Source clips A and B
 
@@ -67,7 +166,7 @@ For the common test-fixture case, `prepare-pair` generates both sides together u
 
 For quick harness testing, blue/green fixtures are a good baseline because they make transition behavior obvious without source-content noise.
 
-The default sample render job now points to the dedicated blue/green fixture pair under `harness/examples/fixtures/blue_green/`.
+Both official smoke-test jobs now point to the dedicated blue/green fixture pair under `harness/examples/fixtures/blue_green/`.
 
 When `effect.effect_spec` is provided in the render job, the native renderer now resolves the effect in one of two modes:
 
@@ -77,7 +176,7 @@ When `effect.effect_spec` is provided in the render job, the native renderer now
 See:
 
 - `harness/examples/effect_specs/builtin_seamless_sliding.json`
-- `harness/examples/effect_specs/generated_glitch_placeholder.json`
+- `harness/examples/effect_specs/generated_SeamlessSliding_placeholder.json`
 
 ## Next step
 
