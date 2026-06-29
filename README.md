@@ -120,6 +120,28 @@ py -3 harness/src/main.py plan-job --preset real-smoke-generated-glitch
 py -3 harness/src/main.py plan-job --preset fixture-smoke-seamless
 ```
 
+You can also let the planner choose a preset or mode from explicit inputs plus a small style hint:
+
+```powershell
+py -3 harness/src/main.py plan-job --auto --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --style seamless
+py -3 harness/src/main.py plan-job --auto --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --style generated-glitch
+```
+
+The first auto slice supports these style hints:
+
+- `seamless`
+- `smooth`
+- `glitch`
+- `generated-seamless`
+- `generated-glitch`
+
+`--input-kind` can be used to override auto detection when needed:
+
+- `auto`
+- `real`
+- `fixture`
+- `custom`
+
 Preset values can still be overridden explicitly. For example:
 
 ```powershell

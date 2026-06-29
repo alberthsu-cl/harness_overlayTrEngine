@@ -76,6 +76,25 @@ PLANNER_PRESET_ALIASES: dict[str, str] = {
 }
 
 
+AUTO_STYLE_TO_MODE: dict[str, str] = {
+    "seamless": "builtin-seamless",
+    "smooth": "builtin-seamless",
+    "glitch": "builtin-glitch",
+    "generated-seamless": "generated-seamless-placeholder",
+    "generated-glitch": "generated-glitch-placeholder",
+}
+
+
+AUTO_KIND_STYLE_TO_PRESET: dict[tuple[str, str], str] = {
+    ("real", "seamless"): "real-smoke-seamless",
+    ("real", "smooth"): "real-smoke-seamless",
+    ("real", "glitch"): "real-smoke-glitch",
+    ("real", "generated-glitch"): "real-smoke-generated-glitch",
+    ("fixture", "seamless"): "fixture-smoke-seamless",
+    ("fixture", "smooth"): "fixture-smoke-seamless",
+}
+
+
 def build_planned_job(
     repo_root: Path,
     source_a: Path,
@@ -147,9 +166,58 @@ def planner_preset(name: str) -> dict[str, str | None]:
     return dict(PLANNER_PRESETS[resolved_name])
 
 
+def auto_styles() -> tuple[str, ...]:
+    return tuple(AUTO_STYLE_TO_MODE.keys())
+
+
+def auto_input_kinds() -> tuple[str, ...]:
+    return ("auto", "real", "fixture", "custom")
+
+
+def resolve_auto_plan(
+    repo_root: Path,
+    source_a: Path,
+    source_b: Path,
+    style: str,
+    input_kind: str,
+) -> tuple[str | None, str, str]:
+    resolved_kind = input_kind
+    if resolved_kind == "auto":
+        resolved_kind = infer_input_kind(repo_root, source_a, source_b)
+
+    preset = AUTO_KIND_STYLE_TO_PRESET.get((resolved_kind, style))
+    mode = AUTO_STYLE_TO_MODE[style]
+    return preset, mode, resolved_kind
+
+
+def infer_input_kind(repo_root: Path, source_a: Path, source_b: Path) -> str:
+    relative_a = _try_relative_repo_path(source_a, repo_root)
+    relative_b = _try_relative_repo_path(source_b, repo_root)
+
+    if relative_a == Path("harness/examples/inputs/source_a_real") and relative_b == Path(
+        "harness/examples/inputs/source_b_real"
+    ):
+        return "real"
+
+    if relative_a == Path("harness/examples/fixtures/blue_green/source_a") and relative_b == Path(
+        "harness/examples/fixtures/blue_green/source_b"
+    ):
+        return "fixture"
+
+    return "custom"
+
+
 def _format_repo_path(path: Path, repo_root: Path) -> str:
     resolved = path.resolve()
     try:
         return resolved.relative_to(repo_root).as_posix()
     except ValueError:
         return str(resolved)
+
+
+def _try_relative_repo_path(path: Path, repo_root: Path) -> Path | None:
+    resolved = path.resolve()
+    try:
+        return resolved.relative_to(repo_root)
+    except ValueError:
+        return None

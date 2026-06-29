@@ -8,7 +8,15 @@ import sys
 
 from .config import load_allowed_effects, load_eval_thresholds
 from .models import load_render_job
-from .planner import build_planned_job, planner_modes, planner_preset, planner_presets
+from .planner import (
+    auto_input_kinds,
+    auto_styles,
+    build_planned_job,
+    planner_modes,
+    planner_preset,
+    planner_presets,
+    resolve_auto_plan,
+)
 from .renderer import prepare_render_invocation
 from .report import HarnessReport
 from .validator import validate_job
@@ -131,6 +139,11 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=planner_presets(),
         help="Optional shortcut for a common plan-job workflow",
     )
+    plan_job.add_argument(
+        "--auto",
+        action="store_true",
+        help="Automatically choose a planner preset or mode from input-kind and style hints",
+    )
     plan_job.add_argument("--source-a", required=False, help="Path to the prepared source A frames")
     plan_job.add_argument("--source-b", required=False, help="Path to the prepared source B frames")
     plan_job.add_argument("--job-output", required=False, help="Output path for the planned render job JSON")
@@ -141,6 +154,19 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Planner effect mode",
     )
     plan_job.add_argument("--job-name", required=False, help="Optional explicit job_name override")
+    plan_job.add_argument(
+        "--style",
+        required=False,
+        choices=auto_styles(),
+        help="High-level style hint for --auto planning",
+    )
+    plan_job.add_argument(
+        "--input-kind",
+        required=False,
+        default="auto",
+        choices=auto_input_kinds(),
+        help="Input kind hint for --auto planning; defaults to auto detection",
+    )
     plan_job.add_argument(
         "--effect-spec-output",
         required=False,
@@ -367,12 +393,39 @@ def _handle_prepare_pair(args, repo_root: Path) -> int:
 
 
 def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
-    preset = planner_preset(args.preset) if args.preset else {}
+    preset_name = args.preset
+    preset = planner_preset(preset_name) if preset_name else {}
+
+    source_a_for_auto = None
+    source_b_for_auto = None
+    auto_input_kind = None
+    auto_mode = None
+
+    if args.auto:
+        if not args.style:
+            print("plan-job failed: --style is required when --auto is used")
+            return 1
+        if not args.source_a or not args.source_b:
+            print("plan-job failed: --source-a and --source-b are required when --auto is used")
+            return 1
+
+        source_a_for_auto = _resolve_path_argument(str(args.source_a), repo_root)
+        source_b_for_auto = _resolve_path_argument(str(args.source_b), repo_root)
+        auto_preset_name, auto_mode, auto_input_kind = resolve_auto_plan(
+            repo_root=repo_root,
+            source_a=source_a_for_auto,
+            source_b=source_b_for_auto,
+            style=args.style,
+            input_kind=args.input_kind,
+        )
+        if auto_preset_name:
+            preset_name = auto_preset_name
+            preset = planner_preset(preset_name)
 
     source_a_raw = args.source_a or preset.get("source_a")
     source_b_raw = args.source_b or preset.get("source_b")
     job_output_raw = args.job_output or preset.get("job_output")
-    mode = args.mode or preset.get("mode")
+    mode = args.mode or auto_mode or preset.get("mode")
     job_name = args.job_name or preset.get("job_name")
     effect_spec_output_raw = args.effect_spec_output or preset.get("effect_spec_output")
 
@@ -436,7 +489,10 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
     result = {
         "job_output": str(job_output),
         "mode": mode,
-        "preset": args.preset,
+        "preset": preset_name,
+        "auto": args.auto,
+        "style": args.style,
+        "input_kind": auto_input_kind or args.input_kind,
         "job_name": job.job_name,
         "validation_valid": validation.is_valid,
         "issues": [
