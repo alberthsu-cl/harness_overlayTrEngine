@@ -71,9 +71,9 @@ py -3 harness/src/main.py run --job harness/examples/render_job.effect_spec.samp
 py -3 harness/src/main.py run --job harness/examples/render_job.sample.json --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
 ```
 
-`run` currently validates the job, creates a deterministic work folder, and writes a stub report describing the missing renderer dependency.
+If `harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe` exists, `run` and `smoke-test` will use it automatically when `--renderer` is omitted.
 
-If `--renderer` points to a built executable, `run` will invoke it with the generated `render_request.json` file.
+If you want a different build output, pass `--renderer` explicitly.
 
 ## Current Workflow
 
@@ -120,8 +120,8 @@ py -3 harness/src/main.py smoke-test
 py -3 harness/src/main.py smoke-test --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
 ```
 
-Without `--renderer`, the helper validates both smoke-test jobs.
-With `--renderer`, it validates and renders both jobs, then writes a combined smoke-test summary report.
+Without `--renderer`, the helper validates both smoke-test jobs if the default renderer path is not present.
+With a built default renderer or an explicit `--renderer`, it validates and renders both jobs, then writes a combined smoke-test summary report.
 
 Use `validate` first if you want a quick contract check before rendering:
 
@@ -135,6 +135,7 @@ py -3 harness/src/main.py validate --job harness/examples/render_job.effect_spec
 Once the native renderer is built, run one of the sample jobs:
 
 ```powershell
+py -3 harness/src/main.py run --job harness/examples/render_job.sample.json
 py -3 harness/src/main.py run --job harness/examples/render_job.sample.json --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
 py -3 harness/src/main.py run --job harness/examples/render_job.effect_spec.sample.json --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
 ```

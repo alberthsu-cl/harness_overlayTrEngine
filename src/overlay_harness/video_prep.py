@@ -105,6 +105,8 @@ def extract_video_frames(
         "-y",
         "-i",
         str(source_video),
+        "-start_number",
+        "0",
         "-vf",
         ",".join(vf_parts),
         str(frame_pattern),

@@ -20,6 +20,10 @@ OFFICIAL_SMOKE_TEST_JOBS = (
     "harness/examples/render_job.effect_spec.sample.json",
 )
 
+DEFAULT_RENDERER_RELATIVE_PATH = Path(
+    "harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe"
+)
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
@@ -28,13 +32,14 @@ def main(argv: list[str] | None = None) -> int:
     repo_root = Path(__file__).resolve().parents[3]
     harness_root = repo_root / "harness"
     config_dir = harness_root / "configs"
+    default_renderer = _resolve_default_renderer(repo_root)
 
     if args.command == "prepare-video":
         return _handle_prepare_video(args, repo_root)
     if args.command == "prepare-pair":
         return _handle_prepare_pair(args, repo_root)
     if args.command == "smoke-test":
-        return _handle_smoke_test(args, repo_root, harness_root, config_dir)
+        return _handle_smoke_test(args, repo_root, harness_root, config_dir, default_renderer)
 
     result = _execute_job_command(
         repo_root=repo_root,
@@ -42,7 +47,7 @@ def main(argv: list[str] | None = None) -> int:
         config_dir=config_dir,
         job_path=Path(args.job).resolve(),
         command_name=args.command,
-        renderer=getattr(args, "renderer", None),
+        renderer=_resolve_renderer_argument(getattr(args, "renderer", None), default_renderer),
     )
 
     if args.command == "validate":
@@ -67,7 +72,11 @@ def _build_parser() -> argparse.ArgumentParser:
             command.add_argument(
                 "--renderer",
                 required=False,
-                help="Path to the future headless renderer executable",
+                    help=(
+                        "Path to the headless renderer executable; defaults to "
+                        "harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe "
+                        "when that file exists"
+                    ),
             )
 
     prepare_video = subparsers.add_parser(
@@ -109,7 +118,11 @@ def _build_parser() -> argparse.ArgumentParser:
     smoke_test.add_argument(
         "--renderer",
         required=False,
-        help="Optional path to the native renderer executable for full render smoke tests",
+            help=(
+                "Optional path to the native renderer executable for full render smoke tests; "
+                "defaults to harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe "
+                "when that file exists"
+            ),
     )
 
     return parser
@@ -289,12 +302,19 @@ def _handle_prepare_pair(args, repo_root: Path) -> int:
     return 0
 
 
-def _handle_smoke_test(args, repo_root: Path, harness_root: Path, config_dir: Path) -> int:
+def _handle_smoke_test(
+    args,
+    repo_root: Path,
+    harness_root: Path,
+    config_dir: Path,
+    default_renderer: str | None,
+) -> int:
     smoke_test_root = harness_root / "work" / f"smoke_test_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}"
     smoke_test_root.mkdir(parents=True, exist_ok=False)
 
     results: list[dict] = []
     overall_exit_code = 0
+    renderer = _resolve_renderer_argument(args.renderer, default_renderer)
 
     for relative_job_path in OFFICIAL_SMOKE_TEST_JOBS:
         job_path = (repo_root / relative_job_path).resolve()
@@ -317,14 +337,14 @@ def _handle_smoke_test(args, repo_root: Path, harness_root: Path, config_dir: Pa
             results.append(job_result)
             continue
 
-        if args.renderer:
+        if renderer:
             run_result = _execute_job_command(
                 repo_root=repo_root,
                 harness_root=harness_root,
                 config_dir=config_dir,
                 job_path=job_path,
                 command_name="run",
-                renderer=args.renderer,
+                renderer=renderer,
             )
             job_result.update(
                 {
@@ -349,7 +369,7 @@ def _handle_smoke_test(args, repo_root: Path, harness_root: Path, config_dir: Pa
 
     summary = {
         "status": "succeeded" if overall_exit_code == 0 else "failed",
-        "renderer": args.renderer,
+        "renderer": renderer,
         "results": results,
     }
     summary_path = smoke_test_root / "smoke_test_report.json"
@@ -357,6 +377,19 @@ def _handle_smoke_test(args, repo_root: Path, harness_root: Path, config_dir: Pa
 
     print(json.dumps({"smoke_test_report": str(summary_path), "results": results}, indent=2))
     return overall_exit_code
+
+
+def _resolve_default_renderer(repo_root: Path) -> str | None:
+    renderer_path = (repo_root / DEFAULT_RENDERER_RELATIVE_PATH).resolve()
+    if renderer_path.exists():
+        return str(renderer_path)
+    return None
+
+
+def _resolve_renderer_argument(renderer: str | None, default_renderer: str | None) -> str | None:
+    if renderer:
+        return renderer
+    return default_renderer
 
 
 def _handle_validate(validation) -> int:
