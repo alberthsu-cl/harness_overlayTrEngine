@@ -1,0 +1,7 @@
+{
+  "style_hint": "generated-glitch",
+  "input_kind": "real",
+  "reference_transition": null,
+  "job_name": "hinted_generated_glitch_real",
+  "notes": "Prefer a glitch-like generated placeholder route for the prepared real input pair."
+}

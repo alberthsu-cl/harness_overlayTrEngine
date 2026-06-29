@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 import json
 
+from typing import Any
+
 from .models import EffectSpec, InputSpec, RenderJob, RenderSettings
 
 
@@ -164,6 +166,11 @@ def planner_presets() -> tuple[str, ...]:
 def planner_preset(name: str) -> dict[str, str | None]:
     resolved_name = PLANNER_PRESET_ALIASES.get(name, name)
     return dict(PLANNER_PRESETS[resolved_name])
+
+
+def load_transition_hint(file_path: Path) -> dict[str, Any]:
+    with file_path.open("r", encoding="utf-8") as handle:
+        return json.load(handle)
 
 
 def auto_styles() -> tuple[str, ...]:

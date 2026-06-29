@@ -127,6 +127,17 @@ py -3 harness/src/main.py plan-job --auto --source-a harness/examples/inputs/sou
 py -3 harness/src/main.py plan-job --auto --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --style generated-glitch
 ```
 
+The next-step contract for future analysis is a small hint file. `plan-job` can read that file and still use the same planner underneath:
+
+```powershell
+py -3 harness/src/main.py plan-job --hint-file harness/examples/transition_hint.sample.json --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --job-output harness/examples/hinted.render_job.json
+```
+
+See:
+
+- `harness/examples/transition_hint.sample.json`
+- `harness/schemas/transition_hint.schema.json`
+
 The first auto slice supports these style hints:
 
 - `seamless`

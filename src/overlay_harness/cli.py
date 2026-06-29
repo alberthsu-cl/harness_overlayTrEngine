@@ -12,6 +12,7 @@ from .planner import (
     auto_input_kinds,
     auto_styles,
     build_planned_job,
+    load_transition_hint,
     planner_modes,
     planner_preset,
     planner_presets,
@@ -138,6 +139,11 @@ def _build_parser() -> argparse.ArgumentParser:
         required=False,
         choices=planner_presets(),
         help="Optional shortcut for a common plan-job workflow",
+    )
+    plan_job.add_argument(
+        "--hint-file",
+        required=False,
+        help="Optional transition hint JSON file that provides preset/style/input-kind/reference metadata",
     )
     plan_job.add_argument(
         "--auto",
@@ -393,7 +399,24 @@ def _handle_prepare_pair(args, repo_root: Path) -> int:
 
 
 def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
+    hint_data: dict | None = None
+    if args.hint_file:
+        hint_path = _resolve_path_argument(args.hint_file, repo_root)
+        try:
+            hint_data = load_transition_hint(hint_path)
+        except Exception as exc:
+            print(f"plan-job failed: could not load hint file: {exc}")
+            return 1
+
+    hint_preset = hint_data.get("preset") if hint_data else None
+    hint_style = hint_data.get("style_hint") if hint_data else None
+    hint_input_kind = hint_data.get("input_kind") if hint_data else None
+    hint_reference_transition = hint_data.get("reference_transition") if hint_data else None
+    hint_job_name = hint_data.get("job_name") if hint_data else None
+
     preset_name = args.preset
+    if not preset_name and hint_preset:
+        preset_name = hint_preset
     preset = planner_preset(preset_name) if preset_name else {}
 
     source_a_for_auto = None
@@ -401,8 +424,13 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
     auto_input_kind = None
     auto_mode = None
 
-    if args.auto:
-        if not args.style:
+    auto_requested = args.auto or bool(hint_style)
+
+    if auto_requested:
+        effective_style = args.style or hint_style
+        effective_input_kind = hint_input_kind or args.input_kind
+
+        if not effective_style:
             print("plan-job failed: --style is required when --auto is used")
             return 1
         if not args.source_a or not args.source_b:
@@ -415,8 +443,8 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
             repo_root=repo_root,
             source_a=source_a_for_auto,
             source_b=source_b_for_auto,
-            style=args.style,
-            input_kind=args.input_kind,
+            style=effective_style,
+            input_kind=effective_input_kind,
         )
         if auto_preset_name:
             preset_name = auto_preset_name
@@ -426,7 +454,7 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
     source_b_raw = args.source_b or preset.get("source_b")
     job_output_raw = args.job_output or preset.get("job_output")
     mode = args.mode or auto_mode or preset.get("mode")
-    job_name = args.job_name or preset.get("job_name")
+    job_name = args.job_name or hint_job_name or preset.get("job_name")
     effect_spec_output_raw = args.effect_spec_output or preset.get("effect_spec_output")
 
     missing_fields = [
@@ -457,6 +485,8 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
     reference_transition = (
         _resolve_path_argument(args.reference_transition, repo_root)
         if args.reference_transition
+        else _resolve_path_argument(str(hint_reference_transition), repo_root)
+        if hint_reference_transition
         else None
     )
 
@@ -490,9 +520,10 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
         "job_output": str(job_output),
         "mode": mode,
         "preset": preset_name,
-        "auto": args.auto,
-        "style": args.style,
-        "input_kind": auto_input_kind or args.input_kind,
+        "auto": auto_requested,
+        "style": args.style or hint_style,
+        "input_kind": auto_input_kind or hint_input_kind or args.input_kind,
+        "hint_file": args.hint_file,
         "job_name": job.job_name,
         "validation_valid": validation.is_valid,
         "issues": [

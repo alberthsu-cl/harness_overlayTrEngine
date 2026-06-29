@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OverlayTransitionHint",
+  "type": "object",
+  "properties": {
+    "preset": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "style_hint": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "seamless",
+        "smooth",
+        "glitch",
+        "generated-seamless",
+        "generated-glitch",
+        null
+      ]
+    },
+    "input_kind": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "auto",
+        "real",
+        "fixture",
+        "custom",
+        null
+      ]
+    },
+    "reference_transition": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "job_name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": true
+}
