@@ -119,7 +119,12 @@ def _build_parser() -> argparse.ArgumentParser:
     prepare_video.add_argument("--width", type=int, default=1920, help="Target output width")
     prepare_video.add_argument("--height", type=int, default=1080, help="Target output height")
     prepare_video.add_argument("--fps", type=int, default=30, help="Frame rate for extraction or fixture metadata")
-    prepare_video.add_argument("--frame-count", type=int, default=30, help="Frame count for solid-color generation")
+    prepare_video.add_argument(
+        "--frame-count",
+        type=int,
+        default=None,
+        help="Frame count for solid-color generation or an optional cap for video extraction",
+    )
     prepare_video.add_argument("--ffmpeg", required=False, help="Optional path to ffmpeg for video extraction mode")
 
     prepare_pair = subparsers.add_parser(
@@ -356,7 +361,7 @@ def _handle_prepare_video(args, repo_root: Path) -> int:
                 color=args.solid_color,
                 width=args.width,
                 height=args.height,
-                frame_count=args.frame_count,
+                frame_count=args.frame_count or 30,
                 fps=args.fps,
             )
         else:
@@ -369,6 +374,7 @@ def _handle_prepare_video(args, repo_root: Path) -> int:
                 fps=args.fps,
                 width=args.width,
                 height=args.height,
+                frame_count=args.frame_count,
                 ffmpeg_path=args.ffmpeg,
             )
     except Exception as exc:

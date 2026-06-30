@@ -306,6 +306,8 @@ Today, the harness expects these as image sequences or still images. The new `pr
 - `--solid-color`: generate a synthetic frame sequence without any external dependency
 - `--source-video`: extract frames from a real video file using `ffmpeg`
 
+When using `--source-video`, `--frame-count` is optional. If you provide it, extraction stops after that many frames. If you omit it, the harness extracts the full video sequence at the requested `fps`.
+
 For the common test-fixture case, `prepare-pair` generates both sides together under one root folder:
 
 - `source_a/`

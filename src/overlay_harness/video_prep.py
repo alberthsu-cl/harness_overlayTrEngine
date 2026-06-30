@@ -83,6 +83,7 @@ def extract_video_frames(
     fps: int,
     width: int | None,
     height: int | None,
+    frame_count: int | None = None,
     ffmpeg_path: str | None = None,
 ) -> PrepareVideoResult:
     ffmpeg_executable = ffmpeg_path or shutil.which("ffmpeg")
@@ -107,10 +108,15 @@ def extract_video_frames(
         str(source_video),
         "-start_number",
         "0",
+    ]
+    if frame_count is not None:
+        command.extend(["-frames:v", str(frame_count)])
+
+    command.extend([
         "-vf",
         ",".join(vf_parts),
         str(frame_pattern),
-    ]
+    ])
     completed = subprocess.run(command, capture_output=True, text=True, check=False)
     if completed.returncode != 0:
         raise RuntimeError(
@@ -125,6 +131,7 @@ def extract_video_frames(
         "fps": fps,
         "width": width,
         "height": height,
+        "requested_frame_count": frame_count,
         "frame_count": produced_frames,
         "format": "png_sequence",
         "ffmpeg": ffmpeg_executable,
