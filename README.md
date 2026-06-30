@@ -178,14 +178,18 @@ py -3 harness/src/main.py plan-job --hint-file harness/examples/transition_hint.
 py -3 harness/src/main.py plan-job --hint-file harness/examples/analyzed.transition_hint.json --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --job-output harness/examples/analyzed.render_job.json
 py -3 harness/src/main.py plan-job --analysis-file harness/examples/transition_analysis.sample.json --job-output harness/examples/analyzed.from_analysis.render_job.json
 py -3 harness/src/main.py plan-job --analysis-file harness/examples/transition_analysis.sample.json --recompute-plan-from-facts --job-output harness/examples/analyzed.recomputed.render_job.json
+py -3 harness/src/main.py plan-job --analysis-file harness/examples/transition_analysis.sample.json --recompute-plan-from-facts --comparison-output harness/examples/analyzed.plan_comparison.json --job-output harness/examples/analyzed.recomputed.render_job.json
 ```
 
 `--recompute-plan-from-facts` is useful when you want to compare the embedded recommendation against a fresh deterministic recompute from the factual analysis layer.
+
+If you also provide `--comparison-output`, `plan-job` writes a reusable JSON audit artifact with the embedded plan, the recomputed plan, their summaries, and whether the core planning fields match.
 
 See:
 
 - `harness/examples/transition_hint.sample.json`
 - `harness/examples/transition_analysis.sample.json`
+- `harness/schemas/plan_comparison_report.schema.json`
 - `harness/schemas/transition_hint.schema.json`
 - `harness/schemas/transition_analysis.schema.json`
 - `harness/examples/clip_metadata.sample.json`

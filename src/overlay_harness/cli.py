@@ -213,6 +213,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional richer transition analysis JSON file; plan-job derives the planner hint from its embedded hint object",
     )
     plan_job.add_argument(
+        "--comparison-output",
+        required=False,
+        help="Optional output path for a JSON plan comparison report when planning from an analysis artifact",
+    )
+    plan_job.add_argument(
         "--recompute-plan-from-facts",
         action="store_true",
         help="When using --analysis-file, ignore the embedded planning recommendation and recompute a fresh one from the analysis facts",
@@ -578,9 +583,15 @@ def _format_path_for_output(path: Path | None, repo_root: Path) -> str | None:
 def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
     analysis_data: dict | None = None
     hint_data: dict | None = None
+    comparison_output: Path | None = None
     if args.hint_file and args.analysis_file:
         print("plan-job failed: use either --hint-file or --analysis-file, not both")
         return 1
+    if args.comparison_output and not args.analysis_file:
+        print("plan-job failed: --comparison-output requires --analysis-file")
+        return 1
+    if args.comparison_output:
+        comparison_output = _resolve_path_argument(args.comparison_output, repo_root)
 
     if args.hint_file:
         hint_path = _resolve_path_argument(args.hint_file, repo_root)
@@ -798,6 +809,30 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
     if effect_spec_output is not None and effect_spec_payload is not None:
         result["effect_spec_output"] = str(effect_spec_output)
 
+    if comparison_output is not None:
+        comparison_report = _build_plan_comparison_report(
+            analysis_file=args.analysis_file,
+            job_output=job_output,
+            plan_source=result["plan_source"],
+            selected_plan={
+                "auto": auto_requested,
+                "style": result["style"],
+                "input_kind": result["input_kind"],
+                "preset": preset_name,
+                "mode": mode,
+                "job_name": job.job_name,
+            },
+            embedded_plan=embedded_plan,
+            embedded_plan_summary=result.get("embedded_plan_summary"),
+            recomputed_plan=recomputed_plan,
+            recomputed_plan_summary=result.get("recomputed_plan_summary"),
+            recompute_matches_embedded=result.get("recompute_matches_embedded"),
+            validation_valid=validation.is_valid,
+            issues=result["issues"],
+        )
+        write_json(comparison_output, comparison_report)
+        result["comparison_output"] = str(comparison_output)
+
     print(json.dumps(result, indent=2))
     return 0 if validation.is_valid else 1
 
@@ -810,6 +845,36 @@ def _summarize_plan_fields(plan_data: dict) -> dict[str, str | bool | None]:
         "preset": str(plan_data.get("preset")) if plan_data.get("preset") is not None else None,
         "mode": str(plan_data.get("mode")) if plan_data.get("mode") is not None else None,
         "job_name": str(plan_data.get("job_name")) if plan_data.get("job_name") is not None else None,
+    }
+
+
+def _build_plan_comparison_report(
+    analysis_file: str | None,
+    job_output: Path,
+    plan_source: str,
+    selected_plan: dict[str, str | bool | None],
+    embedded_plan: dict | None,
+    embedded_plan_summary: dict[str, str | bool | None] | None,
+    recomputed_plan: dict | None,
+    recomputed_plan_summary: dict[str, str | bool | None] | None,
+    recompute_matches_embedded: bool | None,
+    validation_valid: bool,
+    issues: list[dict],
+) -> dict[str, object]:
+    return {
+        "report_type": "plan_comparison",
+        "report_version": 1,
+        "analysis_file": analysis_file,
+        "job_output": str(job_output),
+        "plan_source": plan_source,
+        "selected_plan": selected_plan,
+        "embedded_plan": embedded_plan,
+        "embedded_plan_summary": embedded_plan_summary,
+        "recomputed_plan": recomputed_plan,
+        "recomputed_plan_summary": recomputed_plan_summary,
+        "recompute_matches_embedded": recompute_matches_embedded,
+        "validation_valid": validation_valid,
+        "issues": issues,
     }
 
 

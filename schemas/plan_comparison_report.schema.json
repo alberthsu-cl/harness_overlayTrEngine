@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OverlayPlanComparisonReport",
+  "type": "object",
+  "properties": {
+    "report_type": {
+      "const": "plan_comparison"
+    },
+    "report_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "analysis_file": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "job_output": {
+      "type": "string"
+    },
+    "plan_source": {
+      "type": "string"
+    },
+    "selected_plan": {
+      "type": "object"
+    },
+    "embedded_plan": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "embedded_plan_summary": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "recomputed_plan": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "recomputed_plan_summary": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "recompute_matches_embedded": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "validation_valid": {
+      "type": "boolean"
+    },
+    "issues": {
+      "type": "array"
+    }
+  },
+  "required": [
+    "report_type",
+    "report_version",
+    "job_output",
+    "plan_source",
+    "selected_plan",
+    "validation_valid",
+    "issues"
+  ],
+  "additionalProperties": true
+}
