@@ -158,6 +158,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional output path for a richer transition analysis artifact; defaults next to the hint output",
     )
     analyze_transition_cmd.add_argument(
+        "--comparison-output",
+        required=False,
+        help="Optional output path for a JSON audit report that compares the embedded recommendation with a fresh recompute from the analysis facts",
+    )
+    analyze_transition_cmd.add_argument(
         "--clip-metadata-file",
         required=False,
         help="Optional clip metadata JSON file that the analyzer can use to derive style and other hint fields",
@@ -481,6 +486,9 @@ def _handle_analyze_transition(args, repo_root: Path) -> int:
     source_b = _resolve_path_argument(args.source_b, repo_root)
     hint_output = _resolve_path_argument(args.hint_output, repo_root)
     analysis_output = _resolve_analysis_output(args.analysis_output, hint_output)
+    comparison_output = (
+        _resolve_path_argument(args.comparison_output, repo_root) if args.comparison_output else None
+    )
     metadata_inputs: dict | None = None
 
     if args.clip_metadata_file:
@@ -538,6 +546,40 @@ def _handle_analyze_transition(args, repo_root: Path) -> int:
             hint=hint,
         )
         write_json(analysis_output, analysis_artifact)
+
+        if comparison_output is not None:
+            embedded_plan = extract_plan_from_analysis(analysis_artifact)
+            resolved_facts = extract_resolved_facts_from_analysis(analysis_artifact)
+            if not embedded_plan or not resolved_facts:
+                raise ValueError("analysis artifact is missing planning or resolved facts for comparison output")
+
+            recomputed_plan = build_recommended_plan(
+                repo_root=repo_root,
+                source_a=source_a,
+                source_b=source_b,
+                hint_data={
+                    "style_hint": resolved_facts.get("style_hint"),
+                    "input_kind": resolved_facts.get("input_kind"),
+                    "job_name": resolved_facts.get("job_name"),
+                    "reference_transition": analysis_artifact.get("sources", {}).get("reference_transition"),
+                },
+            )
+            comparison_report = _build_plan_comparison_report(
+                analysis_file=_format_path_for_output(analysis_output, repo_root),
+                job_output=None,
+                plan_source="analyze_transition_embedded_and_recomputed",
+                selected_plan=_summarize_plan_fields(embedded_plan),
+                embedded_plan=embedded_plan,
+                embedded_plan_summary=_summarize_plan_fields(embedded_plan),
+                recomputed_plan=recomputed_plan,
+                recomputed_plan_summary=_summarize_plan_fields(recomputed_plan),
+                recompute_matches_embedded=(
+                    _summarize_plan_fields(embedded_plan) == _summarize_plan_fields(recomputed_plan)
+                ),
+                validation_valid=True,
+                issues=[],
+            )
+            write_json(comparison_output, comparison_report)
     except Exception as exc:
         print(f"analyze-transition failed: {exc}")
         return 1
@@ -547,6 +589,7 @@ def _handle_analyze_transition(args, repo_root: Path) -> int:
             {
                 "hint_output": str(hint_output),
                 "analysis_output": str(analysis_output),
+                "comparison_output": str(comparison_output) if comparison_output is not None else None,
                 "style_hint": hint.get("style_hint"),
                 "input_kind": hint.get("input_kind"),
                 "job_name": hint.get("job_name"),
@@ -850,7 +893,7 @@ def _summarize_plan_fields(plan_data: dict) -> dict[str, str | bool | None]:
 
 def _build_plan_comparison_report(
     analysis_file: str | None,
-    job_output: Path,
+    job_output: Path | None,
     plan_source: str,
     selected_plan: dict[str, str | bool | None],
     embedded_plan: dict | None,
@@ -865,7 +908,7 @@ def _build_plan_comparison_report(
         "report_type": "plan_comparison",
         "report_version": 1,
         "analysis_file": analysis_file,
-        "job_output": str(job_output),
+        "job_output": str(job_output) if job_output is not None else None,
         "plan_source": plan_source,
         "selected_plan": selected_plan,
         "embedded_plan": embedded_plan,

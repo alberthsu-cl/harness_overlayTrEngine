@@ -110,6 +110,7 @@ The first analyzer layer can now generate the hint file for you from prepared in
 ```powershell
 py -3 harness/src/main.py analyze-transition --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --hint-output harness/examples/analyzed.transition_hint.json --intent "generated glitch transition"
 py -3 harness/src/main.py analyze-transition --source-a harness/examples/fixtures/blue_green/source_a --source-b harness/examples/fixtures/blue_green/source_b --hint-output harness/examples/analyzed.fixture.transition_hint.json --intent "smooth sliding transition"
+py -3 harness/src/main.py analyze-transition --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --hint-output harness/examples/analyzed.transition_hint.json --comparison-output harness/examples/analyzed.plan_comparison.json
 ```
 
 Each analyzer run now writes two layers of output:
@@ -122,6 +123,8 @@ The current analysis artifact is versioned and split into:
 - `sources`: the prepared input paths and optional reference transition
 - `facts`: deterministic analyzer evidence, resolved style reasoning, and signals
 - `planning_recommendation`: the current planner-oriented suggestion layer
+
+If you also provide `--comparison-output`, the analyzer writes a reusable plan-comparison audit report immediately, without needing a second `plan-job` pass.
 
 You can also choose the analysis artifact path explicitly:
 
