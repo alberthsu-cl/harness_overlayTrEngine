@@ -21,6 +21,9 @@
     "resolved": {
       "type": "object"
     },
+    "recommended_plan": {
+      "type": "object"
+    },
     "signals": {
       "type": "object"
     },
@@ -39,6 +42,7 @@
     "source_b",
     "analyzer_inputs",
     "resolved",
+    "recommended_plan",
     "signals",
     "hint"
   ],

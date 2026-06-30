@@ -6,7 +6,7 @@ from pathlib import Path
 
 from typing import Any
 
-from .planner import auto_styles, infer_input_kind
+from .planner import auto_styles, build_recommended_plan, infer_input_kind
 
 
 STYLE_HINTS = set(auto_styles())
@@ -75,6 +75,12 @@ def build_transition_analysis_artifact(
     hint: dict[str, Any],
 ) -> dict[str, Any]:
     signals = hint.get("analysis", {}).get("signals", {})
+    recommended_plan = build_recommended_plan(
+        repo_root=repo_root,
+        source_a=source_a,
+        source_b=source_b,
+        hint_data=hint,
+    )
     return {
         "source_a": _format_optional_path(source_a, repo_root),
         "source_b": _format_optional_path(source_b, repo_root),
@@ -86,6 +92,7 @@ def build_transition_analysis_artifact(
             "job_name": hint.get("job_name"),
             "style_reason": hint.get("analysis", {}).get("style_reason"),
         },
+        "recommended_plan": recommended_plan,
         "signals": signals,
         "hint": hint,
         "notes": hint.get("notes"),

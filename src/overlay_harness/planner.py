@@ -185,6 +185,33 @@ def extract_hint_from_analysis(analysis_data: dict[str, Any]) -> dict[str, Any]:
     return hint_data
 
 
+def build_recommended_plan(
+    repo_root: Path,
+    source_a: Path,
+    source_b: Path,
+    hint_data: dict[str, Any],
+) -> dict[str, Any]:
+    style = hint_data.get("style_hint")
+    input_kind = hint_data.get("input_kind") or "auto"
+    if not style:
+        raise ValueError("hint data is missing style_hint")
+
+    preset, mode, resolved_input_kind = resolve_auto_plan(
+        repo_root=repo_root,
+        source_a=source_a,
+        source_b=source_b,
+        style=str(style),
+        input_kind=str(input_kind),
+    )
+    return {
+        "auto": True,
+        "style": style,
+        "input_kind": resolved_input_kind,
+        "preset": preset,
+        "mode": mode,
+    }
+
+
 def auto_styles() -> tuple[str, ...]:
     return tuple(AUTO_STYLE_TO_MODE.keys())
 

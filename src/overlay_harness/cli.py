@@ -567,6 +567,7 @@ def _format_path_for_output(path: Path | None, repo_root: Path) -> str | None:
 
 
 def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
+    analysis_data: dict | None = None
     hint_data: dict | None = None
     if args.hint_file and args.analysis_file:
         print("plan-job failed: use either --hint-file or --analysis-file, not both")
@@ -582,7 +583,8 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
     elif args.analysis_file:
         analysis_path = _resolve_path_argument(args.analysis_file, repo_root)
         try:
-            hint_data = extract_hint_from_analysis(load_transition_analysis(analysis_path))
+            analysis_data = load_transition_analysis(analysis_path)
+            hint_data = extract_hint_from_analysis(analysis_data)
         except Exception as exc:
             print(f"plan-job failed: could not load analysis file: {exc}")
             return 1
@@ -592,8 +594,14 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
     hint_input_kind = hint_data.get("input_kind") if hint_data else None
     hint_reference_transition = hint_data.get("reference_transition") if hint_data else None
     hint_job_name = hint_data.get("job_name") if hint_data else None
+    analysis_recommended_plan = analysis_data.get("recommended_plan") if analysis_data else None
+    analysis_source_a = analysis_data.get("source_a") if analysis_data else None
+    analysis_source_b = analysis_data.get("source_b") if analysis_data else None
+    analysis_reference_transition = analysis_data.get("reference_transition") if analysis_data else None
 
     preset_name = args.preset
+    if not preset_name and analysis_recommended_plan and analysis_recommended_plan.get("preset"):
+        preset_name = str(analysis_recommended_plan.get("preset"))
     if not preset_name and hint_preset:
         preset_name = hint_preset
     preset = planner_preset(preset_name) if preset_name else {}
@@ -603,21 +611,31 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
     auto_input_kind = None
     auto_mode = None
 
-    auto_requested = args.auto or bool(hint_style)
+    auto_requested = args.auto or bool(analysis_recommended_plan) or bool(hint_style)
 
     if auto_requested:
-        effective_style = args.style or hint_style
-        effective_input_kind = hint_input_kind or args.input_kind
+        effective_style = args.style or (
+            str(analysis_recommended_plan.get("style"))
+            if analysis_recommended_plan and analysis_recommended_plan.get("style")
+            else None
+        ) or hint_style
+        effective_input_kind = (
+            str(analysis_recommended_plan.get("input_kind"))
+            if analysis_recommended_plan and analysis_recommended_plan.get("input_kind")
+            else hint_input_kind or args.input_kind
+        )
 
         if not effective_style:
             print("plan-job failed: --style is required when --auto is used")
             return 1
-        if not args.source_a or not args.source_b:
+        source_a_auto_raw = args.source_a or analysis_source_a
+        source_b_auto_raw = args.source_b or analysis_source_b
+        if not source_a_auto_raw or not source_b_auto_raw:
             print("plan-job failed: --source-a and --source-b are required when --auto is used")
             return 1
 
-        source_a_for_auto = _resolve_path_argument(str(args.source_a), repo_root)
-        source_b_for_auto = _resolve_path_argument(str(args.source_b), repo_root)
+        source_a_for_auto = _resolve_path_argument(str(source_a_auto_raw), repo_root)
+        source_b_for_auto = _resolve_path_argument(str(source_b_auto_raw), repo_root)
         auto_preset_name, auto_mode, auto_input_kind = resolve_auto_plan(
             repo_root=repo_root,
             source_a=source_a_for_auto,
@@ -629,10 +647,14 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
             preset_name = auto_preset_name
             preset = planner_preset(preset_name)
 
-    source_a_raw = args.source_a or preset.get("source_a")
-    source_b_raw = args.source_b or preset.get("source_b")
+    source_a_raw = args.source_a or analysis_source_a or preset.get("source_a")
+    source_b_raw = args.source_b or analysis_source_b or preset.get("source_b")
     job_output_raw = args.job_output or preset.get("job_output")
-    mode = args.mode or auto_mode or preset.get("mode")
+    mode = args.mode or auto_mode or (
+        str(analysis_recommended_plan.get("mode"))
+        if analysis_recommended_plan and analysis_recommended_plan.get("mode")
+        else None
+    ) or preset.get("mode")
     job_name = args.job_name or hint_job_name or preset.get("job_name")
     effect_spec_output_raw = args.effect_spec_output or preset.get("effect_spec_output")
 
@@ -664,6 +686,8 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
     reference_transition = (
         _resolve_path_argument(args.reference_transition, repo_root)
         if args.reference_transition
+        else _resolve_path_argument(str(analysis_reference_transition), repo_root)
+        if analysis_reference_transition
         else _resolve_path_argument(str(hint_reference_transition), repo_root)
         if hint_reference_transition
         else None
@@ -700,7 +724,11 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
         "mode": mode,
         "preset": preset_name,
         "auto": auto_requested,
-        "style": args.style or hint_style,
+        "style": args.style or (
+            str(analysis_recommended_plan.get("style"))
+            if analysis_recommended_plan and analysis_recommended_plan.get("style")
+            else hint_style
+        ),
         "input_kind": auto_input_kind or hint_input_kind or args.input_kind,
         "hint_file": args.hint_file,
         "analysis_file": args.analysis_file,

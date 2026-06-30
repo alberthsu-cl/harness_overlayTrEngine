@@ -17,6 +17,13 @@
     "job_name": "sample_analysis_generated_glitch_real",
     "style_reason": "metadata marks the clip as generated-glitch with strong energy"
   },
+  "recommended_plan": {
+    "auto": true,
+    "style": "generated-glitch",
+    "input_kind": "real",
+    "preset": "real-smoke-generated-glitch",
+    "mode": "generated-glitch-placeholder"
+  },
   "signals": {
     "combined_motion_level": "high",
     "combined_visual_energy": "high",

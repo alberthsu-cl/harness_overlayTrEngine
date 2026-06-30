@@ -140,6 +140,8 @@ py -3 harness/src/main.py analyze-transition --source-a harness/examples/inputs/
 
 This command writes the same `transition_hint.json` contract consumed by `plan-job --hint-file`, and it also writes a richer analysis artifact that `plan-job --analysis-file` can consume directly.
 
+That richer artifact now includes an explicit `recommended_plan` block with the analyzer's suggested preset, mode, style, and resolved input kind.
+
 Use `plan-job` to create a valid render job from prepared A/B inputs without hand-editing JSON:
 
 ```powershell
@@ -168,7 +170,7 @@ The next-step contract for future analysis is a small hint file. `plan-job` can 
 ```powershell
 py -3 harness/src/main.py plan-job --hint-file harness/examples/transition_hint.sample.json --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --job-output harness/examples/hinted.render_job.json
 py -3 harness/src/main.py plan-job --hint-file harness/examples/analyzed.transition_hint.json --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --job-output harness/examples/analyzed.render_job.json
-py -3 harness/src/main.py plan-job --analysis-file harness/examples/transition_analysis.sample.json --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --job-output harness/examples/analyzed.from_analysis.render_job.json
+py -3 harness/src/main.py plan-job --analysis-file harness/examples/transition_analysis.sample.json --job-output harness/examples/analyzed.from_analysis.render_job.json
 ```
 
 See:
