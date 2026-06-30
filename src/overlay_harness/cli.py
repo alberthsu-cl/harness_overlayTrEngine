@@ -8,6 +8,7 @@ import sys
 
 from .config import load_allowed_effects, load_eval_thresholds
 from .models import load_render_job
+from .analyzer import analyze_transition
 from .planner import (
     auto_input_kinds,
     auto_styles,
@@ -53,6 +54,8 @@ def main(argv: list[str] | None = None) -> int:
         return _handle_prepare_video(args, repo_root)
     if args.command == "prepare-pair":
         return _handle_prepare_pair(args, repo_root)
+    if args.command == "analyze-transition":
+        return _handle_analyze_transition(args, repo_root)
     if args.command == "plan-job":
         return _handle_plan_job(args, repo_root, config_dir)
     if args.command == "smoke-test":
@@ -129,6 +132,43 @@ def _build_parser() -> argparse.ArgumentParser:
     prepare_pair.add_argument("--height", type=int, default=1080, help="Target output height")
     prepare_pair.add_argument("--fps", type=int, default=30, help="Frame rate metadata for the fixture manifests")
     prepare_pair.add_argument("--frame-count", type=int, default=30, help="Frame count for both fixture sequences")
+
+    analyze_transition_cmd = subparsers.add_parser(
+        "analyze-transition",
+        help="Create a transition hint JSON from prepared inputs and simple intent heuristics",
+    )
+    analyze_transition_cmd.add_argument("--source-a", required=True, help="Path to the prepared source A frames")
+    analyze_transition_cmd.add_argument("--source-b", required=True, help="Path to the prepared source B frames")
+    analyze_transition_cmd.add_argument("--hint-output", required=True, help="Output path for the generated transition hint JSON")
+    analyze_transition_cmd.add_argument(
+        "--style-hint",
+        required=False,
+        choices=auto_styles(),
+        help="Optional explicit style hint to record directly",
+    )
+    analyze_transition_cmd.add_argument(
+        "--intent",
+        required=False,
+        help="Optional freeform intent text used by the deterministic analyzer heuristics",
+    )
+    analyze_transition_cmd.add_argument(
+        "--prefer-generated",
+        action="store_true",
+        help="Bias the analyzer toward generated-placeholder styles when intent is ambiguous",
+    )
+    analyze_transition_cmd.add_argument(
+        "--input-kind",
+        required=False,
+        default="auto",
+        choices=auto_input_kinds(),
+        help="Input kind hint for the analyzer; defaults to auto detection",
+    )
+    analyze_transition_cmd.add_argument(
+        "--reference-transition",
+        required=False,
+        help="Optional reference transition path to record in the generated hint file",
+    )
+    analyze_transition_cmd.add_argument("--job-name", required=False, help="Optional job_name hint for downstream planning")
 
     plan_job = subparsers.add_parser(
         "plan-job",
@@ -391,6 +431,48 @@ def _handle_prepare_pair(args, repo_root: Path) -> int:
                     "manifest_file": str(result_b.manifest_file),
                 },
                 "message": f"generated paired fixtures at {output_root}",
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
+def _handle_analyze_transition(args, repo_root: Path) -> int:
+    source_a = _resolve_path_argument(args.source_a, repo_root)
+    source_b = _resolve_path_argument(args.source_b, repo_root)
+    hint_output = _resolve_path_argument(args.hint_output, repo_root)
+    reference_transition = (
+        _resolve_path_argument(args.reference_transition, repo_root)
+        if args.reference_transition
+        else None
+    )
+
+    try:
+        hint = analyze_transition(
+            repo_root=repo_root,
+            source_a=source_a,
+            source_b=source_b,
+            input_kind=args.input_kind,
+            style_hint=args.style_hint,
+            intent=args.intent,
+            prefer_generated=args.prefer_generated,
+            reference_transition=reference_transition,
+            job_name=args.job_name,
+        )
+        write_json(hint_output, hint)
+    except Exception as exc:
+        print(f"analyze-transition failed: {exc}")
+        return 1
+
+    print(
+        json.dumps(
+            {
+                "hint_output": str(hint_output),
+                "style_hint": hint.get("style_hint"),
+                "input_kind": hint.get("input_kind"),
+                "job_name": hint.get("job_name"),
+                "notes": hint.get("notes"),
             },
             indent=2,
         )

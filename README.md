@@ -61,6 +61,7 @@ Run from the repository root:
 
 ```powershell
 py -3 harness/src/main.py prepare-pair --output-root harness/examples/fixtures/blue_green --color-a blue --color-b green --width 1920 --height 1080 --frame-count 30
+py -3 harness/src/main.py analyze-transition --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --hint-output harness/examples/analyzed.transition_hint.json --intent "generated glitch transition"
 py -3 harness/src/main.py plan-job --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --job-output harness/examples/planned.render_job.json --mode builtin-seamless
 py -3 harness/src/main.py validate --job harness/examples/render_job.sample.json
 py -3 harness/src/main.py prepare --job harness/examples/render_job.sample.json
@@ -104,6 +105,15 @@ If you want to prepare only one side, use `prepare-video` instead.
 
 ### 1b. Plan a job from prepared inputs
 
+The first analyzer layer can now generate the hint file for you from prepared inputs and simple intent text:
+
+```powershell
+py -3 harness/src/main.py analyze-transition --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --hint-output harness/examples/analyzed.transition_hint.json --intent "generated glitch transition"
+py -3 harness/src/main.py analyze-transition --source-a harness/examples/fixtures/blue_green/source_a --source-b harness/examples/fixtures/blue_green/source_b --hint-output harness/examples/analyzed.fixture.transition_hint.json --intent "smooth sliding transition"
+```
+
+This command writes the same `transition_hint.json` contract consumed by `plan-job --hint-file`.
+
 Use `plan-job` to create a valid render job from prepared A/B inputs without hand-editing JSON:
 
 ```powershell
@@ -131,6 +141,7 @@ The next-step contract for future analysis is a small hint file. `plan-job` can 
 
 ```powershell
 py -3 harness/src/main.py plan-job --hint-file harness/examples/transition_hint.sample.json --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --job-output harness/examples/hinted.render_job.json
+py -3 harness/src/main.py plan-job --hint-file harness/examples/analyzed.transition_hint.json --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --job-output harness/examples/analyzed.render_job.json
 ```
 
 See:
