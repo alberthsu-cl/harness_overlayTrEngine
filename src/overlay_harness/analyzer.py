@@ -67,6 +67,31 @@ def analyze_transition(
     }
 
 
+def build_transition_analysis_artifact(
+    repo_root: Path,
+    source_a: Path,
+    source_b: Path,
+    analyzer_inputs: dict[str, Any],
+    hint: dict[str, Any],
+) -> dict[str, Any]:
+    signals = hint.get("analysis", {}).get("signals", {})
+    return {
+        "source_a": _format_optional_path(source_a, repo_root),
+        "source_b": _format_optional_path(source_b, repo_root),
+        "reference_transition": hint.get("reference_transition"),
+        "analyzer_inputs": analyzer_inputs,
+        "resolved": {
+            "style_hint": hint.get("style_hint"),
+            "input_kind": hint.get("input_kind"),
+            "job_name": hint.get("job_name"),
+            "style_reason": hint.get("analysis", {}).get("style_reason"),
+        },
+        "signals": signals,
+        "hint": hint,
+        "notes": hint.get("notes"),
+    }
+
+
 def load_clip_metadata(file_path: Path) -> dict[str, Any]:
     with file_path.open("r", encoding="utf-8") as handle:
         return json.load(handle)

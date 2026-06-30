@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OverlayTransitionAnalysis",
+  "type": "object",
+  "properties": {
+    "source_a": {
+      "type": "string"
+    },
+    "source_b": {
+      "type": "string"
+    },
+    "reference_transition": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "analyzer_inputs": {
+      "type": "object"
+    },
+    "resolved": {
+      "type": "object"
+    },
+    "signals": {
+      "type": "object"
+    },
+    "hint": {
+      "type": "object"
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "source_a",
+    "source_b",
+    "analyzer_inputs",
+    "resolved",
+    "signals",
+    "hint"
+  ],
+  "additionalProperties": true
+}

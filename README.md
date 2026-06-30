@@ -112,6 +112,17 @@ py -3 harness/src/main.py analyze-transition --source-a harness/examples/inputs/
 py -3 harness/src/main.py analyze-transition --source-a harness/examples/fixtures/blue_green/source_a --source-b harness/examples/fixtures/blue_green/source_b --hint-output harness/examples/analyzed.fixture.transition_hint.json --intent "smooth sliding transition"
 ```
 
+Each analyzer run now writes two layers of output:
+
+- a planner-facing `transition_hint.json`
+- a richer `transition_analysis.json` artifact next to it by default
+
+You can also choose the analysis artifact path explicitly:
+
+```powershell
+py -3 harness/src/main.py analyze-transition --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --hint-output harness/examples/analyzed.transition_hint.json --analysis-output harness/examples/analyzed.transition_analysis.json --intent "generated glitch transition"
+```
+
 If you do not provide intent or clip metadata, the analyzer now inspects local prepared-input signals directly from the frame folders. In the current slice that means manifest fields, sampled frame hashes, sampled file sizes, and simple sequence-level heuristics:
 
 ```powershell
@@ -163,6 +174,7 @@ See:
 
 - `harness/examples/transition_hint.sample.json`
 - `harness/schemas/transition_hint.schema.json`
+- `harness/schemas/transition_analysis.schema.json`
 - `harness/examples/clip_metadata.sample.json`
 - `harness/schemas/clip_metadata.schema.json`
 
