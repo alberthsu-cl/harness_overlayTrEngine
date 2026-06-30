@@ -1,0 +1,10 @@
+{
+  "input_kind": "real",
+  "transition_family": "generated-glitch",
+  "motion_level": "high",
+  "visual_energy": "high",
+  "prefer_generated": true,
+  "reference_transition": null,
+  "job_name": "metadata_generated_glitch_real",
+  "notes": "Sample metadata describing a high-energy real-video transition that should prefer a generated glitch-like look."
+}

@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OverlayTransitionClipMetadata",
+  "type": "object",
+  "properties": {
+    "input_kind": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "auto",
+        "real",
+        "fixture",
+        "custom",
+        null
+      ]
+    },
+    "transition_family": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "smooth",
+        "seamless",
+        "glitch",
+        "generated-smooth",
+        "generated-glitch",
+        null
+      ]
+    },
+    "motion_level": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        null
+      ]
+    },
+    "visual_energy": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        null
+      ]
+    },
+    "prefer_generated": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "reference_transition": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "job_name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

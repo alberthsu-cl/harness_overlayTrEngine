@@ -112,6 +112,12 @@ py -3 harness/src/main.py analyze-transition --source-a harness/examples/inputs/
 py -3 harness/src/main.py analyze-transition --source-a harness/examples/fixtures/blue_green/source_a --source-b harness/examples/fixtures/blue_green/source_b --hint-output harness/examples/analyzed.fixture.transition_hint.json --intent "smooth sliding transition"
 ```
 
+The analyzer can also read lightweight clip-derived metadata instead of only freeform intent:
+
+```powershell
+py -3 harness/src/main.py analyze-transition --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --hint-output harness/examples/analyzed.from_metadata.transition_hint.json --clip-metadata-file harness/examples/clip_metadata.sample.json
+```
+
 This command writes the same `transition_hint.json` contract consumed by `plan-job --hint-file`.
 
 Use `plan-job` to create a valid render job from prepared A/B inputs without hand-editing JSON:
@@ -148,6 +154,8 @@ See:
 
 - `harness/examples/transition_hint.sample.json`
 - `harness/schemas/transition_hint.schema.json`
+- `harness/examples/clip_metadata.sample.json`
+- `harness/schemas/clip_metadata.schema.json`
 
 The first auto slice supports these style hints:
 

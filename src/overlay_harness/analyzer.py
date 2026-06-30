@@ -1,11 +1,23 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
+
+from typing import Any
 
 from .planner import auto_styles, infer_input_kind
 
 
 STYLE_HINTS = set(auto_styles())
+
+
+METADATA_TRANSITION_FAMILY_TO_STYLE: dict[str, str] = {
+    "smooth": "seamless",
+    "seamless": "seamless",
+    "glitch": "glitch",
+    "generated-smooth": "generated-seamless",
+    "generated-glitch": "generated-glitch",
+}
 
 
 def analyze_transition(
@@ -48,6 +60,32 @@ def analyze_transition(
     }
 
 
+def load_clip_metadata(file_path: Path) -> dict[str, Any]:
+    with file_path.open("r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def derive_analyzer_inputs_from_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
+    transition_family = metadata.get("transition_family")
+    style_hint = METADATA_TRANSITION_FAMILY_TO_STYLE.get(transition_family)
+    style_reason = None
+    if style_hint is None:
+        style_hint, style_reason = _resolve_style_from_metadata_heuristics(metadata)
+    else:
+        style_reason = f"clip metadata transition_family was '{transition_family}'"
+
+    prefer_generated = bool(metadata.get("prefer_generated"))
+    return {
+        "input_kind": metadata.get("input_kind") or "auto",
+        "style_hint": style_hint,
+        "style_reason": style_reason,
+        "prefer_generated": prefer_generated,
+        "reference_transition": metadata.get("reference_transition"),
+        "job_name": metadata.get("job_name"),
+        "notes": metadata.get("notes"),
+    }
+
+
 def _resolve_style_hint(
     style_hint: str | None,
     intent: str | None,
@@ -80,6 +118,22 @@ def _resolve_style_hint(
         return "generated-glitch", "generated output was preferred and real or custom inputs default to a glitch placeholder"
 
     return "seamless", "no stronger signal was provided, so the analyzer chose the safest baseline transition"
+
+
+def _resolve_style_from_metadata_heuristics(metadata: dict[str, Any]) -> tuple[str, str]:
+    motion_level = metadata.get("motion_level")
+    visual_energy = metadata.get("visual_energy")
+    prefer_generated = bool(metadata.get("prefer_generated"))
+
+    if motion_level == "high" or visual_energy == "high":
+        if prefer_generated:
+            return "generated-glitch", "metadata indicates high motion or visual energy and generated output was preferred"
+        return "glitch", "metadata indicates high motion or visual energy"
+
+    if prefer_generated:
+        return "generated-seamless", "metadata did not signal a glitch case and generated output was preferred"
+
+    return "seamless", "metadata did not signal a glitch case, so the analyzer chose the smooth baseline"
 
 
 def _format_optional_path(path: Path | None, repo_root: Path) -> str | None:

@@ -9,6 +9,7 @@ import sys
 from .config import load_allowed_effects, load_eval_thresholds
 from .models import load_render_job
 from .analyzer import analyze_transition
+from .analyzer import derive_analyzer_inputs_from_metadata, load_clip_metadata
 from .planner import (
     auto_input_kinds,
     auto_styles,
@@ -140,6 +141,11 @@ def _build_parser() -> argparse.ArgumentParser:
     analyze_transition_cmd.add_argument("--source-a", required=True, help="Path to the prepared source A frames")
     analyze_transition_cmd.add_argument("--source-b", required=True, help="Path to the prepared source B frames")
     analyze_transition_cmd.add_argument("--hint-output", required=True, help="Output path for the generated transition hint JSON")
+    analyze_transition_cmd.add_argument(
+        "--clip-metadata-file",
+        required=False,
+        help="Optional clip metadata JSON file that the analyzer can use to derive style and other hint fields",
+    )
     analyze_transition_cmd.add_argument(
         "--style-hint",
         required=False,
@@ -442,9 +448,21 @@ def _handle_analyze_transition(args, repo_root: Path) -> int:
     source_a = _resolve_path_argument(args.source_a, repo_root)
     source_b = _resolve_path_argument(args.source_b, repo_root)
     hint_output = _resolve_path_argument(args.hint_output, repo_root)
+    metadata_inputs: dict | None = None
+
+    if args.clip_metadata_file:
+        metadata_path = _resolve_path_argument(args.clip_metadata_file, repo_root)
+        try:
+            metadata_inputs = derive_analyzer_inputs_from_metadata(load_clip_metadata(metadata_path))
+        except Exception as exc:
+            print(f"analyze-transition failed: could not load clip metadata file: {exc}")
+            return 1
+
     reference_transition = (
         _resolve_path_argument(args.reference_transition, repo_root)
         if args.reference_transition
+        else _resolve_path_argument(str(metadata_inputs["reference_transition"]), repo_root)
+        if metadata_inputs and metadata_inputs.get("reference_transition")
         else None
     )
 
@@ -453,13 +471,22 @@ def _handle_analyze_transition(args, repo_root: Path) -> int:
             repo_root=repo_root,
             source_a=source_a,
             source_b=source_b,
-            input_kind=args.input_kind,
-            style_hint=args.style_hint,
+            input_kind=(metadata_inputs.get("input_kind") if metadata_inputs else None) or args.input_kind,
+            style_hint=args.style_hint or (metadata_inputs.get("style_hint") if metadata_inputs else None),
             intent=args.intent,
-            prefer_generated=args.prefer_generated,
+            prefer_generated=args.prefer_generated or bool(metadata_inputs and metadata_inputs.get("prefer_generated")),
             reference_transition=reference_transition,
-            job_name=args.job_name,
+            job_name=args.job_name or (metadata_inputs.get("job_name") if metadata_inputs else None),
         )
+        if metadata_inputs and metadata_inputs.get("style_reason"):
+            hint["analysis"]["style_reason"] = metadata_inputs["style_reason"]
+            hint["notes"] = (
+                f"Analyzer selected '{hint['style_hint']}' because {metadata_inputs['style_reason']}."
+            )
+        if metadata_inputs and metadata_inputs.get("notes"):
+            existing_notes = hint.get("notes") or ""
+            hint["notes"] = f"{existing_notes} Metadata notes: {metadata_inputs['notes']}".strip()
+            hint["analysis"]["clip_metadata_file"] = args.clip_metadata_file
         write_json(hint_output, hint)
     except Exception as exc:
         print(f"analyze-transition failed: {exc}")
