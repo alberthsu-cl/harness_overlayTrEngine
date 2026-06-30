@@ -14,6 +14,8 @@ from .planner import (
     auto_input_kinds,
     auto_styles,
     build_planned_job,
+    extract_plan_from_analysis,
+    extract_sources_from_analysis,
     extract_hint_from_analysis,
     load_transition_analysis,
     load_transition_hint,
@@ -594,10 +596,14 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
     hint_input_kind = hint_data.get("input_kind") if hint_data else None
     hint_reference_transition = hint_data.get("reference_transition") if hint_data else None
     hint_job_name = hint_data.get("job_name") if hint_data else None
-    analysis_recommended_plan = analysis_data.get("recommended_plan") if analysis_data else None
-    analysis_source_a = analysis_data.get("source_a") if analysis_data else None
-    analysis_source_b = analysis_data.get("source_b") if analysis_data else None
-    analysis_reference_transition = analysis_data.get("reference_transition") if analysis_data else None
+    analysis_recommended_plan = extract_plan_from_analysis(analysis_data) if analysis_data else None
+    analysis_source_a = None
+    analysis_source_b = None
+    analysis_reference_transition = None
+    if analysis_data:
+        analysis_source_a, analysis_source_b, analysis_reference_transition = extract_sources_from_analysis(
+            analysis_data
+        )
 
     preset_name = args.preset
     if not preset_name and analysis_recommended_plan and analysis_recommended_plan.get("preset"):

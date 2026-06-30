@@ -3,48 +3,109 @@
   "title": "OverlayTransitionAnalysis",
   "type": "object",
   "properties": {
-    "source_a": {
-      "type": "string"
+    "artifact_type": {
+      "const": "transition_analysis"
     },
-    "source_b": {
-      "type": "string"
+    "artifact_version": {
+      "type": "integer",
+      "minimum": 2
     },
-    "reference_transition": {
-      "type": [
-        "string",
-        "null"
+    "sources": {
+      "type": "object",
+      "properties": {
+        "source_a": {
+          "type": "string"
+        },
+        "source_b": {
+          "type": "string"
+        },
+        "reference_transition": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "source_a",
+        "source_b"
       ]
     },
-    "analyzer_inputs": {
-      "type": "object"
+    "facts": {
+      "type": "object",
+      "properties": {
+        "analyzer_inputs": {
+          "type": "object"
+        },
+        "resolved": {
+          "type": "object"
+        },
+        "signals": {
+          "type": "object"
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "analyzer_inputs",
+        "resolved",
+        "signals"
+      ]
     },
-    "resolved": {
-      "type": "object"
-    },
-    "recommended_plan": {
-      "type": "object"
-    },
-    "signals": {
-      "type": "object"
-    },
-    "hint": {
-      "type": "object"
-    },
-    "notes": {
-      "type": [
-        "string",
-        "null"
+    "planning_recommendation": {
+      "type": "object",
+      "properties": {
+        "producer": {
+          "type": "string"
+        },
+        "auto": {
+          "type": "boolean"
+        },
+        "style": {
+          "type": "string"
+        },
+        "input_kind": {
+          "type": "string"
+        },
+        "preset": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mode": {
+          "type": "string"
+        },
+        "job_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hint": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "producer",
+        "auto",
+        "style",
+        "input_kind",
+        "mode",
+        "hint"
       ]
     }
   },
   "required": [
-    "source_a",
-    "source_b",
-    "analyzer_inputs",
-    "resolved",
-    "recommended_plan",
-    "signals",
-    "hint"
+    "artifact_type",
+    "artifact_version",
+    "sources",
+    "facts",
+    "planning_recommendation"
   ],
   "additionalProperties": true
 }

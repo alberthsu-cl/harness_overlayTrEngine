@@ -117,6 +117,12 @@ Each analyzer run now writes two layers of output:
 - a planner-facing `transition_hint.json`
 - a richer `transition_analysis.json` artifact next to it by default
 
+The current analysis artifact is versioned and split into:
+
+- `sources`: the prepared input paths and optional reference transition
+- `facts`: deterministic analyzer evidence, resolved style reasoning, and signals
+- `planning_recommendation`: the current planner-oriented suggestion layer
+
 You can also choose the analysis artifact path explicitly:
 
 ```powershell
@@ -140,7 +146,7 @@ py -3 harness/src/main.py analyze-transition --source-a harness/examples/inputs/
 
 This command writes the same `transition_hint.json` contract consumed by `plan-job --hint-file`, and it also writes a richer analysis artifact that `plan-job --analysis-file` can consume directly.
 
-That richer artifact now includes an explicit `recommended_plan` block with the analyzer's suggested preset, mode, style, and resolved input kind.
+That richer artifact now includes a versioned `planning_recommendation` block with the analyzer's suggested preset, mode, style, resolved input kind, and embedded hint snapshot.
 
 Use `plan-job` to create a valid render job from prepared A/B inputs without hand-editing JSON:
 

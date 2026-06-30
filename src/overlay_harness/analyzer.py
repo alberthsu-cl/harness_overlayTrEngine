@@ -10,6 +10,7 @@ from .planner import auto_styles, build_recommended_plan, infer_input_kind
 
 
 STYLE_HINTS = set(auto_styles())
+ANALYSIS_ARTIFACT_VERSION = 2
 
 
 METADATA_TRANSITION_FAMILY_TO_STYLE: dict[str, str] = {
@@ -82,20 +83,34 @@ def build_transition_analysis_artifact(
         hint_data=hint,
     )
     return {
-        "source_a": _format_optional_path(source_a, repo_root),
-        "source_b": _format_optional_path(source_b, repo_root),
-        "reference_transition": hint.get("reference_transition"),
-        "analyzer_inputs": analyzer_inputs,
-        "resolved": {
-            "style_hint": hint.get("style_hint"),
-            "input_kind": hint.get("input_kind"),
-            "job_name": hint.get("job_name"),
-            "style_reason": hint.get("analysis", {}).get("style_reason"),
+        "artifact_type": "transition_analysis",
+        "artifact_version": ANALYSIS_ARTIFACT_VERSION,
+        "sources": {
+            "source_a": _format_optional_path(source_a, repo_root),
+            "source_b": _format_optional_path(source_b, repo_root),
+            "reference_transition": hint.get("reference_transition"),
         },
-        "recommended_plan": recommended_plan,
-        "signals": signals,
-        "hint": hint,
-        "notes": hint.get("notes"),
+        "facts": {
+            "analyzer_inputs": analyzer_inputs,
+            "resolved": {
+                "style_hint": hint.get("style_hint"),
+                "input_kind": hint.get("input_kind"),
+                "job_name": hint.get("job_name"),
+                "style_reason": hint.get("analysis", {}).get("style_reason"),
+            },
+            "signals": signals,
+            "notes": hint.get("notes"),
+        },
+        "planning_recommendation": {
+            "producer": "deterministic_analyzer",
+            "auto": recommended_plan.get("auto"),
+            "style": recommended_plan.get("style"),
+            "input_kind": recommended_plan.get("input_kind"),
+            "preset": recommended_plan.get("preset"),
+            "mode": recommended_plan.get("mode"),
+            "job_name": hint.get("job_name"),
+            "hint": hint,
+        },
     }
 
 

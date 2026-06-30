@@ -179,10 +179,50 @@ def load_transition_analysis(file_path: Path) -> dict[str, Any]:
 
 
 def extract_hint_from_analysis(analysis_data: dict[str, Any]) -> dict[str, Any]:
+    planning_recommendation = analysis_data.get("planning_recommendation")
+    if isinstance(planning_recommendation, dict):
+        hint_data = planning_recommendation.get("hint")
+        if isinstance(hint_data, dict):
+            return hint_data
+
     hint_data = analysis_data.get("hint")
     if not isinstance(hint_data, dict):
         raise ValueError("analysis artifact does not contain a valid 'hint' object")
     return hint_data
+
+
+def extract_plan_from_analysis(analysis_data: dict[str, Any]) -> dict[str, Any] | None:
+    planning_recommendation = analysis_data.get("planning_recommendation")
+    if isinstance(planning_recommendation, dict):
+        return planning_recommendation
+
+    recommended_plan = analysis_data.get("recommended_plan")
+    if isinstance(recommended_plan, dict):
+        return recommended_plan
+
+    return None
+
+
+def extract_sources_from_analysis(analysis_data: dict[str, Any]) -> tuple[str | None, str | None, str | None]:
+    sources = analysis_data.get("sources")
+    if isinstance(sources, dict):
+        source_a = sources.get("source_a")
+        source_b = sources.get("source_b")
+        reference_transition = sources.get("reference_transition")
+        return (
+            str(source_a) if source_a is not None else None,
+            str(source_b) if source_b is not None else None,
+            str(reference_transition) if reference_transition is not None else None,
+        )
+
+    source_a = analysis_data.get("source_a")
+    source_b = analysis_data.get("source_b")
+    reference_transition = analysis_data.get("reference_transition")
+    return (
+        str(source_a) if source_a is not None else None,
+        str(source_b) if source_b is not None else None,
+        str(reference_transition) if reference_transition is not None else None,
+    )
 
 
 def build_recommended_plan(
