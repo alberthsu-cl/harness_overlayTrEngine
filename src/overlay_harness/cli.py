@@ -13,8 +13,10 @@ from .analyzer import build_transition_analysis_artifact, derive_analyzer_inputs
 from .planner import (
     auto_input_kinds,
     auto_styles,
+    build_recommended_plan,
     build_planned_job,
     extract_plan_from_analysis,
+    extract_resolved_facts_from_analysis,
     extract_sources_from_analysis,
     extract_hint_from_analysis,
     load_transition_analysis,
@@ -209,6 +211,11 @@ def _build_parser() -> argparse.ArgumentParser:
         "--analysis-file",
         required=False,
         help="Optional richer transition analysis JSON file; plan-job derives the planner hint from its embedded hint object",
+    )
+    plan_job.add_argument(
+        "--recompute-plan-from-facts",
+        action="store_true",
+        help="When using --analysis-file, ignore the embedded planning recommendation and recompute a fresh one from the analysis facts",
     )
     plan_job.add_argument(
         "--auto",
@@ -597,6 +604,7 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
     hint_reference_transition = hint_data.get("reference_transition") if hint_data else None
     hint_job_name = hint_data.get("job_name") if hint_data else None
     analysis_recommended_plan = extract_plan_from_analysis(analysis_data) if analysis_data else None
+    recomputed_plan: dict | None = None
     analysis_source_a = None
     analysis_source_b = None
     analysis_reference_transition = None
@@ -604,6 +612,36 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
         analysis_source_a, analysis_source_b, analysis_reference_transition = extract_sources_from_analysis(
             analysis_data
         )
+
+    if args.recompute_plan_from_facts:
+        if not analysis_data:
+            print("plan-job failed: --recompute-plan-from-facts requires --analysis-file")
+            return 1
+        resolved_facts = extract_resolved_facts_from_analysis(analysis_data)
+        if not resolved_facts:
+            print("plan-job failed: analysis artifact does not contain facts.resolved for recompute mode")
+            return 1
+        if not analysis_source_a or not analysis_source_b:
+            print("plan-job failed: analysis artifact does not contain source paths for recompute mode")
+            return 1
+
+        recompute_hint = {
+            "style_hint": resolved_facts.get("style_hint"),
+            "input_kind": resolved_facts.get("input_kind"),
+            "job_name": resolved_facts.get("job_name"),
+            "reference_transition": analysis_reference_transition,
+        }
+        try:
+            recomputed_plan = build_recommended_plan(
+                repo_root=repo_root,
+                source_a=_resolve_path_argument(str(analysis_source_a), repo_root),
+                source_b=_resolve_path_argument(str(analysis_source_b), repo_root),
+                hint_data=recompute_hint,
+            )
+        except Exception as exc:
+            print(f"plan-job failed: could not recompute plan from facts: {exc}")
+            return 1
+        analysis_recommended_plan = recomputed_plan
 
     preset_name = args.preset
     if not preset_name and analysis_recommended_plan and analysis_recommended_plan.get("preset"):
@@ -738,6 +776,7 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
         "input_kind": auto_input_kind or hint_input_kind or args.input_kind,
         "hint_file": args.hint_file,
         "analysis_file": args.analysis_file,
+        "plan_source": "recomputed_from_facts" if args.recompute_plan_from_facts else "analysis_embedded_or_hint",
         "job_name": job.job_name,
         "validation_valid": validation.is_valid,
         "issues": [
@@ -745,11 +784,33 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
             for issue in validation.issues
         ],
     }
+    embedded_plan = extract_plan_from_analysis(analysis_data) if analysis_data else None
+    if embedded_plan is not None:
+        result["embedded_plan"] = embedded_plan
+        result["embedded_plan_summary"] = _summarize_plan_fields(embedded_plan)
+    if recomputed_plan is not None:
+        result["recomputed_plan"] = recomputed_plan
+        result["recomputed_plan_summary"] = _summarize_plan_fields(recomputed_plan)
+        if embedded_plan is not None:
+            result["recompute_matches_embedded"] = (
+                _summarize_plan_fields(embedded_plan) == _summarize_plan_fields(recomputed_plan)
+            )
     if effect_spec_output is not None and effect_spec_payload is not None:
         result["effect_spec_output"] = str(effect_spec_output)
 
     print(json.dumps(result, indent=2))
     return 0 if validation.is_valid else 1
+
+
+def _summarize_plan_fields(plan_data: dict) -> dict[str, str | bool | None]:
+    return {
+        "auto": bool(plan_data.get("auto")),
+        "style": str(plan_data.get("style")) if plan_data.get("style") is not None else None,
+        "input_kind": str(plan_data.get("input_kind")) if plan_data.get("input_kind") is not None else None,
+        "preset": str(plan_data.get("preset")) if plan_data.get("preset") is not None else None,
+        "mode": str(plan_data.get("mode")) if plan_data.get("mode") is not None else None,
+        "job_name": str(plan_data.get("job_name")) if plan_data.get("job_name") is not None else None,
+    }
 
 
 def _handle_smoke_test(

@@ -177,7 +177,10 @@ The next-step contract for future analysis is a small hint file. `plan-job` can 
 py -3 harness/src/main.py plan-job --hint-file harness/examples/transition_hint.sample.json --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --job-output harness/examples/hinted.render_job.json
 py -3 harness/src/main.py plan-job --hint-file harness/examples/analyzed.transition_hint.json --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --job-output harness/examples/analyzed.render_job.json
 py -3 harness/src/main.py plan-job --analysis-file harness/examples/transition_analysis.sample.json --job-output harness/examples/analyzed.from_analysis.render_job.json
+py -3 harness/src/main.py plan-job --analysis-file harness/examples/transition_analysis.sample.json --recompute-plan-from-facts --job-output harness/examples/analyzed.recomputed.render_job.json
 ```
+
+`--recompute-plan-from-facts` is useful when you want to compare the embedded recommendation against a fresh deterministic recompute from the factual analysis layer.
 
 See:
 

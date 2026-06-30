@@ -225,6 +225,16 @@ def extract_sources_from_analysis(analysis_data: dict[str, Any]) -> tuple[str | 
     )
 
 
+def extract_resolved_facts_from_analysis(analysis_data: dict[str, Any]) -> dict[str, Any] | None:
+    facts = analysis_data.get("facts")
+    if isinstance(facts, dict):
+        resolved = facts.get("resolved")
+        if isinstance(resolved, dict):
+            return resolved
+
+    return None
+
+
 def build_recommended_plan(
     repo_root: Path,
     source_a: Path,
