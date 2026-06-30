@@ -14,6 +14,8 @@ from .planner import (
     auto_input_kinds,
     auto_styles,
     build_planned_job,
+    extract_hint_from_analysis,
+    load_transition_analysis,
     load_transition_hint,
     planner_modes,
     planner_preset,
@@ -200,6 +202,11 @@ def _build_parser() -> argparse.ArgumentParser:
         "--hint-file",
         required=False,
         help="Optional transition hint JSON file that provides preset/style/input-kind/reference metadata",
+    )
+    plan_job.add_argument(
+        "--analysis-file",
+        required=False,
+        help="Optional richer transition analysis JSON file; plan-job derives the planner hint from its embedded hint object",
     )
     plan_job.add_argument(
         "--auto",
@@ -561,12 +568,23 @@ def _format_path_for_output(path: Path | None, repo_root: Path) -> str | None:
 
 def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
     hint_data: dict | None = None
+    if args.hint_file and args.analysis_file:
+        print("plan-job failed: use either --hint-file or --analysis-file, not both")
+        return 1
+
     if args.hint_file:
         hint_path = _resolve_path_argument(args.hint_file, repo_root)
         try:
             hint_data = load_transition_hint(hint_path)
         except Exception as exc:
             print(f"plan-job failed: could not load hint file: {exc}")
+            return 1
+    elif args.analysis_file:
+        analysis_path = _resolve_path_argument(args.analysis_file, repo_root)
+        try:
+            hint_data = extract_hint_from_analysis(load_transition_analysis(analysis_path))
+        except Exception as exc:
+            print(f"plan-job failed: could not load analysis file: {exc}")
             return 1
 
     hint_preset = hint_data.get("preset") if hint_data else None
@@ -685,6 +703,7 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
         "style": args.style or hint_style,
         "input_kind": auto_input_kind or hint_input_kind or args.input_kind,
         "hint_file": args.hint_file,
+        "analysis_file": args.analysis_file,
         "job_name": job.job_name,
         "validation_valid": validation.is_valid,
         "issues": [

@@ -173,6 +173,18 @@ def load_transition_hint(file_path: Path) -> dict[str, Any]:
         return json.load(handle)
 
 
+def load_transition_analysis(file_path: Path) -> dict[str, Any]:
+    with file_path.open("r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def extract_hint_from_analysis(analysis_data: dict[str, Any]) -> dict[str, Any]:
+    hint_data = analysis_data.get("hint")
+    if not isinstance(hint_data, dict):
+        raise ValueError("analysis artifact does not contain a valid 'hint' object")
+    return hint_data
+
+
 def auto_styles() -> tuple[str, ...]:
     return tuple(AUTO_STYLE_TO_MODE.keys())
 

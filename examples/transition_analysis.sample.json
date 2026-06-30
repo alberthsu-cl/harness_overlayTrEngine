@@ -1,0 +1,44 @@
+{
+  "source_a": "harness/examples/inputs/source_a_real",
+  "source_b": "harness/examples/inputs/source_b_real",
+  "reference_transition": null,
+  "analyzer_inputs": {
+    "clip_metadata_file": "harness/examples/clip_metadata.sample.json",
+    "input_kind": "real",
+    "intent": null,
+    "job_name": "sample_analysis_generated_glitch_real",
+    "prefer_generated": true,
+    "reference_transition": null,
+    "style_hint": null
+  },
+  "resolved": {
+    "style_hint": "generated-glitch",
+    "input_kind": "real",
+    "job_name": "sample_analysis_generated_glitch_real",
+    "style_reason": "metadata marks the clip as generated-glitch with strong energy"
+  },
+  "signals": {
+    "combined_motion_level": "high",
+    "combined_visual_energy": "high",
+    "detected_static_pair": false
+  },
+  "hint": {
+    "style_hint": "generated-glitch",
+    "input_kind": "real",
+    "reference_transition": null,
+    "job_name": "sample_analysis_generated_glitch_real",
+    "notes": "Analyzer selected 'generated-glitch' because metadata marks the clip as generated-glitch with strong energy.",
+    "analysis": {
+      "intent": null,
+      "prefer_generated": true,
+      "style_reason": "metadata marks the clip as generated-glitch with strong energy",
+      "signals": {
+        "combined_motion_level": "high",
+        "combined_visual_energy": "high",
+        "detected_static_pair": false
+      },
+      "clip_metadata_file": "harness/examples/clip_metadata.sample.json"
+    }
+  },
+  "notes": "Analyzer selected 'generated-glitch' because metadata marks the clip as generated-glitch with strong energy."
+}
