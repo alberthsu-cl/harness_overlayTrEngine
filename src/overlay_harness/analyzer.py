@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from pathlib import Path
+import hashlib
 import json
+from pathlib import Path
 
 from typing import Any
 
@@ -35,11 +36,16 @@ def analyze_transition(
     if detected_input_kind == "auto":
         detected_input_kind = infer_input_kind(repo_root, source_a, source_b)
 
+    source_a_signals = inspect_prepared_input(source_a)
+    source_b_signals = inspect_prepared_input(source_b)
+    pair_signals = summarize_pair_signals(source_a_signals, source_b_signals)
+
     resolved_style_hint, reason = _resolve_style_hint(
         style_hint=style_hint,
         intent=intent,
         prefer_generated=prefer_generated,
         detected_input_kind=detected_input_kind,
+        pair_signals=pair_signals,
     )
 
     notes = f"Analyzer selected '{resolved_style_hint}' because {reason}."
@@ -56,6 +62,7 @@ def analyze_transition(
             "intent": intent,
             "prefer_generated": prefer_generated,
             "style_reason": reason,
+            "signals": pair_signals,
         },
     }
 
@@ -91,6 +98,7 @@ def _resolve_style_hint(
     intent: str | None,
     prefer_generated: bool,
     detected_input_kind: str,
+    pair_signals: dict[str, Any],
 ) -> tuple[str, str]:
     if style_hint:
         return style_hint, "an explicit style hint was provided"
@@ -113,9 +121,17 @@ def _resolve_style_hint(
             return "seamless", "the intent mentions a smooth or sliding transition"
 
     if prefer_generated:
+        if pair_signals["combined_visual_energy"] == "high":
+            return "generated-glitch", "generated output was preferred and local frame signals indicate high visual energy"
         if detected_input_kind == "fixture":
             return "generated-seamless", "generated output was preferred and fixture inputs are better served by a visible seamless placeholder"
         return "generated-glitch", "generated output was preferred and real or custom inputs default to a glitch placeholder"
+
+    if pair_signals["combined_visual_energy"] == "high" or pair_signals["combined_motion_level"] == "high":
+        return "glitch", "local frame signals indicate high motion or visual energy"
+
+    if pair_signals["detected_static_pair"]:
+        return "seamless", "local frame signals indicate a static or low-motion pair that fits the smooth baseline"
 
     return "seamless", "no stronger signal was provided, so the analyzer chose the safest baseline transition"
 
@@ -134,6 +150,114 @@ def _resolve_style_from_metadata_heuristics(metadata: dict[str, Any]) -> tuple[s
         return "generated-seamless", "metadata did not signal a glitch case and generated output was preferred"
 
     return "seamless", "metadata did not signal a glitch case, so the analyzer chose the smooth baseline"
+
+
+def inspect_prepared_input(input_dir: Path) -> dict[str, Any]:
+    manifest = _load_prepare_manifest(input_dir)
+    frame_files = sorted(
+        file_path
+        for file_path in input_dir.iterdir()
+        if file_path.is_file() and file_path.name.startswith("frame_")
+    )
+
+    sample_files = _sample_frame_files(frame_files, limit=12)
+    file_sizes = [file_path.stat().st_size for file_path in sample_files]
+    hashes = [_hash_file(file_path) for file_path in sample_files]
+
+    distinct_hash_count = len(set(hashes))
+    distinct_size_count = len(set(file_sizes))
+    average_size = int(sum(file_sizes) / len(file_sizes)) if file_sizes else 0
+    size_range = (max(file_sizes) - min(file_sizes)) if file_sizes else 0
+
+    return {
+        "path": str(input_dir),
+        "manifest_mode": manifest.get("mode") if manifest else None,
+        "format": manifest.get("format") if manifest else None,
+        "frame_count": manifest.get("frame_count") if manifest else len(frame_files),
+        "sampled_frame_count": len(sample_files),
+        "distinct_hash_count": distinct_hash_count,
+        "distinct_size_count": distinct_size_count,
+        "average_sample_size": average_size,
+        "sample_size_range": size_range,
+        "static_sequence": distinct_hash_count <= 1,
+        "motion_level": _classify_motion_level(distinct_hash_count, len(sample_files)),
+        "visual_energy": _classify_visual_energy(distinct_hash_count, distinct_size_count, size_range, average_size),
+    }
+
+
+def summarize_pair_signals(source_a: dict[str, Any], source_b: dict[str, Any]) -> dict[str, Any]:
+    combined_motion_level = _max_level(source_a["motion_level"], source_b["motion_level"])
+    combined_visual_energy = _max_level(source_a["visual_energy"], source_b["visual_energy"])
+    return {
+        "source_a": source_a,
+        "source_b": source_b,
+        "combined_motion_level": combined_motion_level,
+        "combined_visual_energy": combined_visual_energy,
+        "detected_static_pair": bool(source_a["static_sequence"] and source_b["static_sequence"]),
+    }
+
+
+def _load_prepare_manifest(input_dir: Path) -> dict[str, Any] | None:
+    manifest_file = input_dir / "prepare_video_manifest.json"
+    if not manifest_file.exists():
+        return None
+
+    with manifest_file.open("r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def _sample_frame_files(frame_files: list[Path], limit: int) -> list[Path]:
+    if len(frame_files) <= limit:
+        return frame_files
+
+    indexes = {round(index * (len(frame_files) - 1) / (limit - 1)) for index in range(limit)}
+    return [frame_files[index] for index in sorted(indexes)]
+
+
+def _hash_file(file_path: Path) -> str:
+    digest = hashlib.sha1()
+    with file_path.open("rb") as handle:
+        while True:
+            chunk = handle.read(65536)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _classify_motion_level(distinct_hash_count: int, sample_count: int) -> str:
+    if sample_count <= 1 or distinct_hash_count <= 1:
+        return "low"
+
+    diversity_ratio = distinct_hash_count / sample_count
+    if diversity_ratio >= 0.8:
+        return "high"
+    if diversity_ratio >= 0.35:
+        return "medium"
+    return "low"
+
+
+def _classify_visual_energy(
+    distinct_hash_count: int,
+    distinct_size_count: int,
+    size_range: int,
+    average_size: int,
+) -> str:
+    if distinct_hash_count <= 1 and distinct_size_count <= 1:
+        return "low"
+
+    if average_size > 0 and size_range / average_size >= 0.25:
+        return "high"
+    if distinct_hash_count >= 6 or distinct_size_count >= 6:
+        return "high"
+    if distinct_hash_count >= 3 or distinct_size_count >= 3:
+        return "medium"
+    return "low"
+
+
+def _max_level(level_a: str, level_b: str) -> str:
+    rank = {"low": 0, "medium": 1, "high": 2}
+    return level_a if rank[level_a] >= rank[level_b] else level_b
 
 
 def _format_optional_path(path: Path | None, repo_root: Path) -> str | None:

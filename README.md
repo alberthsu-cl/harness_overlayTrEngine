@@ -112,6 +112,15 @@ py -3 harness/src/main.py analyze-transition --source-a harness/examples/inputs/
 py -3 harness/src/main.py analyze-transition --source-a harness/examples/fixtures/blue_green/source_a --source-b harness/examples/fixtures/blue_green/source_b --hint-output harness/examples/analyzed.fixture.transition_hint.json --intent "smooth sliding transition"
 ```
 
+If you do not provide intent or clip metadata, the analyzer now inspects local prepared-input signals directly from the frame folders. In the current slice that means manifest fields, sampled frame hashes, sampled file sizes, and simple sequence-level heuristics:
+
+```powershell
+py -3 harness/src/main.py analyze-transition --source-a harness/examples/fixtures/blue_green/source_a --source-b harness/examples/fixtures/blue_green/source_b --hint-output harness/examples/analyzed.signal.fixture.transition_hint.json
+py -3 harness/src/main.py analyze-transition --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --hint-output harness/examples/analyzed.signal.real.transition_hint.json
+```
+
+This is still local and deterministic. It does not use an AI model or require any API key.
+
 The analyzer can also read lightweight clip-derived metadata instead of only freeform intent:
 
 ```powershell
