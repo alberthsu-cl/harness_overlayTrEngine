@@ -3,6 +3,10 @@ src/**/*.pyc
 src/**/*.pyo
 src/**/*.pyd
 src/overlay_harness/__pycache__/
+tests/__pycache__/
+tests/**/*.pyc
+tests/**/*.pyo
+tests/**/*.pyd
 
 # Local build and run artifacts
 work/
