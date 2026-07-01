@@ -178,6 +178,37 @@ def load_transition_analysis(file_path: Path) -> dict[str, Any]:
         return json.load(handle)
 
 
+def load_reference_transition_manifest(reference_path: Path) -> dict[str, Any] | None:
+    manifest_path = reference_path
+    if reference_path.is_dir():
+        manifest_path = reference_path / "reference_transition_manifest.json"
+
+    if not manifest_path.exists():
+        return None
+
+    with manifest_path.open("r", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+
+    if manifest.get("artifact_type") != "reference_transition":
+        raise ValueError(f"reference transition manifest is invalid: {manifest_path}")
+    return manifest
+
+
+def resolve_planned_frame_count(reference_transition: Path | None, explicit_frame_count: int | None) -> tuple[int, str]:
+    if explicit_frame_count is not None:
+        return explicit_frame_count, "explicit"
+
+    if reference_transition is not None:
+        manifest = load_reference_transition_manifest(reference_transition)
+        if manifest is not None:
+            frame_count = manifest.get("frame_count")
+            if not isinstance(frame_count, int) or frame_count < 2:
+                raise ValueError("reference transition manifest frame_count must be an integer >= 2")
+            return frame_count, "reference_transition_manifest"
+
+    return 30, "default"
+
+
 def extract_hint_from_analysis(analysis_data: dict[str, Any]) -> dict[str, Any]:
     planning_recommendation = analysis_data.get("planning_recommendation")
     if isinstance(planning_recommendation, dict):

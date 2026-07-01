@@ -25,12 +25,17 @@ from .planner import (
     planner_modes,
     planner_preset,
     planner_presets,
+    resolve_planned_frame_count,
     resolve_auto_plan,
 )
 from .renderer import prepare_render_invocation
 from .report import HarnessReport
 from .validator import validate_job
-from .video_prep import extract_video_frames, prepare_solid_color_frames
+from .video_prep import (
+    extract_video_frames,
+    prepare_reference_transition,
+    prepare_solid_color_frames,
+)
 from .workspace import create_job_workspace, write_json
 
 
@@ -62,6 +67,8 @@ def main(argv: list[str] | None = None) -> int:
         return _handle_prepare_video(args, repo_root)
     if args.command == "prepare-pair":
         return _handle_prepare_pair(args, repo_root)
+    if args.command == "prepare-reference-transition":
+        return _handle_prepare_reference_transition(args, repo_root)
     if args.command == "analyze-transition":
         return _handle_analyze_transition(args, repo_root)
     if args.command == "plan-job":
@@ -147,6 +154,43 @@ def _build_parser() -> argparse.ArgumentParser:
     prepare_pair.add_argument("--height", type=int, default=1080, help="Target output height")
     prepare_pair.add_argument("--fps", type=int, default=30, help="Frame rate metadata for the fixture manifests")
     prepare_pair.add_argument("--frame-count", type=int, default=30, help="Frame count for both fixture sequences")
+
+    prepare_reference_transition_cmd = subparsers.add_parser(
+        "prepare-reference-transition",
+        help="Detect and normalize a transition segment from a sample transition video",
+    )
+    prepare_reference_transition_cmd.add_argument(
+        "--source-video",
+        required=True,
+        help="Path to the sample transition video",
+    )
+    prepare_reference_transition_cmd.add_argument(
+        "--output-dir",
+        required=True,
+        help="Directory for the normalized reference transition frames and manifest",
+    )
+    prepare_reference_transition_cmd.add_argument("--width", type=int, default=1920, help="Target output width")
+    prepare_reference_transition_cmd.add_argument("--height", type=int, default=1080, help="Target output height")
+    prepare_reference_transition_cmd.add_argument("--fps", type=int, default=30, help="Normalization frame rate")
+    prepare_reference_transition_cmd.add_argument(
+        "--target-frame-count",
+        type=int,
+        default=30,
+        help="Exact number of normalized reference frames to produce",
+    )
+    prepare_reference_transition_cmd.add_argument(
+        "--analysis-width",
+        type=int,
+        default=64,
+        help="Low-resolution analysis width for transition detection",
+    )
+    prepare_reference_transition_cmd.add_argument(
+        "--analysis-height",
+        type=int,
+        default=36,
+        help="Low-resolution analysis height for transition detection",
+    )
+    prepare_reference_transition_cmd.add_argument("--ffmpeg", required=False, help="Optional path to ffmpeg")
 
     analyze_transition_cmd = subparsers.add_parser(
         "analyze-transition",
@@ -271,7 +315,12 @@ def _build_parser() -> argparse.ArgumentParser:
     plan_job.add_argument("--width", type=int, default=1920, help="Target output width")
     plan_job.add_argument("--height", type=int, default=1080, help="Target output height")
     plan_job.add_argument("--fps", type=int, default=30, help="Target render fps")
-    plan_job.add_argument("--frame-count", type=int, default=30, help="Target render frame count")
+    plan_job.add_argument(
+        "--frame-count",
+        type=int,
+        default=None,
+        help="Target render frame count; defaults to the prepared reference manifest count when available, otherwise 30",
+    )
     plan_job.add_argument(
         "--output-format",
         default="png_sequence",
@@ -552,6 +601,43 @@ def _handle_score(args, repo_root: Path) -> int:
                 "mse": similarity_report["score"]["mse"],
                 "mae": similarity_report["score"]["mae"],
                 "psnr_db": similarity_report["score"]["psnr_db"],
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
+def _handle_prepare_reference_transition(args, repo_root: Path) -> int:
+    source_video = _resolve_path_argument(args.source_video, repo_root)
+    output_dir = _resolve_path_argument(args.output_dir, repo_root)
+
+    try:
+        result = prepare_reference_transition(
+            source_video=source_video,
+            output_dir=output_dir,
+            fps=args.fps,
+            width=args.width,
+            height=args.height,
+            target_frame_count=args.target_frame_count,
+            ffmpeg_path=args.ffmpeg,
+            analysis_width=args.analysis_width,
+            analysis_height=args.analysis_height,
+        )
+    except Exception as exc:
+        print(f"prepare-reference-transition failed: {exc}")
+        return 1
+
+    print(
+        json.dumps(
+            {
+                "output_dir": str(result.output_dir),
+                "frame_count": result.frame_count,
+                "manifest_file": str(result.manifest_file),
+                "detected_start_frame": result.detected_start_frame,
+                "detected_end_frame": result.detected_end_frame,
+                "detected_frame_count": result.detected_frame_count,
+                "message": result.message,
             },
             indent=2,
         )
@@ -898,8 +984,14 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
         if hint_reference_transition
         else None
     )
+    resolved_frame_count = None
+    frame_count_source = None
 
     try:
+        resolved_frame_count, frame_count_source = resolve_planned_frame_count(
+            reference_transition=reference_transition,
+            explicit_frame_count=args.frame_count,
+        )
         job, effect_spec_payload = build_planned_job(
             repo_root=repo_root,
             source_a=source_a,
@@ -908,7 +1000,7 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
             width=args.width,
             height=args.height,
             fps=args.fps,
-            frame_count=args.frame_count,
+            frame_count=resolved_frame_count,
             output_format=args.output_format,
             job_name=job_name,
             reference_transition=reference_transition,
@@ -940,6 +1032,8 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
         "analysis_file": args.analysis_file,
         "plan_source": "recomputed_from_facts" if args.recompute_plan_from_facts else "analysis_embedded_or_hint",
         "job_name": job.job_name,
+        "frame_count": job.render.frame_count,
+        "frame_count_source": frame_count_source,
         "validation_valid": validation.is_valid,
         "issues": [
             {"field": issue.field, "level": issue.level, "message": issue.message}

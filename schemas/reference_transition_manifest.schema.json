@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OverlayReferenceTransitionManifest",
+  "type": "object",
+  "properties": {
+    "artifact_type": {
+      "const": "reference_transition"
+    },
+    "artifact_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "mode": {
+      "type": "string"
+    },
+    "source_video": {
+      "type": "string"
+    },
+    "fps": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "width": {
+      "type": "integer",
+      "minimum": 16
+    },
+    "height": {
+      "type": "integer",
+      "minimum": 16
+    },
+    "frame_count": {
+      "type": "integer",
+      "minimum": 2
+    },
+    "format": {
+      "type": "string"
+    },
+    "analysis": {
+      "type": "object",
+      "properties": {
+        "analysis_width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "analysis_height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "normalized_clip_frame_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "detected_start_frame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "detected_end_frame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "detected_frame_count": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "analysis_width",
+        "analysis_height",
+        "normalized_clip_frame_count",
+        "detected_start_frame",
+        "detected_end_frame",
+        "detected_frame_count"
+      ]
+    },
+    "frame_progress_mapping": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "output_frame": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "normalized_progress": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "detected_window_source_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "normalized_clip_source_frame": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "output_frame",
+          "normalized_progress",
+          "detected_window_source_index",
+          "normalized_clip_source_frame"
+        ]
+      }
+    },
+    "ffmpeg": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "artifact_type",
+    "artifact_version",
+    "mode",
+    "source_video",
+    "fps",
+    "width",
+    "height",
+    "frame_count",
+    "format",
+    "analysis",
+    "frame_progress_mapping",
+    "ffmpeg"
+  ],
+  "additionalProperties": true
+}

@@ -61,6 +61,7 @@ Run from the repository root:
 
 ```powershell
 py -3 harness/src/main.py prepare-pair --output-root harness/examples/fixtures/blue_green --color-a blue --color-b green --width 1920 --height 1080 --frame-count 30
+py -3 harness/src/main.py prepare-reference-transition --source-video harness/sample_glitch.mp4 --output-dir harness/work/reference_transition --fps 30 --width 1920 --height 1080 --target-frame-count 30
 py -3 harness/src/main.py analyze-transition --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --hint-output harness/examples/analyzed.transition_hint.json --intent "generated glitch transition"
 py -3 harness/src/main.py plan-job --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --job-output harness/examples/planned.render_job.json --mode builtin-seamless
 py -3 harness/src/main.py validate --job harness/examples/render_job.sample.json
@@ -103,6 +104,21 @@ This creates:
 - `harness/examples/fixtures/blue_green/source_b/`
 
 If you want to prepare only one side, use `prepare-video` instead.
+
+If you have a raw sample transition video, prepare a scoring-ready reference artifact with:
+
+```powershell
+py -3 harness/src/main.py prepare-reference-transition --source-video harness/sample_glitch.mp4 --output-dir harness/work/reference_transition --fps 30 --width 1920 --height 1080 --target-frame-count 30
+```
+
+This command:
+
+- detects the highest-change transition window from the normalized video frames
+- extracts that window
+- resamples it to the requested frame count
+- writes `reference_transition_manifest.json` with detected frame bounds and frame-to-progress mapping
+
+If you later pass that prepared reference artifact to `plan-job --reference-transition`, the planner now uses the manifest `frame_count` automatically unless you also pass `--frame-count`.
 
 ### 1b. Plan a job from prepared inputs
 
@@ -157,7 +173,10 @@ Use `plan-job` to create a valid render job from prepared A/B inputs without han
 ```powershell
 py -3 harness/src/main.py plan-job --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --job-output harness/examples/planned.render_job.json --mode builtin-seamless
 py -3 harness/src/main.py plan-job --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --job-output harness/examples/planned.effect_spec.render_job.json --mode generated-glitch-placeholder --effect-spec-output harness/examples/planned.generated_glitch_placeholder.json
+py -3 harness/src/main.py plan-job --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --reference-transition harness/work/reference_transition --job-output harness/examples/planned.from_reference.render_job.json --mode builtin-glitch
 ```
+
+When `--reference-transition` points at a prepared reference artifact directory, `plan-job` reads `reference_transition_manifest.json` and adopts its `frame_count`. Use `--frame-count` only when you want to override that.
 
 For common workflows, you can use presets instead of repeating the same paths and mode selection:
 
@@ -198,6 +217,7 @@ See:
 - `harness/schemas/transition_analysis.schema.json`
 - `harness/examples/clip_metadata.sample.json`
 - `harness/schemas/clip_metadata.schema.json`
+- `harness/schemas/reference_transition_manifest.schema.json`
 
 The first auto slice supports these style hints:
 
