@@ -12,19 +12,19 @@ Harden scoring consistency for prepared reference transitions so frame alignment
 - Synced planner frame count to `reference_transition_manifest.json` when `--reference-transition` is used.
 - Added automatic post-run similarity scoring and score report output.
 - Tightened scoring so prepared reference manifests enforce exact frame-count alignment and write manifest-backed alignment metadata into `similarity_score.json`.
+- Added automated `unittest` coverage for prepared-reference scoring alignment, mismatch failures, and non-prepared fallback behavior.
 
 ## Next Implementation Step
 
-Add an automated consistency test around prepared reference scoring:
+Tighten validation for `inputs.reference_transition`:
 
-1. Cover the case where the detected transition window produces fewer normalized frames than the original target.
-2. Verify `plan-job` adopts the prepared reference `frame_count`.
-3. Verify scoring fails loudly on candidate/reference count mismatches instead of silently truncating.
+1. Validate prepared reference manifests earlier in the job lifecycle when `inputs.reference_transition` is present.
+2. Fail fast on missing or malformed prepared-reference manifests for workflows that expect reliable scoring.
+3. Keep `run_report.json` as the stable evaluator summary entrypoint.
 
 ## Why This Is Next
 
-- The main remaining risk in the current scoring path is silent truncation or unclear alignment when prepared references are shorter than a default 30-frame render.
-- A small consistency test closes that gap before moving on to retrieval and cataloging work.
+- Scoring behavior is now covered directly, so the next Milestone 1 gap is earlier validation and clearer evaluator contracts around `reference_transition` inputs.
 
 ## Resume Commands
 

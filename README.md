@@ -87,6 +87,7 @@ py -3 harness/src/main.py run --job harness/examples/render_job.sample.json --re
 py -3 harness/src/main.py score --candidate harness/work/<run>/artifacts --reference harness/examples/inputs/reference_transition --output harness/work/<run>/reports/similarity_score.json
 py -3 harness/src/main.py smoke-test --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
 py -3 harness/src/main.py real-smoke-test --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
+py -3 -m unittest discover harness/tests
 ```
 
 If `harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe` exists, `run`, `smoke-test`, and `real-smoke-test` will use it automatically when `--renderer` is omitted.
@@ -305,6 +306,12 @@ Run the real-video smoke tier with:
 ```powershell
 py -3 harness/src/main.py real-smoke-test
 py -3 harness/src/main.py real-smoke-test --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
+```
+
+For harness-only automated scoring/alignment checks, run:
+
+```powershell
+py -3 -m unittest discover harness/tests
 ```
 
 Without `--renderer`, each helper validates its job pair if the default renderer path is not present.
