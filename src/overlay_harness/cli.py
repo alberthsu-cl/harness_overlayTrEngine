@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 
 from .config import load_allowed_effects, load_eval_thresholds
+from .evaluator import score_frame_sequences
 from .models import load_render_job
 from .analyzer import analyze_transition
 from .analyzer import build_transition_analysis_artifact, derive_analyzer_inputs_from_metadata, load_clip_metadata
@@ -69,6 +70,8 @@ def main(argv: list[str] | None = None) -> int:
         return _handle_smoke_test(args, repo_root, harness_root, config_dir, default_renderer)
     if args.command == "real-smoke-test":
         return _handle_real_smoke_test(args, repo_root, harness_root, config_dir, default_renderer)
+    if args.command == "score":
+        return _handle_score(args, repo_root)
 
     result = _execute_job_command(
         repo_root=repo_root,
@@ -303,6 +306,18 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
 
+    score = subparsers.add_parser(
+        "score",
+        help="Score a candidate image sequence against a prepared reference sequence",
+    )
+    score.add_argument("--candidate", required=True, help="Candidate image file or frame folder")
+    score.add_argument("--reference", required=True, help="Reference image file or frame folder")
+    score.add_argument("--output", required=True, help="Output path for the score report JSON")
+    score.add_argument("--width", type=int, default=1920, help="Scoring width")
+    score.add_argument("--height", type=int, default=1080, help="Scoring height")
+    score.add_argument("--frame-count", type=int, default=None, help="Optional maximum number of frame pairs to score")
+    score.add_argument("--ffmpeg", required=False, help="Optional path to ffmpeg")
+
     return parser
 
 
@@ -474,6 +489,49 @@ def _handle_prepare_pair(args, repo_root: Path) -> int:
                     "manifest_file": str(result_b.manifest_file),
                 },
                 "message": f"generated paired fixtures at {output_root}",
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
+def _handle_score(args, repo_root: Path) -> int:
+    candidate = _resolve_path_argument(args.candidate, repo_root)
+    reference = _resolve_path_argument(args.reference, repo_root)
+    output = _resolve_path_argument(args.output, repo_root)
+
+    try:
+        score = score_frame_sequences(
+            candidate=candidate,
+            reference=reference,
+            width=args.width,
+            height=args.height,
+            frame_count=args.frame_count,
+            ffmpeg_path=args.ffmpeg,
+        )
+        write_json(
+            output,
+            {
+                "report_type": "similarity_score",
+                "report_version": 1,
+                "candidate": _format_path_for_output(candidate, repo_root),
+                "reference": _format_path_for_output(reference, repo_root),
+                "score": score.to_dict(),
+            },
+        )
+    except Exception as exc:
+        print(f"score failed: {exc}")
+        return 1
+
+    print(
+        json.dumps(
+            {
+                "score_output": str(output),
+                "frame_count": score.frame_count,
+                "mse": score.mse,
+                "mae": score.mae,
+                "psnr_db": score.psnr_db,
             },
             indent=2,
         )

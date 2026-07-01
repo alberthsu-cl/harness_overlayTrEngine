@@ -71,6 +71,7 @@ py -3 harness/src/main.py smoke-test
 py -3 harness/src/main.py real-smoke-test
 py -3 harness/src/main.py run --job harness/examples/render_job.effect_spec.sample.json --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
 py -3 harness/src/main.py run --job harness/examples/render_job.sample.json --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
+py -3 harness/src/main.py score --candidate harness/work/<run>/artifacts --reference harness/examples/inputs/reference_transition --output harness/work/<run>/reports/similarity_score.json
 py -3 harness/src/main.py smoke-test --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
 py -3 harness/src/main.py real-smoke-test --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
 ```
@@ -308,6 +309,14 @@ Each run writes these key artifacts inside its work folder:
   native renderer result summary, including resolved effect information
 - `reports/run_report.json`
   Python-side summary containing process output, frame-count checks, and renderer result data
+
+Use `score` when you have a rendered candidate frame sequence and a prepared reference frame sequence:
+
+```powershell
+py -3 harness/src/main.py score --candidate harness/work/<run>/artifacts --reference harness/examples/inputs/reference_transition --output harness/work/<run>/reports/similarity_score.json
+```
+
+The score report currently contains frame-level and aggregate MSE, MAE, and PSNR. If the reference is still a video file, first normalize it with `prepare-video --source-video` so candidate and reference frames use the same width, height, fps, and frame count.
 
 If the run succeeded, you should expect:
 

@@ -3,3 +3,12 @@ src/**/*.pyc
 src/**/*.pyo
 src/**/*.pyd
 src/overlay_harness/__pycache__/
+
+# Local build and run artifacts
+work/
+native_renderer/.vs/
+native_renderer/build/
+native_renderer/*.vcxproj.user
+
+# Local sample media
+*.mp4
