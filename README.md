@@ -28,7 +28,19 @@ harness/
   examples/
   schemas/
   src/
+  WORKLOG.md
 ```
+
+## Session Handoff
+
+Use [WORKLOG.md](/abs/path/D:/AI_Harness/harness/WORKLOG.md) as the persistent restart handoff. It records:
+
+- the current objective
+- the last completed slice
+- the exact next implementation step
+- resume commands and constraints
+
+Update it whenever a meaningful implementation slice finishes so the next session can resume from the file instead of reconstructing intent from chat history.
 
 ## Conda environment
 
@@ -339,6 +351,12 @@ py -3 harness/src/main.py score --candidate harness/work/<run>/artifacts --refer
 ```
 
 The score report currently contains frame-level and aggregate MSE, MAE, and PSNR. If the reference is still a video file, first normalize it with `prepare-video --source-video` so candidate and reference frames use the same width, height, fps, and frame count.
+
+If `--reference` points at a prepared reference artifact directory with `reference_transition_manifest.json`, scoring now treats that manifest as the alignment contract:
+
+- the expected frame count must match the manifest `frame_count`
+- score reports include the detected start/end frames and `frame_progress_mapping`
+- prepared-reference mismatches fail instead of silently truncating
 
 When `inputs.reference_transition` is present in a render job, `run` now attempts that same scoring step automatically after rendering and records the result in both `reports/similarity_score.json` and `reports/run_report.json`. A scoring failure is recorded in the report but does not overwrite the render status.
 

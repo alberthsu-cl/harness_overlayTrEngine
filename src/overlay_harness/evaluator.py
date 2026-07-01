@@ -24,6 +24,8 @@ class FrameScore:
 @dataclass(slots=True)
 class SimilarityScore:
     frame_count: int
+    candidate_frame_count: int
+    reference_frame_count: int
     width: int
     height: int
     mse: float
@@ -43,6 +45,7 @@ def score_frame_sequences(
     height: int,
     frame_count: int | None = None,
     ffmpeg_path: str | None = None,
+    require_exact_frame_count: bool = False,
 ) -> SimilarityScore:
     candidate_frames = discover_frames(candidate)
     reference_frames = discover_frames(reference)
@@ -52,9 +55,33 @@ def score_frame_sequences(
     if not reference_frames:
         raise ValueError(f"reference contains no supported frames: {reference}")
 
-    pair_count = min(len(candidate_frames), len(reference_frames))
-    if frame_count is not None:
-        pair_count = min(pair_count, frame_count)
+    candidate_frame_count = len(candidate_frames)
+    reference_frame_count = len(reference_frames)
+
+    if require_exact_frame_count:
+        if frame_count is not None:
+            if candidate_frame_count != frame_count:
+                raise ValueError(
+                    f"candidate frame count mismatch: expected {frame_count}, "
+                    f"found {candidate_frame_count} in {candidate}"
+                )
+            if reference_frame_count != frame_count:
+                raise ValueError(
+                    f"reference frame count mismatch: expected {frame_count}, "
+                    f"found {reference_frame_count} in {reference}"
+                )
+            pair_count = frame_count
+        else:
+            if candidate_frame_count != reference_frame_count:
+                raise ValueError(
+                    f"candidate/reference frame count mismatch: "
+                    f"{candidate_frame_count} vs {reference_frame_count}"
+                )
+            pair_count = candidate_frame_count
+    else:
+        pair_count = min(candidate_frame_count, reference_frame_count)
+        if frame_count is not None:
+            pair_count = min(pair_count, frame_count)
     if pair_count <= 0:
         raise ValueError("no candidate/reference frame pairs are available to score")
 
@@ -87,6 +114,8 @@ def score_frame_sequences(
     mae = total_absolute_error / total_sample_count
     return SimilarityScore(
         frame_count=pair_count,
+        candidate_frame_count=candidate_frame_count,
+        reference_frame_count=reference_frame_count,
         width=width,
         height=height,
         mse=mse,

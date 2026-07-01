@@ -38,6 +38,8 @@ conda activate harness
 
 `prepare-video --source-video` and non-BMP scoring require `ffmpeg`. The checked-in Conda environment includes `ffmpeg`.
 
+For restart-safe continuity, keep `harness/WORKLOG.md` updated with the current objective, last completed step, and exact next implementation step.
+
 Important harness modules:
 
 - `src/overlay_harness/cli.py`: command routing.

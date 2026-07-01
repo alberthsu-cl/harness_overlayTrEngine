@@ -20,6 +20,7 @@ from .planner import (
     extract_resolved_facts_from_analysis,
     extract_sources_from_analysis,
     extract_hint_from_analysis,
+    load_reference_transition_manifest,
     load_transition_analysis,
     load_transition_hint,
     planner_modes,
@@ -655,13 +656,28 @@ def _build_similarity_report(
     output: Path,
     ffmpeg_path: str | None = None,
 ) -> dict[str, object]:
+    reference_manifest = load_reference_transition_manifest(reference)
+    expected_frame_count = frame_count
+    if reference_manifest is not None:
+        manifest_frame_count = reference_manifest.get("frame_count")
+        if not isinstance(manifest_frame_count, int) or manifest_frame_count < 2:
+            raise ValueError("reference transition manifest frame_count must be an integer >= 2")
+        if expected_frame_count is None:
+            expected_frame_count = manifest_frame_count
+        elif expected_frame_count != manifest_frame_count:
+            raise ValueError(
+                f"prepared reference frame_count mismatch: render expects {expected_frame_count}, "
+                f"manifest provides {manifest_frame_count}"
+            )
+
     score = score_frame_sequences(
         candidate=candidate,
         reference=reference,
         width=width,
         height=height,
-        frame_count=frame_count,
+        frame_count=expected_frame_count,
         ffmpeg_path=ffmpeg_path,
+        require_exact_frame_count=reference_manifest is not None,
     )
     similarity_report = {
         "report_type": "similarity_score",
@@ -669,10 +685,52 @@ def _build_similarity_report(
         "candidate": _format_path_for_output(candidate, repo_root),
         "reference": _format_path_for_output(reference, repo_root),
         "status": "succeeded",
+        "alignment": _build_similarity_alignment(
+            repo_root=repo_root,
+            reference=reference,
+            expected_frame_count=expected_frame_count,
+            score=score,
+            reference_manifest=reference_manifest,
+        ),
         "score": score.to_dict(),
     }
     write_json(output, similarity_report)
     return similarity_report
+
+
+def _build_similarity_alignment(
+    repo_root: Path,
+    reference: Path,
+    expected_frame_count: int | None,
+    score,
+    reference_manifest: dict | None,
+) -> dict[str, object]:
+    alignment = {
+        "mode": "prepared_reference_manifest" if reference_manifest is not None else "frame_sequence_order",
+        "strict_frame_count": reference_manifest is not None,
+        "expected_frame_count": expected_frame_count,
+        "candidate_frame_count": score.candidate_frame_count,
+        "reference_frame_count": score.reference_frame_count,
+    }
+    if reference_manifest is None:
+        return alignment
+
+    manifest_path = reference / "reference_transition_manifest.json" if reference.is_dir() else reference
+    analysis = reference_manifest.get("analysis")
+    alignment["reference_manifest"] = {
+        "manifest_path": _format_path_for_output(manifest_path, repo_root),
+        "source_video": reference_manifest.get("source_video"),
+        "frame_count": reference_manifest.get("frame_count"),
+        "requested_frame_count": reference_manifest.get("requested_frame_count"),
+        "analysis": {
+            "normalized_clip_frame_count": analysis.get("normalized_clip_frame_count") if isinstance(analysis, dict) else None,
+            "detected_start_frame": analysis.get("detected_start_frame") if isinstance(analysis, dict) else None,
+            "detected_end_frame": analysis.get("detected_end_frame") if isinstance(analysis, dict) else None,
+            "detected_frame_count": analysis.get("detected_frame_count") if isinstance(analysis, dict) else None,
+        },
+        "frame_progress_mapping": reference_manifest.get("frame_progress_mapping"),
+    }
+    return alignment
 
 
 def _handle_analyze_transition(args, repo_root: Path) -> int:
