@@ -309,6 +309,8 @@ Each run writes these key artifacts inside its work folder:
   native renderer result summary, including resolved effect information
 - `reports/run_report.json`
   Python-side summary containing process output, frame-count checks, and renderer result data
+- `reports/similarity_score.json`
+  written automatically when the render job includes `inputs.reference_transition` and the renderer produced output frames
 
 Use `score` when you have a rendered candidate frame sequence and a prepared reference frame sequence:
 
@@ -317,6 +319,8 @@ py -3 harness/src/main.py score --candidate harness/work/<run>/artifacts --refer
 ```
 
 The score report currently contains frame-level and aggregate MSE, MAE, and PSNR. If the reference is still a video file, first normalize it with `prepare-video --source-video` so candidate and reference frames use the same width, height, fps, and frame count.
+
+When `inputs.reference_transition` is present in a render job, `run` now attempts that same scoring step automatically after rendering and records the result in both `reports/similarity_score.json` and `reports/run_report.json`. A scoring failure is recorded in the report but does not overwrite the render status.
 
 If the run succeeded, you should expect:
 

@@ -363,6 +363,32 @@ def _execute_job_command(
         }
 
     invocation = prepare_render_invocation(repo_root, workspace, job, renderer)
+    similarity_report: dict | None = None
+    similarity_report_file: Path | None = None
+    if command_name == "run" and job.inputs.reference_transition and invocation.produced_frame_count > 0:
+        similarity_report_file = workspace.reports_dir / "similarity_score.json"
+        reference_path = _resolve_path_argument(job.inputs.reference_transition, repo_root)
+        try:
+            similarity_report = _build_similarity_report(
+                repo_root=repo_root,
+                candidate=workspace.artifacts_dir,
+                reference=reference_path,
+                width=job.render.width,
+                height=job.render.height,
+                frame_count=job.render.frame_count,
+                output=similarity_report_file,
+            )
+        except Exception as exc:
+            similarity_report = {
+                "report_type": "similarity_score",
+                "report_version": 1,
+                "candidate": _format_path_for_output(workspace.artifacts_dir, repo_root),
+                "reference": _format_path_for_output(reference_path, repo_root),
+                "status": "failed",
+                "error": str(exc),
+            }
+            write_json(similarity_report_file, similarity_report)
+
     report = HarnessReport(
         status=invocation.status,
         summary=invocation.message,
@@ -379,6 +405,8 @@ def _execute_job_command(
             "expected_frame_count": invocation.expected_frame_count,
             "output_check_message": invocation.output_check_message,
             "renderer_result": invocation.renderer_result,
+            "similarity_report_file": str(similarity_report_file) if similarity_report_file is not None else None,
+            "similarity_report": similarity_report,
         },
     )
     report_path = workspace.reports_dir / "run_report.json"
@@ -502,23 +530,15 @@ def _handle_score(args, repo_root: Path) -> int:
     output = _resolve_path_argument(args.output, repo_root)
 
     try:
-        score = score_frame_sequences(
+        similarity_report = _build_similarity_report(
+            repo_root=repo_root,
             candidate=candidate,
             reference=reference,
             width=args.width,
             height=args.height,
             frame_count=args.frame_count,
+            output=output,
             ffmpeg_path=args.ffmpeg,
-        )
-        write_json(
-            output,
-            {
-                "report_type": "similarity_score",
-                "report_version": 1,
-                "candidate": _format_path_for_output(candidate, repo_root),
-                "reference": _format_path_for_output(reference, repo_root),
-                "score": score.to_dict(),
-            },
         )
     except Exception as exc:
         print(f"score failed: {exc}")
@@ -528,15 +548,45 @@ def _handle_score(args, repo_root: Path) -> int:
         json.dumps(
             {
                 "score_output": str(output),
-                "frame_count": score.frame_count,
-                "mse": score.mse,
-                "mae": score.mae,
-                "psnr_db": score.psnr_db,
+                "frame_count": similarity_report["score"]["frame_count"],
+                "mse": similarity_report["score"]["mse"],
+                "mae": similarity_report["score"]["mae"],
+                "psnr_db": similarity_report["score"]["psnr_db"],
             },
             indent=2,
         )
     )
     return 0
+
+
+def _build_similarity_report(
+    repo_root: Path,
+    candidate: Path,
+    reference: Path,
+    width: int,
+    height: int,
+    frame_count: int | None,
+    output: Path,
+    ffmpeg_path: str | None = None,
+) -> dict[str, object]:
+    score = score_frame_sequences(
+        candidate=candidate,
+        reference=reference,
+        width=width,
+        height=height,
+        frame_count=frame_count,
+        ffmpeg_path=ffmpeg_path,
+    )
+    similarity_report = {
+        "report_type": "similarity_score",
+        "report_version": 1,
+        "candidate": _format_path_for_output(candidate, repo_root),
+        "reference": _format_path_for_output(reference, repo_root),
+        "status": "succeeded",
+        "score": score.to_dict(),
+    }
+    write_json(output, similarity_report)
+    return similarity_report
 
 
 def _handle_analyze_transition(args, repo_root: Path) -> int:
