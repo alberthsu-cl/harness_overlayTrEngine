@@ -365,6 +365,12 @@ If `--reference` points at a prepared reference artifact directory with `referen
 - score reports include the detected start/end frames and `frame_progress_mapping`
 - prepared-reference mismatches fail instead of silently truncating
 
+Jobs that set `inputs.reference_transition` are now also validated against that prepared reference contract before render:
+
+- the reference path must resolve to a prepared reference artifact with `reference_transition_manifest.json`
+- manifest `frame_count` must match `render.frame_count`
+- the prepared reference frame files must match the manifest `frame_count`
+
 When `inputs.reference_transition` is present in a render job, `run` now attempts that same scoring step automatically after rendering and records the result in both `reports/similarity_score.json` and `reports/run_report.json`. A scoring failure is recorded in the report but does not overwrite the render status.
 
 If the run succeeded, you should expect:

@@ -15,6 +15,8 @@ if str(SRC_ROOT) not in sys.path:
 
 from overlay_harness.cli import _build_similarity_report
 from overlay_harness.evaluator import score_frame_sequences
+from overlay_harness.models import EffectSpec, InputSpec, RenderJob, RenderSettings
+from overlay_harness.validator import validate_job
 from overlay_harness.video_prep import write_bmp_frame
 
 
@@ -133,6 +135,53 @@ class ScoringAlignmentTests(unittest.TestCase):
                 height=self.height,
             )
 
+    def test_validator_rejects_missing_prepared_reference_manifest(self) -> None:
+        reference_dir = self.root / "reference"
+        self._write_bmp_sequence(reference_dir, [(0, 0, 0), (64, 64, 64), (255, 255, 255)])
+
+        validation = validate_job(
+            self._build_job(reference_transition=reference_dir, frame_count=3),
+            HARNESS_ROOT.parent,
+            self._allowed_effects(),
+        )
+
+        self.assertFalse(validation.is_valid)
+        self.assertTrue(
+            any("prepared reference artifact" in issue.message for issue in validation.issues)
+        )
+
+    def test_validator_rejects_prepared_reference_frame_count_mismatch(self) -> None:
+        reference_dir = self.root / "reference"
+        self._write_bmp_sequence(reference_dir, [(0, 0, 0), (64, 64, 64), (255, 255, 255)])
+        self._write_reference_manifest(reference_dir, frame_count=3)
+
+        validation = validate_job(
+            self._build_job(reference_transition=reference_dir, frame_count=2),
+            HARNESS_ROOT.parent,
+            self._allowed_effects(),
+        )
+
+        self.assertFalse(validation.is_valid)
+        self.assertTrue(
+            any("does not match render.frame_count" in issue.message for issue in validation.issues)
+        )
+
+    def test_validator_rejects_incomplete_prepared_reference_frames(self) -> None:
+        reference_dir = self.root / "reference"
+        self._write_bmp_sequence(reference_dir, [(0, 0, 0), (64, 64, 64)])
+        self._write_reference_manifest(reference_dir, frame_count=3)
+
+        validation = validate_job(
+            self._build_job(reference_transition=reference_dir, frame_count=3),
+            HARNESS_ROOT.parent,
+            self._allowed_effects(),
+        )
+
+        self.assertFalse(validation.is_valid)
+        self.assertTrue(
+            any("prepared reference contains 2 frame files" in issue.message for issue in validation.issues)
+        )
+
     def _write_bmp_sequence(self, output_dir: Path, colors: list[tuple[int, int, int]]) -> None:
         output_dir.mkdir(parents=True, exist_ok=True)
         for frame_index, color in enumerate(colors):
@@ -172,6 +221,39 @@ class ScoringAlignmentTests(unittest.TestCase):
         with (output_dir / "reference_transition_manifest.json").open("w", encoding="utf-8") as handle:
             json.dump(manifest, handle, indent=2)
             handle.write("\n")
+
+    def _build_job(self, reference_transition: Path, frame_count: int) -> RenderJob:
+        source_a = self.root / "source_a"
+        source_b = self.root / "source_b"
+        self._write_bmp_sequence(source_a, [(0, 0, 0), (0, 0, 0), (0, 0, 0)])
+        self._write_bmp_sequence(source_b, [(255, 255, 255), (255, 255, 255), (255, 255, 255)])
+        return RenderJob(
+            job_name="validator_test",
+            effect=EffectSpec(
+                fx_id="CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
+                category="single_pass",
+                effect_spec=None,
+                uniforms={"progress": 0.0},
+            ),
+            inputs=InputSpec(
+                source_a=str(source_a),
+                source_b=str(source_b),
+                reference_transition=str(reference_transition),
+            ),
+            render=RenderSettings(
+                width=self.width,
+                height=self.height,
+                fps=30,
+                frame_count=frame_count,
+                output_format="png_sequence",
+            ),
+        )
+
+    def _allowed_effects(self) -> dict:
+        return {
+            "allowed_categories": ["single_pass"],
+            "required_uniforms": ["progress"],
+        }
 
 
 if __name__ == "__main__":
