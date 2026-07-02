@@ -256,6 +256,22 @@ class ScoringAlignmentTests(unittest.TestCase):
             any("prepared reference contains 2 frame files" in issue.message for issue in validation.issues)
         )
 
+    def test_validator_rejects_prepared_reference_dimension_mismatch(self) -> None:
+        reference_dir = self.root / "reference"
+        self._write_bmp_sequence(reference_dir, [(0, 0, 0), (64, 64, 64), (255, 255, 255)])
+        self._write_reference_manifest(reference_dir, frame_count=3)
+
+        validation = validate_job(
+            self._build_job(reference_transition=reference_dir, frame_count=3, width=4, height=2),
+            HARNESS_ROOT.parent,
+            self._allowed_effects(),
+        )
+
+        self.assertFalse(validation.is_valid)
+        self.assertTrue(
+            any("dimensions do not match render width/height" in issue.message for issue in validation.issues)
+        )
+
     def _write_bmp_sequence(self, output_dir: Path, colors: list[tuple[int, int, int]]) -> None:
         output_dir.mkdir(parents=True, exist_ok=True)
         for frame_index, color in enumerate(colors):
@@ -296,7 +312,13 @@ class ScoringAlignmentTests(unittest.TestCase):
             json.dump(manifest, handle, indent=2)
             handle.write("\n")
 
-    def _build_job(self, reference_transition: Path, frame_count: int) -> RenderJob:
+    def _build_job(
+        self,
+        reference_transition: Path,
+        frame_count: int,
+        width: int | None = None,
+        height: int | None = None,
+    ) -> RenderJob:
         source_a = self.root / "source_a"
         source_b = self.root / "source_b"
         self._write_bmp_sequence(source_a, [(0, 0, 0), (0, 0, 0), (0, 0, 0)])
@@ -315,8 +337,8 @@ class ScoringAlignmentTests(unittest.TestCase):
                 reference_transition=str(reference_transition),
             ),
             render=RenderSettings(
-                width=self.width,
-                height=self.height,
+                width=width if width is not None else self.width,
+                height=height if height is not None else self.height,
                 fps=30,
                 frame_count=frame_count,
                 output_format="png_sequence",

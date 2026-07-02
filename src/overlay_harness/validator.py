@@ -131,7 +131,6 @@ def _validate_reference_transition(job: RenderJob, resolved_reference: Path, res
             ValidationIssue(
                 "inputs.reference_transition",
                 "reference transition dimensions do not match render width/height",
-                level="warning",
             )
         )
 

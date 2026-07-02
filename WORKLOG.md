@@ -17,18 +17,19 @@ Harden scoring consistency for prepared reference transitions so frame alignment
 - Added explicit evaluator summary fields to `run_report.json` so render and score status are easier to distinguish.
 - Promoted `run_report.json` to a versioned contract with `report_type` and `report_version`.
 - Propagated score failures into the top-level run status and summary.
+- Promoted prepared-reference dimension mismatches from warnings to validation errors.
 
 ## Next Implementation Step
 
-Decide whether validator warnings on reference metadata need to become hard failures:
+Define the Milestone 1 acceptance boundary:
 
-1. Keep dimension mismatches as warnings if they are only advisory.
-2. Promote any remaining reference metadata warnings to hard failures if strict gating is preferred.
-3. Update the contract and tests to match the chosen policy.
+1. Decide which harness commands and report fields are mandatory for the evaluator milestone.
+2. Decide whether any further reference metadata checks are required before treating Milestone 1 as complete.
+3. Decide whether the evaluator contract should be frozen now or after one more smoke-test pass.
 
 ## Why This Is Next
 
-- Score failures are now propagated, so the remaining Milestone 1 decision is whether any reference metadata warnings should be hardened into errors.
+- The reference metadata policy is now strict, so the remaining Milestone 1 work is finalizing the acceptance boundary rather than changing validator behavior.
 
 ## Resume Commands
 
