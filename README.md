@@ -2,6 +2,10 @@
 
 This folder contains the first implementation slice of an AI-assisted transition harness for `overlaytrengine`.
 
+![Real sample flow diagram](docs/real_sample_flow.png)
+
+For the editable source, see [real_sample_flow.svg](docs/real_sample_flow.svg).
+
 ## Current scope
 
 The scaffold added here provides:
