@@ -371,7 +371,7 @@ Jobs that set `inputs.reference_transition` are now also validated against that 
 - manifest `frame_count` must match `render.frame_count`
 - the prepared reference frame files must match the manifest `frame_count`
 
-When `inputs.reference_transition` is present in a render job, `run` now attempts that same scoring step automatically after rendering and records the result in both `reports/similarity_score.json` and `reports/run_report.json`. A scoring failure is recorded in the report but does not overwrite the render status.
+When `inputs.reference_transition` is present in a render job, `run` now attempts that same scoring step automatically after rendering and records the result in both `reports/similarity_score.json` and `reports/run_report.json`. If scoring fails, the top-level run status becomes `failed` even when rendering itself succeeded.
 
 `reports/run_report.json` is the stable evaluator summary contract:
 
@@ -380,11 +380,13 @@ When `inputs.reference_transition` is present in a render job, `run` now attempt
 - `data.evaluation.render` describes the render outcome
 - `data.evaluation.score` describes the score outcome
 - `data.evaluation.overall_status` summarizes the combined result
+- `status` becomes `failed` when scoring fails after a successful render
 
 If the run succeeded, you should expect:
 
 - PNG frames in `artifacts/`
 - `status: succeeded` in `reports/run_report.json`
+- `status: failed` in `reports/run_report.json` if scoring failed after rendering
 - `status: succeeded` in `render/renderer_result.json`
 
 If the run failed, start with:

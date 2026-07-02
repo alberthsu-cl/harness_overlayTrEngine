@@ -440,8 +440,8 @@ def _execute_job_command(
             write_json(similarity_report_file, similarity_report)
 
     report = HarnessReport(
-        status=invocation.status,
-        summary=invocation.message,
+        status=_resolve_run_report_status(invocation.status, similarity_report),
+        summary=_resolve_run_report_summary(invocation.message, similarity_report),
         data={
             "workspace": str(workspace.root),
             "renderer_executable": invocation.renderer_executable,
@@ -464,13 +464,13 @@ def _execute_job_command(
     report.write(report_path)
 
     return {
-        "exit_code": 0 if invocation.status in {"succeeded", "blocked"} else 1,
+        "exit_code": 0 if _resolve_run_report_status(invocation.status, similarity_report) in {"succeeded", "blocked"} else 1,
         "validation_valid": True,
         "job_path": str(job_path),
         "workspace": str(workspace.root),
         "report": str(report_path),
-        "status": invocation.status,
-        "summary": invocation.message,
+        "status": _resolve_run_report_status(invocation.status, similarity_report),
+        "summary": _resolve_run_report_summary(invocation.message, similarity_report),
     }
 
 
@@ -777,6 +777,26 @@ def _resolve_run_overall_status(render_status: str, score_status: str | None) ->
     if score_status == "succeeded":
         return "succeeded_with_score"
     return render_status
+
+
+def _resolve_run_report_status(render_status: str, similarity_report: dict | None) -> str:
+    if render_status not in {"succeeded", "blocked"}:
+        return "failed"
+    if similarity_report is not None and similarity_report.get("status") == "failed":
+        return "failed"
+    return render_status
+
+
+def _resolve_run_report_summary(render_summary: str, similarity_report: dict | None) -> str:
+    if similarity_report is None:
+        return render_summary
+    if similarity_report.get("status") != "failed":
+        return render_summary
+
+    error = similarity_report.get("error")
+    if error:
+        return f"{render_summary}; scoring failed: {error}"
+    return f"{render_summary}; scoring failed"
 
 
 def _handle_analyze_transition(args, repo_root: Path) -> int:

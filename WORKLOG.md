@@ -16,18 +16,19 @@ Harden scoring consistency for prepared reference transitions so frame alignment
 - Tightened job validation so `inputs.reference_transition` must resolve to a valid prepared reference artifact with a matching manifest and frame set.
 - Added explicit evaluator summary fields to `run_report.json` so render and score status are easier to distinguish.
 - Promoted `run_report.json` to a versioned contract with `report_type` and `report_version`.
+- Propagated score failures into the top-level run status and summary.
 
 ## Next Implementation Step
 
-Decide whether `run` should treat score failures as non-blocking or propagate them into the top-level run status:
+Decide whether validator warnings on reference metadata need to become hard failures:
 
-1. Preserve the current render-first behavior and keep score failures informational only.
-2. Propagate score failures into the top-level `run` exit/status if the goal is strict evaluator gating.
+1. Keep dimension mismatches as warnings if they are only advisory.
+2. Promote any remaining reference metadata warnings to hard failures if strict gating is preferred.
 3. Update the contract and tests to match the chosen policy.
 
 ## Why This Is Next
 
-- The report contract is now versioned, so the remaining Milestone 1 decision is the top-level policy for score failures.
+- Score failures are now propagated, so the remaining Milestone 1 decision is whether any reference metadata warnings should be hardened into errors.
 
 ## Resume Commands
 

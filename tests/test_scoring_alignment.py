@@ -15,6 +15,8 @@ if str(SRC_ROOT) not in sys.path:
 
 from overlay_harness.cli import _build_similarity_report
 from overlay_harness.cli import _build_run_evaluation_summary
+from overlay_harness.cli import _resolve_run_report_status
+from overlay_harness.cli import _resolve_run_report_summary
 from overlay_harness.evaluator import score_frame_sequences
 from overlay_harness.models import EffectSpec, InputSpec, RenderJob, RenderSettings
 from overlay_harness.report import HarnessReport
@@ -194,6 +196,18 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["status"], "succeeded")
         self.assertEqual(payload["summary"], "renderer completed successfully")
         self.assertEqual(payload["data"]["evaluation"]["overall_status"], "succeeded_with_score")
+
+    def test_run_report_status_fails_when_scoring_fails(self) -> None:
+        similarity_report = {
+            "status": "failed",
+            "error": "prepared reference frame_count mismatch",
+        }
+
+        self.assertEqual(_resolve_run_report_status("succeeded", similarity_report), "failed")
+        self.assertIn(
+            "scoring failed: prepared reference frame_count mismatch",
+            _resolve_run_report_summary("renderer completed successfully", similarity_report),
+        )
 
     def test_validator_rejects_missing_prepared_reference_manifest(self) -> None:
         reference_dir = self.root / "reference"
