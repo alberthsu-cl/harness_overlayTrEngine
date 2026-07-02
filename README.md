@@ -105,6 +105,33 @@ Use the current phase in this order:
 3. Run the Python harness.
 4. Inspect the output frames and generated reports.
 
+### Real Sample Flow
+
+When you run a real sample transition, the harness moves through these code slices:
+
+[Real sample flow diagram - SVG source](docs/real_sample_flow.svg)
+
+[Real sample flow diagram - PNG preview](docs/real_sample_flow.png)
+
+The practical handoff is:
+
+1. `prepare-reference-transition` in `video_prep.py` detects and normalizes a transition window from the sample video.
+2. `plan-job` in `planner.py` reads the prepared reference manifest and syncs `render.frame_count`.
+3. `validate_job` in `validator.py` enforces the prepared-reference contract before rendering.
+4. `run` in `cli.py` writes the render request and invokes the renderer through `renderer.py`.
+5. The native renderer produces PNG frames and `renderer_result.json`.
+6. If `inputs.reference_transition` is present, `run` automatically scores the result through `evaluator.py`.
+7. The detailed score goes to `reports/similarity_score.json`, and the combined summary goes to `reports/run_report.json`.
+
+For a real sample, the typical command sequence is:
+
+```powershell
+py -3 harness/src/main.py prepare-reference-transition --source-video harness/sample_glitch.mp4 --output-dir harness/work/reference_transition --fps 30 --width 1920 --height 1080 --target-frame-count 30
+py -3 harness/src/main.py plan-job --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --reference-transition harness/work/reference_transition --job-output harness/examples/planned.from_reference.render_job.json --mode builtin-glitch
+py -3 harness/src/main.py validate --job harness/examples/planned.from_reference.render_job.json
+py -3 harness/src/main.py run --job harness/examples/planned.from_reference.render_job.json
+```
+
 ### 1. Prepare A/B inputs
 
 For the default fixture-based workflow, generate a paired A/B set:

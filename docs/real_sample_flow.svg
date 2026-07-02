@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1520" height="620" viewBox="0 0 1520 620" role="img" aria-label="Real sample flow for the overlay transition harness">
+  <defs>
+    <style>
+      .bg { fill: #0f1217; }
+      .title { fill: #f3f4f6; font: 700 28px "Segoe UI", Arial, sans-serif; }
+      .sub { fill: #cbd5e1; font: 500 16px "Segoe UI", Arial, sans-serif; }
+      .box { fill: #161b22; stroke: #5b6470; stroke-width: 2; rx: 14; ry: 14; }
+      .boxStrong { fill: #182335; stroke: #7aa2f7; stroke-width: 2.5; rx: 14; ry: 14; }
+      .label { fill: #e5e7eb; font: 600 18px "Segoe UI", Arial, sans-serif; }
+      .small { fill: #cbd5e1; font: 500 14px "Segoe UI", Arial, sans-serif; }
+      .arrow { stroke: #94a3b8; stroke-width: 3; fill: none; marker-end: url(#arrowHead); }
+      .arrowAccent { stroke: #7aa2f7; stroke-width: 3; fill: none; marker-end: url(#arrowHeadAccent); }
+      .tag { fill: #8b5cf6; font: 700 13px "Segoe UI", Arial, sans-serif; letter-spacing: 0.4px; }
+    </style>
+    <marker id="arrowHead" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8" />
+    </marker>
+    <marker id="arrowHeadAccent" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#7aa2f7" />
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1520" height="620" />
+  <text class="title" x="40" y="46">Real Sample Flow</text>
+  <text class="sub" x="40" y="74">How a prepared reference transition moves through the harness from prep to scoring</text>
+
+  <rect class="boxStrong" x="40" y="120" width="200" height="92" />
+  <text class="label" x="140" y="156" text-anchor="middle">Sample Video</text>
+  <text class="small" x="140" y="182" text-anchor="middle">sample_glitch.mp4</text>
+
+  <rect class="box" x="290" y="120" width="220" height="92" />
+  <text class="label" x="400" y="154" text-anchor="middle">prepare-reference-transition</text>
+  <text class="small" x="400" y="180" text-anchor="middle">video_prep.py</text>
+
+  <rect class="boxStrong" x="560" y="120" width="220" height="92" />
+  <text class="label" x="670" y="154" text-anchor="middle">Reference Manifest</text>
+  <text class="small" x="670" y="180" text-anchor="middle">frame_count + window</text>
+
+  <rect class="box" x="830" y="120" width="160" height="92" />
+  <text class="label" x="910" y="156" text-anchor="middle">plan-job</text>
+  <text class="small" x="910" y="180" text-anchor="middle">planner.py</text>
+
+  <rect class="box" x="1040" y="120" width="160" height="92" />
+  <text class="label" x="1120" y="156" text-anchor="middle">validate_job</text>
+  <text class="small" x="1120" y="180" text-anchor="middle">validator.py</text>
+
+  <rect class="box" x="1260" y="120" width="200" height="92" />
+  <text class="label" x="1360" y="156" text-anchor="middle">run / smoke-test</text>
+  <text class="small" x="1360" y="180" text-anchor="middle">cli.py</text>
+
+  <rect class="box" x="1260" y="280" width="200" height="92" />
+  <text class="label" x="1360" y="316" text-anchor="middle">Native Renderer</text>
+  <text class="small" x="1360" y="342" text-anchor="middle">OverlayTrHarnessRenderer.exe</text>
+
+  <rect class="box" x="1040" y="280" width="160" height="92" />
+  <text class="label" x="1120" y="316" text-anchor="middle">artifacts/</text>
+  <text class="small" x="1120" y="342" text-anchor="middle">frame_*.png</text>
+
+  <rect class="box" x="830" y="280" width="160" height="92" />
+  <text class="label" x="910" y="316" text-anchor="middle">Score</text>
+  <text class="small" x="910" y="342" text-anchor="middle">evaluator.py</text>
+
+  <rect class="box" x="560" y="280" width="220" height="92" />
+  <text class="label" x="670" y="316" text-anchor="middle">similarity_score.json</text>
+  <text class="small" x="670" y="342" text-anchor="middle">alignment + MSE/MAE/PSNR</text>
+
+  <rect class="boxStrong" x="290" y="280" width="220" height="92" />
+  <text class="label" x="400" y="316" text-anchor="middle">run_report.json</text>
+  <text class="small" x="400" y="342" text-anchor="middle">render + score summary</text>
+
+  <text class="tag" x="1040" y="90">prepared reference contract</text>
+  <text class="tag" x="1260" y="250">render outputs</text>
+  <text class="tag" x="560" y="250">evaluation outputs</text>
+
+  <path class="arrowAccent" d="M 240 166 L 290 166" />
+  <path class="arrowAccent" d="M 510 166 L 560 166" />
+  <path class="arrow" d="M 780 166 L 830 166" />
+  <path class="arrow" d="M 990 166 L 1040 166" />
+  <path class="arrow" d="M 1200 166 L 1260 166" />
+  <path class="arrow" d="M 1360 212 L 1360 280" />
+  <path class="arrowAccent" d="M 1260 326 L 1200 326" />
+  <path class="arrowAccent" d="M 1040 326 L 990 326" />
+  <path class="arrowAccent" d="M 830 326 L 780 326" />
+  <path class="arrowAccent" d="M 560 326 L 510 326" />
+
+  <path class="arrow" d="M 670 212 L 670 280" />
+  <path class="arrow" d="M 1120 212 L 1120 280" />
+  <path class="arrow" d="M 1360 212 L 1360 280" />
+
+  <text class="small" x="1060" y="410">If scoring fails, the top-level run status is `failed`.</text>
+  <text class="small" x="1060" y="434">If rendering is blocked, the run remains `blocked`.</text>
+</svg>
