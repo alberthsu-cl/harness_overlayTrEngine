@@ -42,6 +42,8 @@ Use [WORKLOG.md](/abs/path/D:/AI_Harness/harness/WORKLOG.md) as the persistent r
 
 Update it whenever a meaningful implementation slice finishes so the next session can resume from the file instead of reconstructing intent from chat history.
 
+Milestone 1 acceptance is documented in [MILESTONE1_ACCEPTANCE.md](/abs/path/D:/AI_Harness/harness/MILESTONE1_ACCEPTANCE.md).
+
 ## Conda environment
 
 The harness Python code currently uses the standard library only, but `prepare-video --source-video` requires the `ffmpeg` executable.

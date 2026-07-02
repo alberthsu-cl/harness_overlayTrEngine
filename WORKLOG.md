@@ -4,7 +4,7 @@ This file is the persistent session handoff for the `harness/` project. Update i
 
 ## Current Objective
 
-Harden scoring consistency for prepared reference transitions so frame alignment remains explicit and robust when the detected transition window is shorter or longer than the original target length.
+Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next major objective is Milestone 2: index existing `OverlayTrPlugInFx` transitions and use retrieval before generation.
 
 ## Last Completed
 
@@ -18,18 +18,19 @@ Harden scoring consistency for prepared reference transitions so frame alignment
 - Promoted `run_report.json` to a versioned contract with `report_type` and `report_version`.
 - Propagated score failures into the top-level run status and summary.
 - Promoted prepared-reference dimension mismatches from warnings to validation errors.
+- Froze the Milestone 1 acceptance boundary in `MILESTONE1_ACCEPTANCE.md`.
 
 ## Next Implementation Step
 
-Define the Milestone 1 acceptance boundary:
+Start Milestone 2 retrieval work:
 
-1. Decide which harness commands and report fields are mandatory for the evaluator milestone.
-2. Decide whether any further reference metadata checks are required before treating Milestone 1 as complete.
-3. Decide whether the evaluator contract should be frozen now or after one more smoke-test pass.
+1. Add a deterministic built-in effect catalog in `harness/`.
+2. Index existing `OverlayTrPlugInFx` transitions and project registrations.
+3. Use retrieval before generated-placeholder fallback modes.
 
 ## Why This Is Next
 
-- The reference metadata policy is now strict, so the remaining Milestone 1 work is finalizing the acceptance boundary rather than changing validator behavior.
+- Milestone 1 is now frozen, so the next useful work is the retrieval layer called for by the roadmap.
 
 ## Resume Commands
 
