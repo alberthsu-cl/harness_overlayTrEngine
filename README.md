@@ -2,6 +2,10 @@
 
 This folder contains the first implementation slice of an AI-assisted transition harness for `overlaytrengine`.
 
+![Model routing diagram](docs/model_routing.png)
+
+For the editable source, see [model_routing.svg](docs/model_routing.svg).
+
 ![Real sample flow diagram](docs/real_sample_flow.png)
 
 For the editable source, see [real_sample_flow.svg](docs/real_sample_flow.svg).
