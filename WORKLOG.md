@@ -15,18 +15,19 @@ Harden scoring consistency for prepared reference transitions so frame alignment
 - Added automated `unittest` coverage for prepared-reference scoring alignment, mismatch failures, and non-prepared fallback behavior.
 - Tightened job validation so `inputs.reference_transition` must resolve to a valid prepared reference artifact with a matching manifest and frame set.
 - Added explicit evaluator summary fields to `run_report.json` so render and score status are easier to distinguish.
+- Promoted `run_report.json` to a versioned contract with `report_type` and `report_version`.
 
 ## Next Implementation Step
 
-Define the Milestone 1 acceptance boundary:
+Decide whether `run` should treat score failures as non-blocking or propagate them into the top-level run status:
 
-1. Decide which harness commands and report fields are mandatory for the evaluator milestone.
-2. Decide whether validator warnings on reference metadata need to become hard failures.
-3. Decide whether `run` should treat score failures as non-blocking or propagate them into the top-level run status.
+1. Preserve the current render-first behavior and keep score failures informational only.
+2. Propagate score failures into the top-level `run` exit/status if the goal is strict evaluator gating.
+3. Update the contract and tests to match the chosen policy.
 
 ## Why This Is Next
 
-- The report now carries explicit render and score summary fields, so the remaining Milestone 1 gap is locking the acceptance contract rather than adding more plumbing.
+- The report contract is now versioned, so the remaining Milestone 1 decision is the top-level policy for score failures.
 
 ## Resume Commands
 

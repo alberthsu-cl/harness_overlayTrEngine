@@ -347,7 +347,7 @@ Each run writes these key artifacts inside its work folder:
 - `render/renderer_result.json`
   native renderer result summary, including resolved effect information
 - `reports/run_report.json`
-  Python-side summary containing process output, frame-count checks, and renderer result data
+  versioned Python-side summary containing process output, frame-count checks, renderer result data, and evaluation status
 - `reports/similarity_score.json`
   written automatically when the render job includes `inputs.reference_transition` and the renderer produced output frames
 
@@ -372,6 +372,14 @@ Jobs that set `inputs.reference_transition` are now also validated against that 
 - the prepared reference frame files must match the manifest `frame_count`
 
 When `inputs.reference_transition` is present in a render job, `run` now attempts that same scoring step automatically after rendering and records the result in both `reports/similarity_score.json` and `reports/run_report.json`. A scoring failure is recorded in the report but does not overwrite the render status.
+
+`reports/run_report.json` is the stable evaluator summary contract:
+
+- `report_type: run_report`
+- `report_version: 1`
+- `data.evaluation.render` describes the render outcome
+- `data.evaluation.score` describes the score outcome
+- `data.evaluation.overall_status` summarizes the combined result
 
 If the run succeeded, you should expect:
 

@@ -17,6 +17,7 @@ from overlay_harness.cli import _build_similarity_report
 from overlay_harness.cli import _build_run_evaluation_summary
 from overlay_harness.evaluator import score_frame_sequences
 from overlay_harness.models import EffectSpec, InputSpec, RenderJob, RenderSettings
+from overlay_harness.report import HarnessReport
 from overlay_harness.validator import validate_job
 from overlay_harness.video_prep import write_bmp_frame
 
@@ -175,6 +176,24 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertIsNone(summary["score"]["alignment_mode"])
         self.assertIsNone(summary["score"]["frame_count"])
         self.assertIsNone(summary["score"]["report_file"])
+
+    def test_run_report_is_versioned(self) -> None:
+        report = HarnessReport(
+            status="succeeded",
+            summary="renderer completed successfully",
+            data={"evaluation": {"overall_status": "succeeded_with_score"}},
+        )
+        report_path = self.root / "run_report.json"
+        report.write(report_path)
+
+        with report_path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+
+        self.assertEqual(payload["report_type"], "run_report")
+        self.assertEqual(payload["report_version"], 1)
+        self.assertEqual(payload["status"], "succeeded")
+        self.assertEqual(payload["summary"], "renderer completed successfully")
+        self.assertEqual(payload["data"]["evaluation"]["overall_status"], "succeeded_with_score")
 
     def test_validator_rejects_missing_prepared_reference_manifest(self) -> None:
         reference_dir = self.root / "reference"

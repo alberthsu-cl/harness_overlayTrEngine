@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OverlayRunReport",
+  "type": "object",
+  "properties": {
+    "report_type": {
+      "const": "run_report"
+    },
+    "report_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "status": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "data": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "report_type",
+    "report_version",
+    "status",
+    "summary",
+    "data"
+  ],
+  "additionalProperties": true
+}
