@@ -457,6 +457,7 @@ def _execute_job_command(
             "renderer_result": invocation.renderer_result,
             "similarity_report_file": str(similarity_report_file) if similarity_report_file is not None else None,
             "similarity_report": similarity_report,
+            "evaluation": _build_run_evaluation_summary(invocation, similarity_report, similarity_report_file),
         },
     )
     report_path = workspace.reports_dir / "run_report.json"
@@ -731,6 +732,51 @@ def _build_similarity_alignment(
         "frame_progress_mapping": reference_manifest.get("frame_progress_mapping"),
     }
     return alignment
+
+
+def _build_run_evaluation_summary(
+    invocation,
+    similarity_report: dict | None,
+    similarity_report_file: Path | None,
+) -> dict[str, object]:
+    score_status = None
+    score_alignment_mode = None
+    score_frame_count = None
+    if similarity_report is not None:
+        score_status = similarity_report.get("status")
+        score_alignment = similarity_report.get("alignment")
+        if isinstance(score_alignment, dict):
+            score_alignment_mode = score_alignment.get("mode")
+        score_payload = similarity_report.get("score")
+        if isinstance(score_payload, dict):
+            score_frame_count = score_payload.get("frame_count")
+
+    return {
+        "render": {
+            "status": invocation.status,
+            "exit_code": invocation.exit_code,
+            "produced_frame_count": invocation.produced_frame_count,
+            "expected_frame_count": invocation.expected_frame_count,
+            "message": invocation.message,
+        },
+        "score": {
+            "status": score_status,
+            "alignment_mode": score_alignment_mode,
+            "frame_count": score_frame_count,
+            "report_file": str(similarity_report_file) if similarity_report_file is not None else None,
+        },
+        "overall_status": _resolve_run_overall_status(invocation.status, score_status),
+    }
+
+
+def _resolve_run_overall_status(render_status: str, score_status: str | None) -> str:
+    if render_status not in {"succeeded", "blocked"}:
+        return "render_failed"
+    if score_status == "failed":
+        return "score_failed"
+    if score_status == "succeeded":
+        return "succeeded_with_score"
+    return render_status
 
 
 def _handle_analyze_transition(args, repo_root: Path) -> int:

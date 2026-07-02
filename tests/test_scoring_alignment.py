@@ -14,6 +14,7 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from overlay_harness.cli import _build_similarity_report
+from overlay_harness.cli import _build_run_evaluation_summary
 from overlay_harness.evaluator import score_frame_sequences
 from overlay_harness.models import EffectSpec, InputSpec, RenderJob, RenderSettings
 from overlay_harness.validator import validate_job
@@ -134,6 +135,46 @@ class ScoringAlignmentTests(unittest.TestCase):
                 width=self.width,
                 height=self.height,
             )
+
+    def test_run_evaluation_summary_reports_score_alignment(self) -> None:
+        class Invocation:
+            status = "succeeded"
+            exit_code = 0
+            produced_frame_count = 3
+            expected_frame_count = 3
+            message = "renderer completed successfully"
+
+        similarity_report = {
+            "status": "succeeded",
+            "alignment": {"mode": "prepared_reference_manifest"},
+            "score": {"frame_count": 3},
+        }
+
+        summary = _build_run_evaluation_summary(Invocation(), similarity_report, self.root / "similarity_score.json")
+
+        self.assertEqual(summary["overall_status"], "succeeded_with_score")
+        self.assertEqual(summary["render"]["status"], "succeeded")
+        self.assertEqual(summary["score"]["status"], "succeeded")
+        self.assertEqual(summary["score"]["alignment_mode"], "prepared_reference_manifest")
+        self.assertEqual(summary["score"]["frame_count"], 3)
+        self.assertEqual(summary["score"]["report_file"], str(self.root / "similarity_score.json"))
+
+    def test_run_evaluation_summary_handles_missing_score(self) -> None:
+        class Invocation:
+            status = "blocked"
+            exit_code = None
+            produced_frame_count = 0
+            expected_frame_count = 3
+            message = "renderer executable is not available yet; render request recorded only"
+
+        summary = _build_run_evaluation_summary(Invocation(), None, None)
+
+        self.assertEqual(summary["overall_status"], "blocked")
+        self.assertEqual(summary["render"]["status"], "blocked")
+        self.assertIsNone(summary["score"]["status"])
+        self.assertIsNone(summary["score"]["alignment_mode"])
+        self.assertIsNone(summary["score"]["frame_count"])
+        self.assertIsNone(summary["score"]["report_file"])
 
     def test_validator_rejects_missing_prepared_reference_manifest(self) -> None:
         reference_dir = self.root / "reference"

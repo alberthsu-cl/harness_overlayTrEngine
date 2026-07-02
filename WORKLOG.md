@@ -14,18 +14,19 @@ Harden scoring consistency for prepared reference transitions so frame alignment
 - Tightened scoring so prepared reference manifests enforce exact frame-count alignment and write manifest-backed alignment metadata into `similarity_score.json`.
 - Added automated `unittest` coverage for prepared-reference scoring alignment, mismatch failures, and non-prepared fallback behavior.
 - Tightened job validation so `inputs.reference_transition` must resolve to a valid prepared reference artifact with a matching manifest and frame set.
+- Added explicit evaluator summary fields to `run_report.json` so render and score status are easier to distinguish.
 
 ## Next Implementation Step
 
-Make `run_report.json` the clearer evaluator summary entrypoint:
+Define the Milestone 1 acceptance boundary:
 
-1. Surface alignment status more explicitly in the run report.
-2. Make success/failure of render versus score easier to distinguish at a glance.
-3. Keep the detailed score report as a linked artifact rather than the only source of alignment context.
+1. Decide which harness commands and report fields are mandatory for the evaluator milestone.
+2. Decide whether validator warnings on reference metadata need to become hard failures.
+3. Decide whether `run` should treat score failures as non-blocking or propagate them into the top-level run status.
 
 ## Why This Is Next
 
-- Validation now fails bad prepared references earlier, so the next Milestone 1 gap is making the evaluator reports easier to consume as the stable output contract.
+- The report now carries explicit render and score summary fields, so the remaining Milestone 1 gap is locking the acceptance contract rather than adding more plumbing.
 
 ## Resume Commands
 
