@@ -488,6 +488,34 @@ class ScoringAlignmentTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "duplicate effect_id"):
             build_effect_catalog(HARNESS_ROOT.parent, source_manifest_path=source_manifest)
 
+    def test_effect_catalog_source_manifest_rejects_missing_source_documents(self) -> None:
+        source_manifest = self.root / "missing_source_document_effect_catalog_sources.json"
+        with source_manifest.open("w", encoding="utf-8") as handle:
+            json.dump(
+                {
+                    "catalog_type": "effect_catalog_sources",
+                    "catalog_version": 1,
+                    "registrations": [
+                        {
+                            "effect_id": "missing-doc-effect",
+                            "mode": "builtin-seamless",
+                            "effect_source": "builtin",
+                            "family": "seamless",
+                            "fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
+                            "style_hints": ["seamless"],
+                            "retrieval_priority": 0,
+                            "source_documents": ["harness/examples/effect_specs/does_not_exist.json"],
+                        }
+                    ],
+                },
+                handle,
+                indent=2,
+            )
+            handle.write("\n")
+
+        with self.assertRaisesRegex(ValueError, "references missing source document"):
+            build_effect_catalog(HARNESS_ROOT.parent, source_manifest_path=source_manifest)
+
     def test_effect_catalog_audit_reports_manifest_alignment(self) -> None:
         audit = build_effect_catalog_audit(HARNESS_ROOT.parent)
 

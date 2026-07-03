@@ -27,6 +27,7 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 - Made generated catalogs self-describing with source-manifest provenance and registration counts.
 - Added `audit-effects` to report baseline-vs-manifest gaps for the source-driven catalog.
 - Made `audit-effects` a non-zero exit-code gate when the source manifest drifts from the baseline.
+- Validated source-manifest `source_documents` so missing spec references fail fast.
 
 ## Next Implementation Step
 

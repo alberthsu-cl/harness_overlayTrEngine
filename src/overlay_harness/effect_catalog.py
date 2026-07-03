@@ -225,6 +225,20 @@ def _load_effect_catalog_source_manifest(
         style_hints = registration.get("style_hints")
         if not isinstance(style_hints, list) or not all(isinstance(style, str) and style for style in style_hints):
             raise ValueError(f"effect catalog source manifest registration '{effect_id}' must include string style_hints")
+        source_documents = registration.get("source_documents")
+        if not isinstance(source_documents, list) or not all(
+            isinstance(source_document, str) and source_document for source_document in source_documents
+        ):
+            raise ValueError(
+                f"effect catalog source manifest registration '{effect_id}' must include string source_documents"
+            )
+        for source_document in source_documents:
+            source_document_path = (repo_root / source_document).resolve()
+            if not source_document_path.exists():
+                raise ValueError(
+                    f"effect catalog source manifest registration '{effect_id}' references missing source document: "
+                    f"{source_document}"
+                )
 
     return {
         "catalog_type": source_manifest["catalog_type"],
