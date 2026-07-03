@@ -8,6 +8,10 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 
 ## Last Completed
 
+- Expanded the deterministic effect catalog with additional real `OverlayTrPlugInFx` registrations for blur, UI snapshot, and distortion wrapper families.
+- Wired the new builtin styles through planner and analyzer retrieval so they can be selected before placeholder generation.
+- Regenerated `harness/configs/effect_catalog.json` from the checked-in source manifest.
+- Added unit coverage for the new retrieval styles and updated the catalog audit expectations.
 - Added prepared reference-transition extraction from a sample video.
 - Synced planner frame count to `reference_transition_manifest.json` when `--reference-transition` is used.
 - Added automatic post-run similarity scoring and score report output.
@@ -38,9 +42,9 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 
 ## Next Implementation Step
 
-Expand Milestone 2 retrieval coverage:
+Expand Milestone 2 retrieval coverage again:
 
-1. Add more real transition registrations from `overlaytrengine` when there is a clear style mapping.
+1. Add another small batch of real `overlaytrengine` wrapper registrations when the style mapping is still clear.
 2. Keep generated-placeholder modes as the fallback path only, with explicit fallback metadata.
 
 ## Why This Is Next

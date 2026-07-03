@@ -106,6 +106,60 @@
       ]
     },
     {
+      "effect_id": "builtin-blur",
+      "effect_source": "builtin",
+      "family": "blur",
+      "fx_id": "Blur_DollarBokeh",
+      "mode": "builtin-blur",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "blur",
+        "bokeh"
+      ]
+    },
+    {
+      "effect_id": "builtin-ui-snapshot",
+      "effect_source": "builtin",
+      "family": "ui",
+      "fx_id": "UI_Snapshot",
+      "mode": "builtin-ui-snapshot",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "ui",
+        "snapshot"
+      ]
+    },
+    {
+      "effect_id": "builtin-glitch-distortion",
+      "effect_source": "builtin",
+      "family": "glitch",
+      "fx_id": "Glitch_HDistor1",
+      "mode": "builtin-glitch-distortion",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "distortion",
+        "glitch2"
+      ]
+    },
+    {
       "effect_id": "generated-seamless-placeholder",
       "effect_source": "generated",
       "fallback_fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
@@ -143,24 +197,30 @@
       ]
     }
   ],
-  "registration_count": 7,
+  "registration_count": 10,
   "retrieval_index": {
+    "blur": "builtin-blur",
+    "bokeh": "builtin-blur",
     "camcorder": "builtin-camcorder",
     "camera": "builtin-camcorder",
+    "distortion": "builtin-glitch-distortion",
     "film-roll": "builtin-frame-overlay",
     "frame-overlay": "builtin-frame-overlay",
     "generated-glitch": "builtin-glitch",
     "generated-seamless": "builtin-seamless",
     "glitch": "builtin-glitch",
+    "glitch2": "builtin-glitch-distortion",
     "overlay": "builtin-frame-overlay",
     "particle": "builtin-particle-spray",
     "seamless": "builtin-seamless",
     "smooth": "builtin-seamless",
+    "snapshot": "builtin-ui-snapshot",
     "sparkle": "builtin-particle-spray",
-    "spray": "builtin-particle-spray"
+    "spray": "builtin-particle-spray",
+    "ui": "builtin-ui-snapshot"
   },
   "source_manifest": "harness/configs/effect_catalog_sources.json",
-  "source_manifest_sha256": "302dc7f1161b5d59b93049ed27fe825cdefdd796751573ceeebfc9dd7715e209",
+  "source_manifest_sha256": "84ed6dacd46da39948ef487b5fb30927139b52421be8bc134384f166a2f968ab",
   "source_manifest_version": 1,
   "source_root": "harness"
 }

@@ -22,6 +22,12 @@ METADATA_TRANSITION_FAMILY_TO_STYLE: dict[str, str] = {
     "particle": "particle",
     "sparkle": "sparkle",
     "frame-overlay": "frame-overlay",
+    "blur": "blur",
+    "bokeh": "blur",
+    "ui": "ui",
+    "snapshot": "ui",
+    "distortion": "distortion",
+    "glitch2": "distortion",
     "generated-smooth": "generated-seamless",
     "generated-glitch": "generated-glitch",
 }
@@ -164,6 +170,12 @@ def _resolve_style_hint(
             return "particle", "the intent mentions particle or sparkle motion"
         if any(token in normalized_intent for token in ("frame overlay", "film roll", "overlay")):
             return "frame-overlay", "the intent mentions a frame overlay or film-roll look"
+        if any(token in normalized_intent for token in ("blur", "bokeh", "soft focus")):
+            return "blur", "the intent mentions a blur or bokeh transition"
+        if any(token in normalized_intent for token in ("ui", "snapshot", "app swipe", "screen")):
+            return "ui", "the intent mentions a UI or snapshot-style transition"
+        if any(token in normalized_intent for token in ("distortion", "distort", "warping", "warp")):
+            return "distortion", "the intent mentions a distortion-style transition"
         if "generated" in normalized_intent and "glitch" in normalized_intent:
             return "generated-glitch", "the intent mentions generated and glitch"
         if "generated" in normalized_intent and any(

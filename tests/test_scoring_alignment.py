@@ -397,7 +397,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(catalog["source_manifest"], "harness/configs/effect_catalog_sources.json")
         self.assertEqual(len(catalog["source_manifest_sha256"]), 64)
         self.assertEqual(catalog["registration_count"], len(catalog["effects"]))
-        self.assertGreaterEqual(len(catalog["effects"]), 4)
+        self.assertGreaterEqual(len(catalog["effects"]), 10)
 
     def test_index_effects_uses_custom_source_manifest(self) -> None:
         source_manifest = self.root / "effect_catalog_sources.json"
@@ -449,8 +449,11 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(catalog["catalog_version"], 1)
         self.assertEqual(catalog["source_root"], "harness")
         self.assertEqual(catalog["source_manifest"], "harness/configs/effect_catalog_sources.json")
-        self.assertGreaterEqual(len(catalog["effects"]), 4)
+        self.assertGreaterEqual(len(catalog["effects"]), 10)
         self.assertEqual(catalog["retrieval_index"]["glitch"], "builtin-glitch")
+        self.assertEqual(catalog["retrieval_index"]["blur"], "builtin-blur")
+        self.assertEqual(catalog["retrieval_index"]["ui"], "builtin-ui-snapshot")
+        self.assertEqual(catalog["retrieval_index"]["distortion"], "builtin-glitch-distortion")
         self.assertEqual(len(catalog["source_manifest_sha256"]), 64)
         builtin_seamless = next(effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-seamless")
         builtin_glitch = next(effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-glitch")
@@ -460,6 +463,13 @@ class ScoringAlignmentTests(unittest.TestCase):
         )
         builtin_frame_overlay = next(
             effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-frame-overlay"
+        )
+        builtin_blur = next(effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-blur")
+        builtin_ui_snapshot = next(
+            effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-ui-snapshot"
+        )
+        builtin_glitch_distortion = next(
+            effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-glitch-distortion"
         )
         generated_seamless = next(
             effect for effect in catalog["effects"] if effect["effect_id"] == "generated-seamless-placeholder"
@@ -475,19 +485,31 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrCamcorder.cpp", builtin_camcorder["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrParticleSprayInfoManager.cpp", builtin_particle["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrFrameOverlay.cpp", builtin_frame_overlay["source_documents"])
+        self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h", builtin_blur["source_documents"])
+        self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp", builtin_ui_snapshot["source_documents"])
+        self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h", builtin_glitch_distortion["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrSeamlessSliding.cpp", generated_seamless["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrGlitchInfoManager.cpp", generated_glitch["source_documents"])
 
     def test_effect_catalog_selects_additional_builtin_families(self) -> None:
         catalog = build_effect_catalog(HARNESS_ROOT.parent)
 
+        blur = select_effect_candidate(catalog, style="blur", input_kind="real")
+        ui = select_effect_candidate(catalog, style="ui", input_kind="real")
+        distortion = select_effect_candidate(catalog, style="distortion", input_kind="real")
         camcorder = select_effect_candidate(catalog, style="camcorder", input_kind="real")
         particle = select_effect_candidate(catalog, style="particle", input_kind="real")
         frame_overlay = select_effect_candidate(catalog, style="frame-overlay", input_kind="real")
 
+        self.assertIsNotNone(blur)
+        self.assertIsNotNone(ui)
+        self.assertIsNotNone(distortion)
         self.assertIsNotNone(camcorder)
         self.assertIsNotNone(particle)
         self.assertIsNotNone(frame_overlay)
+        self.assertEqual(blur["effect_id"], "builtin-blur")
+        self.assertEqual(ui["effect_id"], "builtin-ui-snapshot")
+        self.assertEqual(distortion["effect_id"], "builtin-glitch-distortion")
         self.assertEqual(camcorder["effect_id"], "builtin-camcorder")
         self.assertEqual(particle["effect_id"], "builtin-particle-spray")
         self.assertEqual(frame_overlay["effect_id"], "builtin-frame-overlay")
@@ -676,8 +698,8 @@ class ScoringAlignmentTests(unittest.TestCase):
 
         self.assertEqual(audit["report_type"], "effect_catalog_audit")
         self.assertEqual(audit["status"], "ok")
-        self.assertEqual(audit["baseline_registration_count"], 4)
-        self.assertEqual(audit["manifest_registration_count"], 4)
+        self.assertEqual(audit["baseline_registration_count"], 10)
+        self.assertEqual(audit["manifest_registration_count"], 10)
         self.assertEqual(audit["missing_effect_ids"], [])
         self.assertEqual(audit["extra_effect_ids"], [])
         self.assertEqual(len(audit["source_manifest_sha256"]), 64)
@@ -686,13 +708,19 @@ class ScoringAlignmentTests(unittest.TestCase):
         audit = build_effect_catalog_audit(self.root)
 
         self.assertEqual(audit["status"], "missing_source_manifest")
-        self.assertEqual(audit["baseline_registration_count"], 4)
+        self.assertEqual(audit["baseline_registration_count"], 10)
         self.assertEqual(audit["manifest_registration_count"], 0)
         self.assertEqual(
             audit["missing_effect_ids"],
             [
+                "builtin-blur",
+                "builtin-camcorder",
+                "builtin-frame-overlay",
                 "builtin-glitch",
+                "builtin-glitch-distortion",
+                "builtin-particle-spray",
                 "builtin-seamless",
+                "builtin-ui-snapshot",
                 "generated-glitch-placeholder",
                 "generated-seamless-placeholder",
             ],
@@ -737,7 +765,7 @@ class ScoringAlignmentTests(unittest.TestCase):
 
         self.assertEqual(payload["report_type"], "effect_catalog_audit")
         self.assertEqual(payload["status"], "missing_source_manifest")
-        self.assertEqual(payload["baseline_registration_count"], 4)
+        self.assertEqual(payload["baseline_registration_count"], 10)
 
     def _write_bmp_sequence(self, output_dir: Path, colors: list[tuple[int, int, int]]) -> None:
         output_dir.mkdir(parents=True, exist_ok=True)

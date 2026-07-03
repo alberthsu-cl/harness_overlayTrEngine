@@ -42,6 +42,24 @@ PLANNER_MODES: dict[str, dict[str, str | None]] = {
         "effect_spec": None,
         "effect_spec_template": None,
     },
+    "builtin-blur": {
+        "job_name": "planned_blur",
+        "fx_id": "Blur_DollarBokeh",
+        "effect_spec": None,
+        "effect_spec_template": None,
+    },
+    "builtin-ui-snapshot": {
+        "job_name": "planned_ui_snapshot",
+        "fx_id": "UI_Snapshot",
+        "effect_spec": None,
+        "effect_spec_template": None,
+    },
+    "builtin-glitch-distortion": {
+        "job_name": "planned_glitch_distortion",
+        "fx_id": "Glitch_HDistor1",
+        "effect_spec": None,
+        "effect_spec_template": None,
+    },
     "generated-seamless-placeholder": {
         "job_name": "planned_generated_seamless_placeholder",
         "fx_id": "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4",
@@ -111,6 +129,12 @@ AUTO_STYLE_TO_MODE: dict[str, str] = {
     "frame-overlay": "builtin-frame-overlay",
     "film-roll": "builtin-frame-overlay",
     "overlay": "builtin-frame-overlay",
+    "blur": "builtin-blur",
+    "bokeh": "builtin-blur",
+    "ui": "builtin-ui-snapshot",
+    "snapshot": "builtin-ui-snapshot",
+    "distortion": "builtin-glitch-distortion",
+    "glitch2": "builtin-glitch-distortion",
     "generated-seamless": "generated-seamless-placeholder",
     "generated-glitch": "generated-glitch-placeholder",
 }
