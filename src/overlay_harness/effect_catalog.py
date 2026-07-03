@@ -247,15 +247,19 @@ def _load_effect_catalog_source_manifest(
             raise ValueError(
                 f"effect catalog source manifest registration '{effect_id}' must include fallback_fx_id for generated entries"
             )
+        if effect_source == "builtin" and "fallback_fx_id" in registration:
+            raise ValueError(
+                f"effect catalog source manifest registration '{effect_id}' must not include fallback_fx_id for builtin entries"
+            )
         style_hints = registration.get("style_hints")
         if not isinstance(style_hints, list) or not all(isinstance(style, str) and style for style in style_hints):
             raise ValueError(f"effect catalog source manifest registration '{effect_id}' must include string style_hints")
         source_documents = registration.get("source_documents")
-        if not isinstance(source_documents, list) or not all(
+        if not isinstance(source_documents, list) or not source_documents or not all(
             isinstance(source_document, str) and source_document for source_document in source_documents
         ):
             raise ValueError(
-                f"effect catalog source manifest registration '{effect_id}' must include string source_documents"
+                f"effect catalog source manifest registration '{effect_id}' must include non-empty string source_documents"
             )
         for source_document in source_documents:
             source_document_path = (repo_root / source_document).resolve()

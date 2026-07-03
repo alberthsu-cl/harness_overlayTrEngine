@@ -31,6 +31,7 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 - Tightened source-manifest validation for effect source type, required fields, and generated fallback wiring.
 - Added `--output` support for `audit-effects` so the audit can be stored as a JSON artifact.
 - Added SHA-256 provenance to catalog and audit reports so manifest drift is traceable.
+- Tightened source-manifest validation so builtin entries cannot carry fallback metadata and generated entries must carry it.
 
 ## Next Implementation Step
 
