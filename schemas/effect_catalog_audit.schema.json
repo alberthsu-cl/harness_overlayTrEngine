@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OverlayEffectCatalogAudit",
+  "type": "object",
+  "properties": {
+    "report_type": {
+      "const": "effect_catalog_audit"
+    },
+    "report_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "status": {
+      "type": "string"
+    },
+    "source_manifest": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_manifest_version": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "baseline_registration_count": {
+      "type": "integer"
+    },
+    "manifest_registration_count": {
+      "type": "integer"
+    },
+    "missing_effect_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "extra_effect_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "report_type",
+    "report_version",
+    "status",
+    "baseline_registration_count",
+    "manifest_registration_count",
+    "missing_effect_ids",
+    "extra_effect_ids"
+  ],
+  "additionalProperties": true
+}

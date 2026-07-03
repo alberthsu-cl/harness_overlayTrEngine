@@ -19,6 +19,7 @@ from overlay_harness.cli import _handle_index_effects
 from overlay_harness.cli import _resolve_run_report_status
 from overlay_harness.cli import _resolve_run_report_summary
 from overlay_harness.effect_catalog import build_effect_catalog
+from overlay_harness.effect_catalog import build_effect_catalog_audit
 from overlay_harness.effect_catalog import load_effect_catalog
 from overlay_harness.effect_catalog import select_effect_candidate
 from overlay_harness.evaluator import score_frame_sequences
@@ -485,6 +486,33 @@ class ScoringAlignmentTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "duplicate effect_id"):
             build_effect_catalog(HARNESS_ROOT.parent, source_manifest_path=source_manifest)
+
+    def test_effect_catalog_audit_reports_manifest_alignment(self) -> None:
+        audit = build_effect_catalog_audit(HARNESS_ROOT.parent)
+
+        self.assertEqual(audit["report_type"], "effect_catalog_audit")
+        self.assertEqual(audit["status"], "ok")
+        self.assertEqual(audit["baseline_registration_count"], 4)
+        self.assertEqual(audit["manifest_registration_count"], 4)
+        self.assertEqual(audit["missing_effect_ids"], [])
+        self.assertEqual(audit["extra_effect_ids"], [])
+
+    def test_effect_catalog_audit_reports_missing_manifest(self) -> None:
+        audit = build_effect_catalog_audit(self.root)
+
+        self.assertEqual(audit["status"], "missing_source_manifest")
+        self.assertEqual(audit["baseline_registration_count"], 4)
+        self.assertEqual(audit["manifest_registration_count"], 0)
+        self.assertEqual(
+            audit["missing_effect_ids"],
+            [
+                "builtin-glitch",
+                "builtin-seamless",
+                "generated-glitch-placeholder",
+                "generated-seamless-placeholder",
+            ],
+        )
+        self.assertEqual(audit["extra_effect_ids"], [])
 
     def _write_bmp_sequence(self, output_dir: Path, colors: list[tuple[int, int, int]]) -> None:
         output_dir.mkdir(parents=True, exist_ok=True)

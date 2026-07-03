@@ -8,6 +8,7 @@ import sys
 
 from .config import load_allowed_effects, load_eval_thresholds
 from .effect_catalog import build_effect_catalog
+from .effect_catalog import build_effect_catalog_audit
 from .effect_catalog import load_effect_catalog
 from .effect_catalog import select_effect_candidate
 from .evaluator import score_frame_sequences
@@ -85,6 +86,8 @@ def main(argv: list[str] | None = None) -> int:
         return _handle_score(args, repo_root)
     if args.command == "index-effects":
         return _handle_index_effects(args, repo_root)
+    if args.command == "audit-effects":
+        return _handle_audit_effects(args, repo_root)
 
     result = _execute_job_command(
         repo_root=repo_root,
@@ -263,6 +266,19 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     index_effects_cmd.add_argument(
+        "--source-manifest",
+        required=False,
+        help=(
+            "Optional source manifest JSON; defaults to "
+            "harness/configs/effect_catalog_sources.json"
+        ),
+    )
+
+    audit_effects_cmd = subparsers.add_parser(
+        "audit-effects",
+        help="Compare the checked-in source manifest against the built-in effect baseline",
+    )
+    audit_effects_cmd.add_argument(
         "--source-manifest",
         required=False,
         help=(
@@ -675,6 +691,23 @@ def _handle_index_effects(args, repo_root: Path) -> int:
             indent=2,
         )
     )
+    return 0
+
+
+def _handle_audit_effects(args, repo_root: Path) -> int:
+    source_manifest = (
+        _resolve_path_argument(args.source_manifest, repo_root)
+        if args.source_manifest
+        else None
+    )
+
+    try:
+        audit = build_effect_catalog_audit(repo_root, source_manifest_path=source_manifest)
+    except Exception as exc:
+        print(f"audit-effects failed: {exc}")
+        return 1
+
+    print(json.dumps(audit, indent=2))
     return 0
 
 

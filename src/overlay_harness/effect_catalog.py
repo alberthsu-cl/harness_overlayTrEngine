@@ -104,6 +104,47 @@ def build_effect_catalog(
     }
 
 
+def build_effect_catalog_audit(
+    repo_root: Path,
+    source_manifest_path: Path | None = None,
+) -> dict[str, Any]:
+    source_manifest = _load_effect_catalog_source_manifest(repo_root, source_manifest_path)
+    manifest_registrations = source_manifest["registrations"] if source_manifest is not None else []
+
+    baseline_effect_ids = {blueprint["effect_id"] for blueprint in _EFFECT_BLUEPRINTS}
+    manifest_effect_ids = {
+        registration["effect_id"]
+        for registration in manifest_registrations
+        if isinstance(registration, dict) and isinstance(registration.get("effect_id"), str)
+    }
+
+    missing_effect_ids = sorted(baseline_effect_ids - manifest_effect_ids)
+    extra_effect_ids = sorted(manifest_effect_ids - baseline_effect_ids)
+
+    audit_status = "ok"
+    if source_manifest is None:
+        audit_status = "missing_source_manifest"
+    elif missing_effect_ids or extra_effect_ids:
+        audit_status = "mismatch"
+
+    return {
+        "report_type": "effect_catalog_audit",
+        "report_version": EFFECT_CATALOG_VERSION,
+        "status": audit_status,
+        "source_manifest": _format_optional_repo_path(
+            source_manifest["source_manifest_path"],
+            repo_root,
+        )
+        if source_manifest is not None
+        else None,
+        "source_manifest_version": source_manifest["catalog_version"] if source_manifest is not None else None,
+        "baseline_registration_count": len(_EFFECT_BLUEPRINTS),
+        "manifest_registration_count": len(manifest_registrations),
+        "missing_effect_ids": missing_effect_ids,
+        "extra_effect_ids": extra_effect_ids,
+    }
+
+
 def load_effect_catalog(file_path: Path) -> dict[str, Any]:
     with file_path.open("r", encoding="utf-8") as handle:
         catalog = json.load(handle)
