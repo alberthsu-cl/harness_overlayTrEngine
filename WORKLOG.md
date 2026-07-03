@@ -12,37 +12,15 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 - Wired the new builtin styles through planner and analyzer retrieval so they can be selected before placeholder generation.
 - Regenerated `harness/configs/effect_catalog.json` from the checked-in source manifest.
 - Added unit coverage for the new retrieval styles and updated the catalog audit expectations.
-- Added prepared reference-transition extraction from a sample video.
-- Synced planner frame count to `reference_transition_manifest.json` when `--reference-transition` is used.
-- Added automatic post-run similarity scoring and score report output.
-- Tightened scoring so prepared reference manifests enforce exact frame-count alignment and write manifest-backed alignment metadata into `similarity_score.json`.
-- Added automated `unittest` coverage for prepared-reference scoring alignment, mismatch failures, and non-prepared fallback behavior.
-- Tightened job validation so `inputs.reference_transition` must resolve to a valid prepared reference artifact with a matching manifest and frame set.
-- Added explicit evaluator summary fields to `run_report.json` so render and score status are easier to distinguish.
-- Promoted `run_report.json` to a versioned contract with `report_type` and `report_version`.
-- Propagated score failures into the top-level run status and summary.
-- Promoted prepared-reference dimension mismatches from warnings to validation errors.
-- Froze the Milestone 1 acceptance boundary in `MILESTONE1_ACCEPTANCE.md`.
 - Added a deterministic effect catalog and routed generated styles through retrieval before placeholder fallback.
 - Surfaced planner retrieval metadata into analyzer recommendations, planned jobs, and run reports.
 - Marked placeholder routing as an explicit fallback in planner metadata and run evaluation summaries.
 - Moved effect catalog indexing to a checked-in source manifest so future registrations can be added without code changes.
-- Added manifest validation and a `--source-manifest` override for `index-effects`.
-- Made generated catalogs self-describing with source-manifest provenance and registration counts.
 - Added `audit-effects` to report baseline-vs-manifest gaps for the source-driven catalog.
-- Made `audit-effects` a non-zero exit-code gate when the source manifest drifts from the baseline.
-- Validated source-manifest `source_documents` so missing spec references fail fast.
-- Tightened source-manifest validation for effect source type, required fields, and generated fallback wiring.
-- Added `--output` support for `audit-effects` so the audit can be stored as a JSON artifact.
-- Added SHA-256 provenance to catalog and audit reports so manifest drift is traceable.
-- Tightened source-manifest validation so builtin entries cannot carry fallback metadata and generated entries must carry it.
-- Added checked-in `overlaytrengine` source provenance to the builtin effect registrations so the catalog now points at real transition source in addition to harness examples.
-- Mirrored the same real `overlaytrengine` provenance into the generated fallback registrations for consistent catalog source coverage.
-- Added more builtin families from `overlaytrengine` source, including camcorder, particle spray, and frame overlay routing.
 
 ## Next Implementation Step
 
-Expand Milestone 2 retrieval coverage again:
+Expand Milestone 2 retrieval coverage:
 
 1. Add another small batch of real `overlaytrengine` wrapper registrations when the style mapping is still clear.
 2. Keep generated-placeholder modes as the fallback path only, with explicit fallback metadata.
