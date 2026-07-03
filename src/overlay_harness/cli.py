@@ -1345,9 +1345,11 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
     if embedded_plan is not None:
         result["embedded_plan"] = embedded_plan
         result["embedded_plan_summary"] = _summarize_plan_fields(embedded_plan)
+        result["embedded_plan_retrieval_summary"] = _summarize_retrieval_fields(embedded_plan)
     if recomputed_plan is not None:
         result["recomputed_plan"] = recomputed_plan
         result["recomputed_plan_summary"] = _summarize_plan_fields(recomputed_plan)
+        result["recomputed_plan_retrieval_summary"] = _summarize_retrieval_fields(recomputed_plan)
         if embedded_plan is not None:
             result["recompute_matches_embedded"] = (
                 _summarize_plan_fields(embedded_plan) == _summarize_plan_fields(recomputed_plan)

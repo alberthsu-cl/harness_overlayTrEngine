@@ -18,6 +18,7 @@ from overlay_harness.cli import _build_plan_comparison_report
 from overlay_harness.cli import _build_run_evaluation_summary
 from overlay_harness.cli import _handle_audit_effects
 from overlay_harness.cli import _handle_index_effects
+from overlay_harness.cli import _summarize_retrieval_fields
 from overlay_harness.cli import _summarize_retrieval_from_evaluation
 from overlay_harness.cli import _summarize_smoke_test_retrieval
 from overlay_harness.cli import _resolve_run_report_status
@@ -363,6 +364,29 @@ class ScoringAlignmentTests(unittest.TestCase):
             }
         )
 
+        self.assertEqual(summary["effect_id"], "builtin-glitch")
+        self.assertEqual(summary["match_kind"], "alias")
+        self.assertEqual(summary["candidate_count"], 1)
+
+    def test_summarize_retrieval_fields(self) -> None:
+        summary = _summarize_retrieval_fields(
+            {
+                "retrieval": {
+                    "status": "retrieved",
+                    "effect_id": "builtin-glitch",
+                    "mode": "builtin-glitch",
+                    "fallback_used": False,
+                    "fallback_mode": "builtin-glitch",
+                    "fallback_preset": "real-smoke-glitch",
+                    "fallback_reason": None,
+                    "match_kind": "alias",
+                    "matched_style_hint": "glitch",
+                    "candidate_count": 1,
+                }
+            }
+        )
+
+        self.assertEqual(summary["status"], "retrieved")
         self.assertEqual(summary["effect_id"], "builtin-glitch")
         self.assertEqual(summary["match_kind"], "alias")
         self.assertEqual(summary["candidate_count"], 1)
