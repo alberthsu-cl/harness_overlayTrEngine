@@ -99,6 +99,7 @@ py -3 harness/src/main.py run --job harness/examples/render_job.sample.json --re
 py -3 harness/src/main.py score --candidate harness/work/<run>/artifacts --reference harness/examples/inputs/reference_transition --output harness/work/<run>/reports/similarity_score.json
 py -3 harness/src/main.py smoke-test --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
 py -3 harness/src/main.py real-smoke-test --renderer harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe
+py -3 harness/src/main.py flow --transition-video harness/sample_glitch.mp4 --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --output-root harness/work/flow_example
 py -3 -m unittest discover harness/tests
 ```
 
@@ -117,6 +118,14 @@ Use the current phase in this order:
 3. Run the Python harness.
 4. Inspect the output frames and generated reports.
 
+If you want a single command that runs the full pipeline and writes one report, use `flow`:
+
+```powershell
+py -3 harness/src/main.py flow --transition-video harness/sample_glitch.mp4 --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --output-root harness/work/flow_example
+```
+
+That command prepares a normalized reference transition from the video, plans the job from the prepared A/B inputs, runs the render, scores the result, and writes `flow_report.json` under a timestamped subdirectory of `harness/work/flow_example/`.
+
 ### Real Sample Flow
 
 When you run a real sample transition, the harness moves through these code slices:
@@ -134,6 +143,8 @@ The practical handoff is:
 5. The native renderer produces PNG frames and `renderer_result.json`.
 6. If `inputs.reference_transition` is present, `run` automatically scores the result through `evaluator.py`.
 7. The detailed score goes to `reports/similarity_score.json`, and the combined summary goes to `reports/run_report.json`.
+
+The `flow` command wraps that same sequence into one entry point and also writes a top-level `flow_report.json` with the step artifacts and summaries.
 
 For a real sample, the typical command sequence is:
 

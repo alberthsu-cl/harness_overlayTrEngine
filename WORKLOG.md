@@ -13,6 +13,7 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 - Added a source-manifest audit test that verifies every builtin registration matches the live `overlaytrengine/OverlayTrPlugInFx/FxInfo.h` mappings.
 - Added generated-seamless fallback symmetry tests so the placeholder path is covered the same way as generated-glitch.
 - Added a new `flow` command that runs the end-to-end transition pipeline from transition video plus prepared source A/B inputs and writes a single report.
+- Added README invocation examples for the new `flow` command.
 - Trimmed the worklog handoff so it stays restart-friendly.
 
 ## Next Implementation Step
