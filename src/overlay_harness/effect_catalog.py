@@ -498,12 +498,14 @@ def select_effect_candidate(catalog: dict[str, Any], style: str, input_kind: str
 
     candidates.sort(
         key=lambda effect: (
+            _style_match_rank(style, effect),
             int(effect.get("retrieval_priority", 999)),
             str(effect.get("family", "")),
             str(effect.get("effect_id", "")),
         )
     )
     selected = candidates[0]
+    primary_style_hint = _resolve_primary_style_hint(selected)
     return {
         "effect_id": selected.get("effect_id"),
         "mode": selected.get("mode"),
@@ -513,6 +515,9 @@ def select_effect_candidate(catalog: dict[str, Any], style: str, input_kind: str
         "input_kind": input_kind,
         "retrieval_source": "effect_catalog",
         "retrieval_priority": selected.get("retrieval_priority"),
+        "match_kind": "exact" if primary_style_hint == style else "alias",
+        "matched_style_hint": primary_style_hint if primary_style_hint is not None else style,
+        "candidate_count": len(candidates),
         "source_documents": selected.get("source_documents"),
     }
 
@@ -619,6 +624,19 @@ def _format_optional_repo_path(path: Path | None, repo_root: Path) -> str | None
     if path is None:
         return None
     return _format_repo_path(path, repo_root)
+
+
+def _resolve_primary_style_hint(effect: dict[str, Any]) -> str | None:
+    style_hints = effect.get("style_hints")
+    if not isinstance(style_hints, list):
+        return None
+
+    return str(style_hints[0]) if style_hints else None
+
+
+def _style_match_rank(style: str, effect: dict[str, Any]) -> int:
+    primary_style_hint = _resolve_primary_style_hint(effect)
+    return 0 if primary_style_hint == style else 1
 
 
 def _hash_file(file_path: Path) -> str:

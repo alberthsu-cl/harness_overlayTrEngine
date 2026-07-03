@@ -320,6 +320,9 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertIsNotNone(selected)
         self.assertEqual(selected["mode"], "builtin-glitch")
         self.assertEqual(selected["effect_id"], "builtin-glitch")
+        self.assertEqual(selected["match_kind"], "alias")
+        self.assertEqual(selected["matched_style_hint"], "glitch")
+        self.assertGreaterEqual(selected["candidate_count"], 1)
 
     def test_auto_plan_prefers_catalog_retrieval_for_generated_glitch(self) -> None:
         source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
@@ -615,6 +618,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(camcorder["effect_id"], "builtin-camcorder")
         self.assertEqual(particle["effect_id"], "builtin-particle-spray")
         self.assertEqual(frame_overlay["effect_id"], "builtin-frame-overlay")
+        self.assertEqual(blur_hexbokeh["match_kind"], "exact")
+        self.assertEqual(glitch_tunewave["match_kind"], "exact")
 
     def test_effect_catalog_source_manifest_rejects_duplicate_effect_ids(self) -> None:
         source_manifest = self.root / "duplicate_effect_catalog_sources.json"

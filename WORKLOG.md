@@ -10,6 +10,7 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 
 - Expanded the deterministic effect catalog with the remaining direct `OverlayTrPlugInFx` wrapper mappings from `FxInfo.h`.
 - Wired the new builtin styles through planner and analyzer retrieval so they can be selected before placeholder generation.
+- Added retrieval diagnostics so catalog selection now reports exact-versus-alias matches and candidate counts.
 - Regenerated `harness/configs/effect_catalog.json` from the checked-in source manifest.
 - Added unit coverage for the new retrieval styles and updated the catalog audit expectations.
 - Audited the remaining `overlaytrengine` source outside `FxInfo.h` and found no additional clear one-to-one style mappings.
