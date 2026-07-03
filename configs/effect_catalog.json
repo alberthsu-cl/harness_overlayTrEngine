@@ -52,7 +52,10 @@
       "mode": "generated-seamless-placeholder",
       "retrieval_priority": 10,
       "source_documents": [
-        "harness/examples/effect_specs/generated_SeamlessSliding_placeholder.json"
+        "harness/examples/effect_specs/generated_SeamlessSliding_placeholder.json",
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrSeamlessSliding.cpp"
       ],
       "style_hints": [
         "generated-seamless"
@@ -67,7 +70,11 @@
       "mode": "generated-glitch-placeholder",
       "retrieval_priority": 10,
       "source_documents": [
-        "harness/examples/effect_specs/generated_glitch_placeholder.json"
+        "harness/examples/effect_specs/generated_glitch_placeholder.json",
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrGlitch.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrGlitchInfoManager.cpp"
       ],
       "style_hints": [
         "generated-glitch"
@@ -83,7 +90,7 @@
     "smooth": "builtin-seamless"
   },
   "source_manifest": "harness/configs/effect_catalog_sources.json",
-  "source_manifest_sha256": "c8899c855542e1f6256673d16f682d115d64fa81fa562c31626c097f88195944",
+  "source_manifest_sha256": "754210b2dc00bcf0548fc99f9f9c4387f7080a111cc96adc7e08d3b9978c487b",
   "source_manifest_version": 1,
   "source_root": "harness"
 }

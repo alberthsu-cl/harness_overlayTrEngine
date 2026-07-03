@@ -33,6 +33,7 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 - Added SHA-256 provenance to catalog and audit reports so manifest drift is traceable.
 - Tightened source-manifest validation so builtin entries cannot carry fallback metadata and generated entries must carry it.
 - Added checked-in `overlaytrengine` source provenance to the builtin effect registrations so the catalog now points at real transition source in addition to harness examples.
+- Mirrored the same real `overlaytrengine` provenance into the generated fallback registrations for consistent catalog source coverage.
 
 ## Next Implementation Step
 
