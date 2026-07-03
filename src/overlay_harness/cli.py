@@ -262,6 +262,14 @@ def _build_parser() -> argparse.ArgumentParser:
             "harness/configs/effect_catalog.json"
         ),
     )
+    index_effects_cmd.add_argument(
+        "--source-manifest",
+        required=False,
+        help=(
+            "Optional source manifest JSON; defaults to "
+            "harness/configs/effect_catalog_sources.json"
+        ),
+    )
 
     plan_job = subparsers.add_parser(
         "plan-job",
@@ -640,9 +648,14 @@ def _handle_index_effects(args, repo_root: Path) -> int:
         if args.output
         else (repo_root / "harness" / "configs" / "effect_catalog.json").resolve()
     )
+    source_manifest = (
+        _resolve_path_argument(args.source_manifest, repo_root)
+        if args.source_manifest
+        else None
+    )
 
     try:
-        catalog = build_effect_catalog(repo_root)
+        catalog = build_effect_catalog(repo_root, source_manifest_path=source_manifest)
         write_json(output, catalog)
     except Exception as exc:
         print(f"index-effects failed: {exc}")

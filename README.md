@@ -106,7 +106,7 @@ If `harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe` exists
 
 If you want a different build output, pass `--renderer` explicitly.
 
-The deterministic built-in effect catalog lives at [configs/effect_catalog.json](configs/effect_catalog.json). Use `index-effects` to regenerate it from the checked-in source manifest at [configs/effect_catalog_sources.json](configs/effect_catalog_sources.json), which keeps the registration list data-driven.
+The deterministic built-in effect catalog lives at [configs/effect_catalog.json](configs/effect_catalog.json). Use `index-effects` to regenerate it from the checked-in source manifest at [configs/effect_catalog_sources.json](configs/effect_catalog_sources.json), which keeps the registration list data-driven. You can also pass `--source-manifest` to point the indexer at a different checked-in source list.
 
 ## Current Workflow
 

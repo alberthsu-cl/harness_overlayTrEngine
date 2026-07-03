@@ -377,8 +377,14 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(plan["retrieval"]["fallback_reason"], "effect catalog is unavailable")
 
     def test_index_effects_writes_catalog(self) -> None:
-        class Args:
-            output = str(self.root / "effect_catalog.json")
+        Args = type(
+            "Args",
+            (),
+            {
+                "output": str(self.root / "effect_catalog.json"),
+                "source_manifest": None,
+            },
+        )
 
         exit_code = _handle_index_effects(Args(), HARNESS_ROOT.parent)
         self.assertEqual(exit_code, 0)
@@ -388,6 +394,47 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(catalog["catalog_version"], 1)
         self.assertGreaterEqual(len(catalog["effects"]), 4)
 
+    def test_index_effects_uses_custom_source_manifest(self) -> None:
+        source_manifest = self.root / "effect_catalog_sources.json"
+        with source_manifest.open("w", encoding="utf-8") as handle:
+            json.dump(
+                {
+                    "catalog_type": "effect_catalog_sources",
+                    "catalog_version": 1,
+                    "registrations": [
+                        {
+                            "effect_id": "custom-builtin-seamless",
+                            "mode": "builtin-seamless",
+                            "effect_source": "builtin",
+                            "family": "seamless",
+                            "fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
+                            "style_hints": ["seamless"],
+                            "retrieval_priority": 0,
+                            "source_documents": ["harness/examples/effect_specs/builtin_seamless_sliding.json"],
+                        }
+                    ],
+                },
+                handle,
+                indent=2,
+            )
+            handle.write("\n")
+
+        Args = type(
+            "Args",
+            (),
+            {
+                "output": str(self.root / "custom_effect_catalog.json"),
+                "source_manifest": str(source_manifest),
+            },
+        )
+
+        exit_code = _handle_index_effects(Args(), HARNESS_ROOT.parent)
+        self.assertEqual(exit_code, 0)
+
+        catalog = load_effect_catalog(self.root / "custom_effect_catalog.json")
+        self.assertEqual(catalog["effects"][0]["effect_id"], "custom-builtin-seamless")
+        self.assertEqual(catalog["retrieval_index"]["seamless"], "custom-builtin-seamless")
+
     def test_effect_catalog_source_manifest_is_loaded(self) -> None:
         catalog = build_effect_catalog(HARNESS_ROOT.parent)
 
@@ -396,6 +443,44 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(catalog["source_root"], "harness")
         self.assertGreaterEqual(len(catalog["effects"]), 4)
         self.assertEqual(catalog["retrieval_index"]["glitch"], "builtin-glitch")
+
+    def test_effect_catalog_source_manifest_rejects_duplicate_effect_ids(self) -> None:
+        source_manifest = self.root / "duplicate_effect_catalog_sources.json"
+        with source_manifest.open("w", encoding="utf-8") as handle:
+            json.dump(
+                {
+                    "catalog_type": "effect_catalog_sources",
+                    "catalog_version": 1,
+                    "registrations": [
+                        {
+                            "effect_id": "duplicate-effect",
+                            "mode": "builtin-seamless",
+                            "effect_source": "builtin",
+                            "family": "seamless",
+                            "fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
+                            "style_hints": ["seamless"],
+                            "retrieval_priority": 0,
+                            "source_documents": ["harness/examples/effect_specs/builtin_seamless_sliding.json"],
+                        },
+                        {
+                            "effect_id": "duplicate-effect",
+                            "mode": "builtin-glitch",
+                            "effect_source": "builtin",
+                            "family": "glitch",
+                            "fx_id": "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4",
+                            "style_hints": ["glitch"],
+                            "retrieval_priority": 0,
+                            "source_documents": ["harness/examples/render_job.effect_spec.sample.json"],
+                        },
+                    ],
+                },
+                handle,
+                indent=2,
+            )
+            handle.write("\n")
+
+        with self.assertRaisesRegex(ValueError, "duplicate effect_id"):
+            build_effect_catalog(HARNESS_ROOT.parent, source_manifest_path=source_manifest)
 
     def _write_bmp_sequence(self, output_dir: Path, colors: list[tuple[int, int, int]]) -> None:
         output_dir.mkdir(parents=True, exist_ok=True)

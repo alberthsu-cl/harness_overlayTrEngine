@@ -67,8 +67,11 @@ _EFFECT_BLUEPRINTS: tuple[dict[str, Any], ...] = (
 )
 
 
-def build_effect_catalog(repo_root: Path) -> dict[str, Any]:
-    source_manifest = _load_effect_catalog_source_manifest(repo_root)
+def build_effect_catalog(
+    repo_root: Path,
+    source_manifest_path: Path | None = None,
+) -> dict[str, Any]:
+    source_manifest = _load_effect_catalog_source_manifest(repo_root, source_manifest_path)
     source_blueprints = (
         source_manifest["registrations"]
         if source_manifest is not None
@@ -135,8 +138,15 @@ def select_effect_candidate(catalog: dict[str, Any], style: str, input_kind: str
     }
 
 
-def _load_effect_catalog_source_manifest(repo_root: Path) -> dict[str, Any] | None:
-    source_manifest_path = repo_root / DEFAULT_EFFECT_CATALOG_SOURCE_RELATIVE_PATH
+def _load_effect_catalog_source_manifest(
+    repo_root: Path,
+    source_manifest_path: Path | None = None,
+) -> dict[str, Any] | None:
+    if source_manifest_path is None:
+        source_manifest_path = repo_root / DEFAULT_EFFECT_CATALOG_SOURCE_RELATIVE_PATH
+    elif not source_manifest_path.is_absolute():
+        source_manifest_path = (repo_root / source_manifest_path).resolve()
+
     if not source_manifest_path.exists():
         return None
 
@@ -149,6 +159,20 @@ def _load_effect_catalog_source_manifest(repo_root: Path) -> dict[str, Any] | No
     registrations = source_manifest.get("registrations")
     if not isinstance(registrations, list):
         raise ValueError("effect catalog source manifest registrations must be a list")
+
+    seen_effect_ids: set[str] = set()
+    for registration in registrations:
+        if not isinstance(registration, dict):
+            raise ValueError("effect catalog source manifest registrations must contain objects")
+        effect_id = registration.get("effect_id")
+        if not isinstance(effect_id, str) or not effect_id:
+            raise ValueError("effect catalog source manifest registrations must include a non-empty effect_id")
+        if effect_id in seen_effect_ids:
+            raise ValueError(f"duplicate effect_id in effect catalog source manifest: {effect_id}")
+        seen_effect_ids.add(effect_id)
+        style_hints = registration.get("style_hints")
+        if not isinstance(style_hints, list) or not all(isinstance(style, str) and style for style in style_hints):
+            raise ValueError(f"effect catalog source manifest registration '{effect_id}' must include string style_hints")
 
     return {
         "catalog_type": source_manifest["catalog_type"],

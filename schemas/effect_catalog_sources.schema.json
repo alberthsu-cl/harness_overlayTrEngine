@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OverlayEffectCatalogSources",
+  "type": "object",
+  "properties": {
+    "catalog_type": {
+      "const": "effect_catalog_sources"
+    },
+    "catalog_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "registrations": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    }
+  },
+  "required": [
+    "catalog_type",
+    "catalog_version",
+    "registrations"
+  ],
+  "additionalProperties": true
+}

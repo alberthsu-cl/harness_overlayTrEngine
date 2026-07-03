@@ -23,6 +23,7 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 - Surfaced planner retrieval metadata into analyzer recommendations, planned jobs, and run reports.
 - Marked placeholder routing as an explicit fallback in planner metadata and run evaluation summaries.
 - Moved effect catalog indexing to a checked-in source manifest so future registrations can be added without code changes.
+- Added manifest validation and a `--source-manifest` override for `index-effects`.
 
 ## Next Implementation Step
 
