@@ -105,7 +105,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Prepared workspace: {result['workspace']}")
         return result["exit_code"]
 
-    print(json.dumps({"workspace": result["workspace"], "report": result["report"]}, indent=2))
+    print(json.dumps(result, indent=2))
     return result["exit_code"]
 
 
@@ -486,6 +486,12 @@ def _execute_job_command(
             }
             write_json(similarity_report_file, similarity_report)
 
+    evaluation = _build_run_evaluation_summary(
+        invocation,
+        similarity_report,
+        similarity_report_file,
+        job.planning,
+    )
     report = HarnessReport(
         status=_resolve_run_report_status(invocation.status, similarity_report),
         summary=_resolve_run_report_summary(invocation.message, similarity_report),
@@ -505,12 +511,7 @@ def _execute_job_command(
             "renderer_result": invocation.renderer_result,
             "similarity_report_file": str(similarity_report_file) if similarity_report_file is not None else None,
             "similarity_report": similarity_report,
-            "evaluation": _build_run_evaluation_summary(
-                invocation,
-                similarity_report,
-                similarity_report_file,
-                job.planning,
-            ),
+            "evaluation": evaluation,
         },
     )
     report_path = workspace.reports_dir / "run_report.json"
@@ -524,6 +525,7 @@ def _execute_job_command(
         "report": str(report_path),
         "status": _resolve_run_report_status(invocation.status, similarity_report),
         "summary": _resolve_run_report_summary(invocation.message, similarity_report),
+        "evaluation": evaluation,
     }
 
 
