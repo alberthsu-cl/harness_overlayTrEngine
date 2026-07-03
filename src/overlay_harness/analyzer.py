@@ -30,12 +30,22 @@ METADATA_TRANSITION_FAMILY_TO_STYLE: dict[str, str] = {
     "shakezoom": "blur-shakezoom",
     "blur-diagblur": "blur-diagblur",
     "diagblur": "blur-diagblur",
+    "blur-fadeblur": "blur-fadeblur",
+    "fadeblur": "blur-fadeblur",
+    "blur-rotateblur": "blur-rotateblur",
+    "rotateblur": "blur-rotateblur",
+    "blur-dimfade": "blur-dimfade",
+    "dimfade": "blur-dimfade",
     "ui": "ui",
     "snapshot": "ui",
     "ui-app-swipe": "ui-app-swipe",
     "app-swipe": "ui-app-swipe",
     "ui-rotate-face": "ui-rotate-face",
     "rotate-face": "ui-rotate-face",
+    "glitch-hdistortion": "glitch-hdistortion",
+    "hdistortion": "glitch-hdistortion",
+    "glitch-stretch-swipe": "glitch-stretch-swipe",
+    "stretch-swipe": "glitch-stretch-swipe",
     "distortion": "distortion",
     "glitch2": "distortion",
     "generated-smooth": "generated-seamless",
@@ -188,10 +198,20 @@ def _resolve_style_hint(
             return "blur-shakezoom", "the intent mentions the shakezoom blur wrapper"
         if any(token in normalized_intent for token in ("diagblur", "diagonal blur")):
             return "blur-diagblur", "the intent mentions the diagonal blur wrapper"
+        if any(token in normalized_intent for token in ("fadeblur", "fade blur")):
+            return "blur-fadeblur", "the intent mentions the fade blur wrapper"
+        if any(token in normalized_intent for token in ("rotateblur", "rotate blur")):
+            return "blur-rotateblur", "the intent mentions the rotate blur wrapper"
+        if any(token in normalized_intent for token in ("dimfade", "dim fade")):
+            return "blur-dimfade", "the intent mentions the dim fade wrapper"
         if any(token in normalized_intent for token in ("app swipe", "app-swipe")):
             return "ui-app-swipe", "the intent mentions the app swipe UI wrapper"
         if any(token in normalized_intent for token in ("rotate face", "rotateface")):
             return "ui-rotate-face", "the intent mentions the rotate face UI wrapper"
+        if any(token in normalized_intent for token in ("hdistortion", "h distortion")):
+            return "glitch-hdistortion", "the intent mentions the hdistortion glitch wrapper"
+        if any(token in normalized_intent for token in ("stretch swipe", "stretch-swipe")):
+            return "glitch-stretch-swipe", "the intent mentions the stretch swipe glitch wrapper"
         if any(token in normalized_intent for token in ("ui", "snapshot", "screen")):
             return "ui", "the intent mentions a UI or snapshot-style transition"
         if any(token in normalized_intent for token in ("distortion", "distort", "warping", "warp")):
