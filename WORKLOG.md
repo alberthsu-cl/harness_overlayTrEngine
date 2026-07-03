@@ -8,23 +8,20 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 
 ## Last Completed
 
-- Expanded the deterministic effect catalog with the remaining direct `OverlayTrPlugInFx` wrapper mappings from `FxInfo.h`.
-- Wired the new builtin styles through planner and analyzer retrieval so they can be selected before placeholder generation.
-- Added retrieval diagnostics so catalog selection now reports exact-versus-alias matches and candidate counts.
-- Regenerated `harness/configs/effect_catalog.json` from the checked-in source manifest.
-- Added unit coverage for the new retrieval styles and updated the catalog audit expectations.
-- Audited the remaining `overlaytrengine` source outside `FxInfo.h` and found no additional clear one-to-one style mappings.
+- Propagated retrieval diagnostics into the recommended-plan and run-evaluation summaries.
+- Added coverage for `match_kind`, `matched_style_hint`, and `candidate_count` in the plan and run report tests.
+- Trimmed the worklog handoff so it stays restart-friendly.
 
 ## Next Implementation Step
 
 Expand Milestone 2 retrieval coverage:
 
-1. Move to a different Milestone 2 task, or wait for a new source-backed mapping to become clear.
-2. Keep generated-placeholder modes as the fallback path only, with explicit fallback metadata.
+1. Keep generated-placeholder modes as the fallback path only, with explicit fallback metadata.
+2. Move to the next source-backed retrieval task when a new clear mapping is available.
 
 ## Why This Is Next
 
-- The first retrieval slice is now in place, and retrieval metadata now flows through planning, run reports, and fallback metadata. Remaining Milestone 2 work is source-manifest coverage and fallback discipline.
+- The first retrieval slice is now in place, and retrieval metadata now flows through planning and run reports. Remaining Milestone 2 work is source-manifest coverage and fallback discipline.
 
 ## Resume Commands
 

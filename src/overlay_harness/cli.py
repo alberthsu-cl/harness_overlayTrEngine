@@ -858,6 +858,9 @@ def _build_run_evaluation_summary(
     retrieval_mode = None
     retrieval_fallback_used = None
     retrieval_fallback_mode = None
+    retrieval_match_kind = None
+    retrieval_matched_style_hint = None
+    retrieval_candidate_count = None
     if isinstance(planning, dict):
         retrieval = planning.get("retrieval")
         if isinstance(retrieval, dict):
@@ -866,6 +869,9 @@ def _build_run_evaluation_summary(
             retrieval_mode = retrieval.get("mode")
             retrieval_fallback_used = retrieval.get("fallback_used")
             retrieval_fallback_mode = retrieval.get("fallback_mode")
+            retrieval_match_kind = retrieval.get("match_kind")
+            retrieval_matched_style_hint = retrieval.get("matched_style_hint")
+            retrieval_candidate_count = retrieval.get("candidate_count")
     if similarity_report is not None:
         score_status = similarity_report.get("status")
         score_alignment = similarity_report.get("alignment")
@@ -895,6 +901,9 @@ def _build_run_evaluation_summary(
             "retrieval_mode": retrieval_mode,
             "retrieval_fallback_used": retrieval_fallback_used,
             "retrieval_fallback_mode": retrieval_fallback_mode,
+            "retrieval_match_kind": retrieval_match_kind,
+            "retrieval_matched_style_hint": retrieval_matched_style_hint,
+            "retrieval_candidate_count": retrieval_candidate_count,
         },
         "overall_status": _resolve_run_overall_status(invocation.status, score_status),
     }

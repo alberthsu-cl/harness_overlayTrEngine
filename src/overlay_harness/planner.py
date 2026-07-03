@@ -596,6 +596,9 @@ def _build_retrieval_summary(
         "mode": retrieved["mode"],
         "family": retrieved["family"],
         "fx_id": retrieved["fx_id"],
+        "match_kind": retrieved["match_kind"],
+        "matched_style_hint": retrieved["matched_style_hint"],
+        "candidate_count": retrieved["candidate_count"],
         "retrieval_source": retrieved["retrieval_source"],
         "source_documents": retrieved["source_documents"],
     }

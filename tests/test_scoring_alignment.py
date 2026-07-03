@@ -165,6 +165,9 @@ class ScoringAlignmentTests(unittest.TestCase):
                 "status": "retrieved",
                 "effect_id": "builtin-glitch",
                 "mode": "builtin-glitch",
+                "match_kind": "alias",
+                "matched_style_hint": "glitch",
+                "candidate_count": 1,
             }
         }
 
@@ -184,6 +187,9 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(summary["planning"]["retrieval_status"], "retrieved")
         self.assertEqual(summary["planning"]["retrieval_effect_id"], "builtin-glitch")
         self.assertEqual(summary["planning"]["retrieval_mode"], "builtin-glitch")
+        self.assertEqual(summary["planning"]["retrieval_match_kind"], "alias")
+        self.assertEqual(summary["planning"]["retrieval_matched_style_hint"], "glitch")
+        self.assertEqual(summary["planning"]["retrieval_candidate_count"], 1)
 
     def test_run_evaluation_summary_handles_missing_score(self) -> None:
         class Invocation:
@@ -358,6 +364,9 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(plan["retrieval"]["status"], "retrieved")
         self.assertEqual(plan["retrieval"]["effect_id"], "builtin-glitch")
         self.assertEqual(plan["retrieval"]["mode"], "builtin-glitch")
+        self.assertEqual(plan["retrieval"]["match_kind"], "alias")
+        self.assertEqual(plan["retrieval"]["matched_style_hint"], "glitch")
+        self.assertGreaterEqual(plan["retrieval"]["candidate_count"], 1)
         self.assertFalse(plan["retrieval"]["fallback_used"])
 
     def test_recommended_plan_marks_placeholder_fallback_when_catalog_missing(self) -> None:
