@@ -436,6 +436,7 @@ def _execute_job_command(
             "exit_code": 0 if validation.is_valid else 1,
             "validation_valid": validation.is_valid,
             "job_path": str(job_path),
+            "planning_retrieval_summary": _summarize_retrieval_fields(job.planning),
         }
 
     if not validation.is_valid:
@@ -444,6 +445,7 @@ def _execute_job_command(
             "exit_code": 1,
             "validation_valid": False,
             "job_path": str(job_path),
+            "planning_retrieval_summary": _summarize_retrieval_fields(job.planning),
         }
 
     workspace = create_job_workspace(harness_root, job)
@@ -457,6 +459,7 @@ def _execute_job_command(
             "validation_valid": True,
             "job_path": str(job_path),
             "workspace": str(workspace.root),
+            "planning_retrieval_summary": _summarize_retrieval_fields(job.planning),
         }
 
     invocation = prepare_render_invocation(repo_root, workspace, job, renderer)
