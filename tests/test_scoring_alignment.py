@@ -397,7 +397,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(catalog["source_manifest"], "harness/configs/effect_catalog_sources.json")
         self.assertEqual(len(catalog["source_manifest_sha256"]), 64)
         self.assertEqual(catalog["registration_count"], len(catalog["effects"]))
-        self.assertGreaterEqual(len(catalog["effects"]), 10)
+        self.assertGreaterEqual(len(catalog["effects"]), 15)
 
     def test_index_effects_uses_custom_source_manifest(self) -> None:
         source_manifest = self.root / "effect_catalog_sources.json"
@@ -449,10 +449,15 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(catalog["catalog_version"], 1)
         self.assertEqual(catalog["source_root"], "harness")
         self.assertEqual(catalog["source_manifest"], "harness/configs/effect_catalog_sources.json")
-        self.assertGreaterEqual(len(catalog["effects"]), 10)
+        self.assertGreaterEqual(len(catalog["effects"]), 15)
         self.assertEqual(catalog["retrieval_index"]["glitch"], "builtin-glitch")
         self.assertEqual(catalog["retrieval_index"]["blur"], "builtin-blur")
+        self.assertEqual(catalog["retrieval_index"]["blur-upgrow"], "builtin-blur-upgrow")
+        self.assertEqual(catalog["retrieval_index"]["blur-shakezoom"], "builtin-blur-shakezoom")
+        self.assertEqual(catalog["retrieval_index"]["blur-diagblur"], "builtin-blur-diagblur")
         self.assertEqual(catalog["retrieval_index"]["ui"], "builtin-ui-snapshot")
+        self.assertEqual(catalog["retrieval_index"]["ui-app-swipe"], "builtin-ui-app-swipe")
+        self.assertEqual(catalog["retrieval_index"]["ui-rotate-face"], "builtin-ui-rotate-face")
         self.assertEqual(catalog["retrieval_index"]["distortion"], "builtin-glitch-distortion")
         self.assertEqual(len(catalog["source_manifest_sha256"]), 64)
         builtin_seamless = next(effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-seamless")
@@ -465,8 +470,19 @@ class ScoringAlignmentTests(unittest.TestCase):
             effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-frame-overlay"
         )
         builtin_blur = next(effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-blur")
+        builtin_blur_upgrow = next(effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-blur-upgrow")
+        builtin_blur_shakezoom = next(
+            effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-blur-shakezoom"
+        )
+        builtin_blur_diagblur = next(
+            effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-blur-diagblur"
+        )
         builtin_ui_snapshot = next(
             effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-ui-snapshot"
+        )
+        builtin_ui_app_swipe = next(effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-ui-app-swipe")
+        builtin_ui_rotate_face = next(
+            effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-ui-rotate-face"
         )
         builtin_glitch_distortion = next(
             effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-glitch-distortion"
@@ -486,7 +502,12 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrParticleSprayInfoManager.cpp", builtin_particle["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrFrameOverlay.cpp", builtin_frame_overlay["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h", builtin_blur["source_documents"])
+        self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h", builtin_blur_upgrow["source_documents"])
+        self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h", builtin_blur_shakezoom["source_documents"])
+        self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h", builtin_blur_diagblur["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp", builtin_ui_snapshot["source_documents"])
+        self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp", builtin_ui_app_swipe["source_documents"])
+        self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp", builtin_ui_rotate_face["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h", builtin_glitch_distortion["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrSeamlessSliding.cpp", generated_seamless["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrGlitchInfoManager.cpp", generated_glitch["source_documents"])
@@ -495,20 +516,35 @@ class ScoringAlignmentTests(unittest.TestCase):
         catalog = build_effect_catalog(HARNESS_ROOT.parent)
 
         blur = select_effect_candidate(catalog, style="blur", input_kind="real")
+        blur_upgrow = select_effect_candidate(catalog, style="blur-upgrow", input_kind="real")
+        blur_shakezoom = select_effect_candidate(catalog, style="blur-shakezoom", input_kind="real")
+        blur_diagblur = select_effect_candidate(catalog, style="blur-diagblur", input_kind="real")
         ui = select_effect_candidate(catalog, style="ui", input_kind="real")
+        ui_app_swipe = select_effect_candidate(catalog, style="ui-app-swipe", input_kind="real")
+        ui_rotate_face = select_effect_candidate(catalog, style="ui-rotate-face", input_kind="real")
         distortion = select_effect_candidate(catalog, style="distortion", input_kind="real")
         camcorder = select_effect_candidate(catalog, style="camcorder", input_kind="real")
         particle = select_effect_candidate(catalog, style="particle", input_kind="real")
         frame_overlay = select_effect_candidate(catalog, style="frame-overlay", input_kind="real")
 
         self.assertIsNotNone(blur)
+        self.assertIsNotNone(blur_upgrow)
+        self.assertIsNotNone(blur_shakezoom)
+        self.assertIsNotNone(blur_diagblur)
         self.assertIsNotNone(ui)
+        self.assertIsNotNone(ui_app_swipe)
+        self.assertIsNotNone(ui_rotate_face)
         self.assertIsNotNone(distortion)
         self.assertIsNotNone(camcorder)
         self.assertIsNotNone(particle)
         self.assertIsNotNone(frame_overlay)
         self.assertEqual(blur["effect_id"], "builtin-blur")
+        self.assertEqual(blur_upgrow["effect_id"], "builtin-blur-upgrow")
+        self.assertEqual(blur_shakezoom["effect_id"], "builtin-blur-shakezoom")
+        self.assertEqual(blur_diagblur["effect_id"], "builtin-blur-diagblur")
         self.assertEqual(ui["effect_id"], "builtin-ui-snapshot")
+        self.assertEqual(ui_app_swipe["effect_id"], "builtin-ui-app-swipe")
+        self.assertEqual(ui_rotate_face["effect_id"], "builtin-ui-rotate-face")
         self.assertEqual(distortion["effect_id"], "builtin-glitch-distortion")
         self.assertEqual(camcorder["effect_id"], "builtin-camcorder")
         self.assertEqual(particle["effect_id"], "builtin-particle-spray")
@@ -698,8 +734,8 @@ class ScoringAlignmentTests(unittest.TestCase):
 
         self.assertEqual(audit["report_type"], "effect_catalog_audit")
         self.assertEqual(audit["status"], "ok")
-        self.assertEqual(audit["baseline_registration_count"], 10)
-        self.assertEqual(audit["manifest_registration_count"], 10)
+        self.assertEqual(audit["baseline_registration_count"], 15)
+        self.assertEqual(audit["manifest_registration_count"], 15)
         self.assertEqual(audit["missing_effect_ids"], [])
         self.assertEqual(audit["extra_effect_ids"], [])
         self.assertEqual(len(audit["source_manifest_sha256"]), 64)
@@ -708,18 +744,23 @@ class ScoringAlignmentTests(unittest.TestCase):
         audit = build_effect_catalog_audit(self.root)
 
         self.assertEqual(audit["status"], "missing_source_manifest")
-        self.assertEqual(audit["baseline_registration_count"], 10)
+        self.assertEqual(audit["baseline_registration_count"], 15)
         self.assertEqual(audit["manifest_registration_count"], 0)
         self.assertEqual(
             audit["missing_effect_ids"],
             [
                 "builtin-blur",
+                "builtin-blur-diagblur",
+                "builtin-blur-shakezoom",
+                "builtin-blur-upgrow",
                 "builtin-camcorder",
                 "builtin-frame-overlay",
                 "builtin-glitch",
                 "builtin-glitch-distortion",
                 "builtin-particle-spray",
                 "builtin-seamless",
+                "builtin-ui-app-swipe",
+                "builtin-ui-rotate-face",
                 "builtin-ui-snapshot",
                 "generated-glitch-placeholder",
                 "generated-seamless-placeholder",
@@ -765,7 +806,7 @@ class ScoringAlignmentTests(unittest.TestCase):
 
         self.assertEqual(payload["report_type"], "effect_catalog_audit")
         self.assertEqual(payload["status"], "missing_source_manifest")
-        self.assertEqual(payload["baseline_registration_count"], 10)
+        self.assertEqual(payload["baseline_registration_count"], 15)
 
     def _write_bmp_sequence(self, output_dir: Path, colors: list[tuple[int, int, int]]) -> None:
         output_dir.mkdir(parents=True, exist_ok=True)

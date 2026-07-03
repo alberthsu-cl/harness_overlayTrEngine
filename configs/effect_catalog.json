@@ -124,6 +124,60 @@
       ]
     },
     {
+      "effect_id": "builtin-blur-upgrow",
+      "effect_source": "builtin",
+      "family": "blur",
+      "fx_id": "Blur_UpGrow",
+      "mode": "builtin-blur-upgrow",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "blur-upgrow",
+        "upgrow"
+      ]
+    },
+    {
+      "effect_id": "builtin-blur-shakezoom",
+      "effect_source": "builtin",
+      "family": "blur",
+      "fx_id": "Blur_ShakeZoom",
+      "mode": "builtin-blur-shakezoom",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "blur-shakezoom",
+        "shakezoom"
+      ]
+    },
+    {
+      "effect_id": "builtin-blur-diagblur",
+      "effect_source": "builtin",
+      "family": "blur",
+      "fx_id": "Blur_DiagBlur",
+      "mode": "builtin-blur-diagblur",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "blur-diagblur",
+        "diagblur"
+      ]
+    },
+    {
       "effect_id": "builtin-ui-snapshot",
       "effect_source": "builtin",
       "family": "ui",
@@ -139,6 +193,42 @@
       "style_hints": [
         "ui",
         "snapshot"
+      ]
+    },
+    {
+      "effect_id": "builtin-ui-app-swipe",
+      "effect_source": "builtin",
+      "family": "ui",
+      "fx_id": "UI_AppSwipe",
+      "mode": "builtin-ui-app-swipe",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "ui-app-swipe",
+        "app-swipe"
+      ]
+    },
+    {
+      "effect_id": "builtin-ui-rotate-face",
+      "effect_source": "builtin",
+      "family": "ui",
+      "fx_id": "UI_RotateFace",
+      "mode": "builtin-ui-rotate-face",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "ui-rotate-face",
+        "rotate-face"
       ]
     },
     {
@@ -197,12 +287,17 @@
       ]
     }
   ],
-  "registration_count": 10,
+  "registration_count": 15,
   "retrieval_index": {
+    "app-swipe": "builtin-ui-app-swipe",
     "blur": "builtin-blur",
+    "blur-diagblur": "builtin-blur-diagblur",
+    "blur-shakezoom": "builtin-blur-shakezoom",
+    "blur-upgrow": "builtin-blur-upgrow",
     "bokeh": "builtin-blur",
     "camcorder": "builtin-camcorder",
     "camera": "builtin-camcorder",
+    "diagblur": "builtin-blur-diagblur",
     "distortion": "builtin-glitch-distortion",
     "film-roll": "builtin-frame-overlay",
     "frame-overlay": "builtin-frame-overlay",
@@ -212,15 +307,20 @@
     "glitch2": "builtin-glitch-distortion",
     "overlay": "builtin-frame-overlay",
     "particle": "builtin-particle-spray",
+    "rotate-face": "builtin-ui-rotate-face",
     "seamless": "builtin-seamless",
+    "shakezoom": "builtin-blur-shakezoom",
     "smooth": "builtin-seamless",
     "snapshot": "builtin-ui-snapshot",
     "sparkle": "builtin-particle-spray",
     "spray": "builtin-particle-spray",
-    "ui": "builtin-ui-snapshot"
+    "ui": "builtin-ui-snapshot",
+    "ui-app-swipe": "builtin-ui-app-swipe",
+    "ui-rotate-face": "builtin-ui-rotate-face",
+    "upgrow": "builtin-blur-upgrow"
   },
   "source_manifest": "harness/configs/effect_catalog_sources.json",
-  "source_manifest_sha256": "84ed6dacd46da39948ef487b5fb30927139b52421be8bc134384f166a2f968ab",
+  "source_manifest_sha256": "783fbb9721f7beda9b5c33481ef946fa7daec3e927f9165b5055fef1e563e978",
   "source_manifest_version": 1,
   "source_root": "harness"
 }

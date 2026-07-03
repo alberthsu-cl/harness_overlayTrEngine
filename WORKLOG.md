@@ -8,15 +8,10 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 
 ## Last Completed
 
-- Expanded the deterministic effect catalog with additional real `OverlayTrPlugInFx` registrations for blur, UI snapshot, and distortion wrapper families.
+- Expanded the deterministic effect catalog with additional real `OverlayTrPlugInFx` registrations for blur and UI wrapper families.
 - Wired the new builtin styles through planner and analyzer retrieval so they can be selected before placeholder generation.
 - Regenerated `harness/configs/effect_catalog.json` from the checked-in source manifest.
 - Added unit coverage for the new retrieval styles and updated the catalog audit expectations.
-- Added a deterministic effect catalog and routed generated styles through retrieval before placeholder fallback.
-- Surfaced planner retrieval metadata into analyzer recommendations, planned jobs, and run reports.
-- Marked placeholder routing as an explicit fallback in planner metadata and run evaluation summaries.
-- Moved effect catalog indexing to a checked-in source manifest so future registrations can be added without code changes.
-- Added `audit-effects` to report baseline-vs-manifest gaps for the source-driven catalog.
 
 ## Next Implementation Step
 

@@ -24,8 +24,18 @@ METADATA_TRANSITION_FAMILY_TO_STYLE: dict[str, str] = {
     "frame-overlay": "frame-overlay",
     "blur": "blur",
     "bokeh": "blur",
+    "blur-upgrow": "blur-upgrow",
+    "upgrow": "blur-upgrow",
+    "blur-shakezoom": "blur-shakezoom",
+    "shakezoom": "blur-shakezoom",
+    "blur-diagblur": "blur-diagblur",
+    "diagblur": "blur-diagblur",
     "ui": "ui",
     "snapshot": "ui",
+    "ui-app-swipe": "ui-app-swipe",
+    "app-swipe": "ui-app-swipe",
+    "ui-rotate-face": "ui-rotate-face",
+    "rotate-face": "ui-rotate-face",
     "distortion": "distortion",
     "glitch2": "distortion",
     "generated-smooth": "generated-seamless",
@@ -172,7 +182,17 @@ def _resolve_style_hint(
             return "frame-overlay", "the intent mentions a frame overlay or film-roll look"
         if any(token in normalized_intent for token in ("blur", "bokeh", "soft focus")):
             return "blur", "the intent mentions a blur or bokeh transition"
-        if any(token in normalized_intent for token in ("ui", "snapshot", "app swipe", "screen")):
+        if any(token in normalized_intent for token in ("upgrow", "up grow")):
+            return "blur-upgrow", "the intent mentions the upgrow blur wrapper"
+        if any(token in normalized_intent for token in ("shakezoom", "shake zoom")):
+            return "blur-shakezoom", "the intent mentions the shakezoom blur wrapper"
+        if any(token in normalized_intent for token in ("diagblur", "diagonal blur")):
+            return "blur-diagblur", "the intent mentions the diagonal blur wrapper"
+        if any(token in normalized_intent for token in ("app swipe", "app-swipe")):
+            return "ui-app-swipe", "the intent mentions the app swipe UI wrapper"
+        if any(token in normalized_intent for token in ("rotate face", "rotateface")):
+            return "ui-rotate-face", "the intent mentions the rotate face UI wrapper"
+        if any(token in normalized_intent for token in ("ui", "snapshot", "screen")):
             return "ui", "the intent mentions a UI or snapshot-style transition"
         if any(token in normalized_intent for token in ("distortion", "distort", "warping", "warp")):
             return "distortion", "the intent mentions a distortion-style transition"
