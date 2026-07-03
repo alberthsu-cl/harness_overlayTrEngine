@@ -234,6 +234,8 @@ When `--reference-transition` points at a prepared reference artifact directory,
 
 The generated render job now also carries an optional `planning` block when the job came from analyzer or auto-planner logic. That block records the selected preset, mode, style, input kind, and retrieval summary so the downstream run report can echo the same routing decision.
 
+When retrieval misses, the planning metadata now records that the generated-placeholder route was used as fallback. That keeps placeholder routing explicit instead of implicit.
+
 For common workflows, you can use presets instead of repeating the same paths and mode selection:
 
 ```powershell

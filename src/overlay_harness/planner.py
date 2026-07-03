@@ -295,7 +295,13 @@ def build_recommended_plan(
         "input_kind": resolved_input_kind,
         "preset": preset,
         "mode": mode,
-        "retrieval": _build_retrieval_summary(repo_root, style=str(style), input_kind=resolved_input_kind),
+        "retrieval": _build_retrieval_summary(
+            repo_root,
+            style=str(style),
+            input_kind=resolved_input_kind,
+            fallback_mode=mode,
+            fallback_preset=preset,
+        ),
     }
 
 
@@ -389,18 +395,41 @@ def _resolve_preset_for_retrieved_mode(
     return existing_preset
 
 
-def _build_retrieval_summary(repo_root: Path, style: str, input_kind: str) -> dict[str, Any] | None:
+def _build_retrieval_summary(
+    repo_root: Path,
+    style: str,
+    input_kind: str,
+    fallback_mode: str,
+    fallback_preset: str | None,
+) -> dict[str, Any] | None:
     catalog = _load_effect_catalog(repo_root)
     if catalog is None:
-        return None
+        return {
+            "status": "not_found",
+            "style": style,
+            "input_kind": input_kind,
+            "fallback_used": fallback_mode.endswith("-placeholder"),
+            "fallback_mode": fallback_mode,
+            "fallback_preset": fallback_preset,
+            "fallback_reason": "effect catalog is unavailable",
+        }
 
     retrieved = select_effect_candidate(catalog, style=style, input_kind=input_kind)
     if retrieved is None:
-        return {"status": "not_found", "style": style, "input_kind": input_kind}
+        return {
+            "status": "not_found",
+            "style": style,
+            "input_kind": input_kind,
+            "fallback_used": fallback_mode.endswith("-placeholder"),
+            "fallback_mode": fallback_mode,
+            "fallback_preset": fallback_preset,
+            "fallback_reason": "no catalog entry matched the requested style and input kind",
+        }
     return {
         "status": "retrieved",
         "style": style,
         "input_kind": input_kind,
+        "fallback_used": False,
         "effect_id": retrieved["effect_id"],
         "mode": retrieved["mode"],
         "family": retrieved["family"],

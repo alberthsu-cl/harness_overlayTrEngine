@@ -353,6 +353,28 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(plan["retrieval"]["status"], "retrieved")
         self.assertEqual(plan["retrieval"]["effect_id"], "builtin-glitch")
         self.assertEqual(plan["retrieval"]["mode"], "builtin-glitch")
+        self.assertFalse(plan["retrieval"]["fallback_used"])
+
+    def test_recommended_plan_marks_placeholder_fallback_when_catalog_missing(self) -> None:
+        source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
+        source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
+
+        plan = build_recommended_plan(
+            repo_root=self.root,
+            source_a=source_a,
+            source_b=source_b,
+            hint_data={
+                "style_hint": "generated-glitch",
+                "input_kind": "real",
+                "job_name": "test_job",
+            },
+        )
+
+        self.assertEqual(plan["mode"], "generated-glitch-placeholder")
+        self.assertEqual(plan["retrieval"]["status"], "not_found")
+        self.assertTrue(plan["retrieval"]["fallback_used"])
+        self.assertEqual(plan["retrieval"]["fallback_mode"], "generated-glitch-placeholder")
+        self.assertEqual(plan["retrieval"]["fallback_reason"], "effect catalog is unavailable")
 
     def test_index_effects_writes_catalog(self) -> None:
         class Args:
