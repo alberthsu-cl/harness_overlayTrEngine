@@ -17,6 +17,11 @@ METADATA_TRANSITION_FAMILY_TO_STYLE: dict[str, str] = {
     "smooth": "seamless",
     "seamless": "seamless",
     "glitch": "glitch",
+    "camera": "camera",
+    "camcorder": "camcorder",
+    "particle": "particle",
+    "sparkle": "sparkle",
+    "frame-overlay": "frame-overlay",
     "generated-smooth": "generated-seamless",
     "generated-glitch": "generated-glitch",
 }
@@ -153,6 +158,12 @@ def _resolve_style_hint(
 
     normalized_intent = (intent or "").strip().lower()
     if normalized_intent:
+        if any(token in normalized_intent for token in ("camcorder", "camera")):
+            return "camcorder", "the intent mentions a camcorder or camera transition"
+        if any(token in normalized_intent for token in ("particle", "sparkle", "spray")):
+            return "particle", "the intent mentions particle or sparkle motion"
+        if any(token in normalized_intent for token in ("frame overlay", "film roll", "overlay")):
+            return "frame-overlay", "the intent mentions a frame overlay or film-roll look"
         if "generated" in normalized_intent and "glitch" in normalized_intent:
             return "generated-glitch", "the intent mentions generated and glitch"
         if "generated" in normalized_intent and any(

@@ -34,6 +34,7 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 - Tightened source-manifest validation so builtin entries cannot carry fallback metadata and generated entries must carry it.
 - Added checked-in `overlaytrengine` source provenance to the builtin effect registrations so the catalog now points at real transition source in addition to harness examples.
 - Mirrored the same real `overlaytrengine` provenance into the generated fallback registrations for consistent catalog source coverage.
+- Added more builtin families from `overlaytrengine` source, including camcorder, particle spray, and frame overlay routing.
 
 ## Next Implementation Step
 

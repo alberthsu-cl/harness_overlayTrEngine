@@ -44,6 +44,68 @@
       ]
     },
     {
+      "effect_id": "builtin-camcorder",
+      "effect_source": "builtin",
+      "family": "camera",
+      "fx_id": "CES_PlugIn_Camera.dll\\DSP_TR_Camera_Camcorder",
+      "mode": "builtin-camcorder",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrCamcorder.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrCamcorder_ps.hlsl",
+        "overlaytrengine/OverlayTrPlugInFx/TrCamcorder_Blur_ps.hlsl",
+        "overlaytrengine/OverlayTrPlugInFx/TrCamcorder_Overlay_ps.hlsl"
+      ],
+      "style_hints": [
+        "camera",
+        "camcorder"
+      ]
+    },
+    {
+      "effect_id": "builtin-particle-spray",
+      "effect_source": "builtin",
+      "family": "particle",
+      "fx_id": "CES_PlugIn_ParticleSpray.dll\\DSP_TR_Sparkle_01",
+      "mode": "builtin-particle-spray",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrParticleSpray.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrParticleSprayInfoManager.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrParticleSpray_ps.hlsl",
+        "overlaytrengine/OverlayTrPlugInFx/TrParticleSpray_Particle_ps.hlsl",
+        "overlaytrengine/OverlayTrPlugInFx/TrParticleSpray_Particle_vs.hlsl"
+      ],
+      "style_hints": [
+        "particle",
+        "sparkle",
+        "spray"
+      ]
+    },
+    {
+      "effect_id": "builtin-frame-overlay",
+      "effect_source": "builtin",
+      "family": "overlay",
+      "fx_id": "CES_PlugIn_FrameOverlay.dll\\DSP_TR_FrameOverlay_01",
+      "mode": "builtin-frame-overlay",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrFrameOverlay.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrFrameOverlay_ps.hlsl",
+        "overlaytrengine/OverlayTrPlugInFx/TrFrameOverlay_Noise_ps.hlsl"
+      ],
+      "style_hints": [
+        "frame-overlay",
+        "film-roll",
+        "overlay"
+      ]
+    },
+    {
       "effect_id": "generated-seamless-placeholder",
       "effect_source": "generated",
       "fallback_fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
@@ -81,16 +143,24 @@
       ]
     }
   ],
-  "registration_count": 4,
+  "registration_count": 7,
   "retrieval_index": {
+    "camcorder": "builtin-camcorder",
+    "camera": "builtin-camcorder",
+    "film-roll": "builtin-frame-overlay",
+    "frame-overlay": "builtin-frame-overlay",
     "generated-glitch": "builtin-glitch",
     "generated-seamless": "builtin-seamless",
     "glitch": "builtin-glitch",
+    "overlay": "builtin-frame-overlay",
+    "particle": "builtin-particle-spray",
     "seamless": "builtin-seamless",
-    "smooth": "builtin-seamless"
+    "smooth": "builtin-seamless",
+    "sparkle": "builtin-particle-spray",
+    "spray": "builtin-particle-spray"
   },
   "source_manifest": "harness/configs/effect_catalog_sources.json",
-  "source_manifest_sha256": "754210b2dc00bcf0548fc99f9f9c4387f7080a111cc96adc7e08d3b9978c487b",
+  "source_manifest_sha256": "302dc7f1161b5d59b93049ed27fe825cdefdd796751573ceeebfc9dd7715e209",
   "source_manifest_version": 1,
   "source_root": "harness"
 }

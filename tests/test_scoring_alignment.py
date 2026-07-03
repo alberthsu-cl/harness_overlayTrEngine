@@ -454,16 +454,43 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(len(catalog["source_manifest_sha256"]), 64)
         builtin_seamless = next(effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-seamless")
         builtin_glitch = next(effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-glitch")
+        builtin_camcorder = next(effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-camcorder")
+        builtin_particle = next(
+            effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-particle-spray"
+        )
+        builtin_frame_overlay = next(
+            effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-frame-overlay"
+        )
         generated_seamless = next(
             effect for effect in catalog["effects"] if effect["effect_id"] == "generated-seamless-placeholder"
         )
         generated_glitch = next(
             effect for effect in catalog["effects"] if effect["effect_id"] == "generated-glitch-placeholder"
         )
+        self.assertEqual(catalog["retrieval_index"]["camera"], "builtin-camcorder")
+        self.assertEqual(catalog["retrieval_index"]["particle"], "builtin-particle-spray")
+        self.assertEqual(catalog["retrieval_index"]["frame-overlay"], "builtin-frame-overlay")
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrSeamlessSliding.cpp", builtin_seamless["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrGlitchInfoManager.cpp", builtin_glitch["source_documents"])
+        self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrCamcorder.cpp", builtin_camcorder["source_documents"])
+        self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrParticleSprayInfoManager.cpp", builtin_particle["source_documents"])
+        self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrFrameOverlay.cpp", builtin_frame_overlay["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrSeamlessSliding.cpp", generated_seamless["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrGlitchInfoManager.cpp", generated_glitch["source_documents"])
+
+    def test_effect_catalog_selects_additional_builtin_families(self) -> None:
+        catalog = build_effect_catalog(HARNESS_ROOT.parent)
+
+        camcorder = select_effect_candidate(catalog, style="camcorder", input_kind="real")
+        particle = select_effect_candidate(catalog, style="particle", input_kind="real")
+        frame_overlay = select_effect_candidate(catalog, style="frame-overlay", input_kind="real")
+
+        self.assertIsNotNone(camcorder)
+        self.assertIsNotNone(particle)
+        self.assertIsNotNone(frame_overlay)
+        self.assertEqual(camcorder["effect_id"], "builtin-camcorder")
+        self.assertEqual(particle["effect_id"], "builtin-particle-spray")
+        self.assertEqual(frame_overlay["effect_id"], "builtin-frame-overlay")
 
     def test_effect_catalog_source_manifest_rejects_duplicate_effect_ids(self) -> None:
         source_manifest = self.root / "duplicate_effect_catalog_sources.json"
