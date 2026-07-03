@@ -18,6 +18,7 @@ from overlay_harness.cli import _build_plan_comparison_report
 from overlay_harness.cli import _build_run_evaluation_summary
 from overlay_harness.cli import _handle_audit_effects
 from overlay_harness.cli import _handle_index_effects
+from overlay_harness.cli import _execute_job_command
 from overlay_harness.cli import _summarize_retrieval_fields
 from overlay_harness.cli import _summarize_retrieval_from_evaluation
 from overlay_harness.cli import _summarize_smoke_test_retrieval
@@ -417,6 +418,39 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(summary["retrieved_count"], 1)
         self.assertEqual(summary["not_found_count"], 1)
         self.assertEqual(summary["fallback_used_count"], 1)
+
+    def test_run_command_result_includes_planning_retrieval_summary(self) -> None:
+        job_path = self.root / "job.json"
+        job_data = json.loads((HARNESS_ROOT.parent / "harness/examples/render_job.sample.json").read_text(encoding="utf-8"))
+        job_data["planning"] = {
+            "auto": True,
+            "retrieval": {
+                "status": "retrieved",
+                "effect_id": "builtin-glitch",
+                "mode": "builtin-glitch",
+                "fallback_used": False,
+                "fallback_mode": "builtin-glitch",
+                "fallback_preset": "real-smoke-glitch",
+                "fallback_reason": None,
+                "match_kind": "alias",
+                "matched_style_hint": "glitch",
+                "candidate_count": 1,
+            },
+        }
+        job_path.write_text(json.dumps(job_data, indent=2), encoding="utf-8")
+
+        result = _execute_job_command(
+            repo_root=HARNESS_ROOT.parent,
+            harness_root=HARNESS_ROOT,
+            config_dir=HARNESS_ROOT / "configs",
+            job_path=job_path,
+            command_name="run",
+        )
+
+        self.assertEqual(result["status"], "blocked")
+        self.assertIsNotNone(result["planning_retrieval_summary"])
+        self.assertEqual(result["planning_retrieval_summary"]["effect_id"], "builtin-glitch")
+        self.assertEqual(result["planning_retrieval_summary"]["match_kind"], "alias")
 
     def test_render_job_preserves_planning_metadata(self) -> None:
         job = self._build_job(reference_transition=self.root / "reference", frame_count=3)

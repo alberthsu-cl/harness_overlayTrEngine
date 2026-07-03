@@ -9,7 +9,7 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 ## Last Completed
 
 - Propagated retrieval diagnostics into the recommended-plan, run-evaluation, top-level run output, plan-comparison report, smoke-test batch report, and top-level plan-job result payload.
-- Added retrieval summaries to the embedded and recomputed plans in the plan-job result payload.
+- Added the top-level run-command retrieval summary field and a command-level test that exercises it with the sample render job.
 - Trimmed the worklog handoff so it stays restart-friendly.
 
 ## Next Implementation Step

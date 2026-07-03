@@ -525,6 +525,7 @@ def _execute_job_command(
         "report": str(report_path),
         "status": _resolve_run_report_status(invocation.status, similarity_report),
         "summary": _resolve_run_report_summary(invocation.message, similarity_report),
+        "planning_retrieval_summary": _summarize_retrieval_from_evaluation(evaluation),
         "evaluation": evaluation,
     }
 
