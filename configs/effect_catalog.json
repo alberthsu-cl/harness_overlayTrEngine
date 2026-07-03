@@ -178,6 +178,42 @@
       ]
     },
     {
+      "effect_id": "builtin-blur-hexbokeh",
+      "effect_source": "builtin",
+      "family": "blur",
+      "fx_id": "Blur_HexBokeh",
+      "mode": "builtin-blur-hexbokeh",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "blur-hexbokeh",
+        "hexbokeh"
+      ]
+    },
+    {
+      "effect_id": "builtin-blur-diamondbokeh",
+      "effect_source": "builtin",
+      "family": "blur",
+      "fx_id": "Blur_DiamondBokeh",
+      "mode": "builtin-blur-diamondbokeh",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "blur-diamondbokeh",
+        "diamondbokeh"
+      ]
+    },
+    {
       "effect_id": "builtin-blur-fadeblur",
       "effect_source": "builtin",
       "family": "blur",
@@ -322,6 +358,42 @@
       ]
     },
     {
+      "effect_id": "builtin-glitch-hdistortion2",
+      "effect_source": "builtin",
+      "family": "glitch",
+      "fx_id": "Glitch_HDistor2",
+      "mode": "builtin-glitch-hdistortion2",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "glitch-hdistortion2",
+        "hdistortion2"
+      ]
+    },
+    {
+      "effect_id": "builtin-glitch-tunewave",
+      "effect_source": "builtin",
+      "family": "glitch",
+      "fx_id": "Glitch_TuneWave",
+      "mode": "builtin-glitch-tunewave",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "glitch-tunewave",
+        "tunewave"
+      ]
+    },
+    {
       "effect_id": "builtin-glitch-distortion",
       "effect_source": "builtin",
       "family": "glitch",
@@ -377,13 +449,15 @@
       ]
     }
   ],
-  "registration_count": 20,
+  "registration_count": 24,
   "retrieval_index": {
     "app-swipe": "builtin-ui-app-swipe",
     "blur": "builtin-blur",
     "blur-diagblur": "builtin-blur-diagblur",
+    "blur-diamondbokeh": "builtin-blur-diamondbokeh",
     "blur-dimfade": "builtin-blur-dimfade",
     "blur-fadeblur": "builtin-blur-fadeblur",
+    "blur-hexbokeh": "builtin-blur-hexbokeh",
     "blur-rotateblur": "builtin-blur-rotateblur",
     "blur-shakezoom": "builtin-blur-shakezoom",
     "blur-upgrow": "builtin-blur-upgrow",
@@ -391,6 +465,7 @@
     "camcorder": "builtin-camcorder",
     "camera": "builtin-camcorder",
     "diagblur": "builtin-blur-diagblur",
+    "diamondbokeh": "builtin-blur-diamondbokeh",
     "dimfade": "builtin-blur-dimfade",
     "distortion": "builtin-glitch-distortion",
     "fadeblur": "builtin-blur-fadeblur",
@@ -400,9 +475,13 @@
     "generated-seamless": "builtin-seamless",
     "glitch": "builtin-glitch",
     "glitch-hdistortion": "builtin-glitch-hdistortion",
+    "glitch-hdistortion2": "builtin-glitch-hdistortion2",
     "glitch-stretch-swipe": "builtin-glitch-stretch-swipe",
+    "glitch-tunewave": "builtin-glitch-tunewave",
     "glitch2": "builtin-glitch-distortion",
     "hdistortion": "builtin-glitch-hdistortion",
+    "hdistortion2": "builtin-glitch-hdistortion2",
+    "hexbokeh": "builtin-blur-hexbokeh",
     "overlay": "builtin-frame-overlay",
     "particle": "builtin-particle-spray",
     "rotate-face": "builtin-ui-rotate-face",
@@ -414,13 +493,14 @@
     "sparkle": "builtin-particle-spray",
     "spray": "builtin-particle-spray",
     "stretch-swipe": "builtin-glitch-stretch-swipe",
+    "tunewave": "builtin-glitch-tunewave",
     "ui": "builtin-ui-snapshot",
     "ui-app-swipe": "builtin-ui-app-swipe",
     "ui-rotate-face": "builtin-ui-rotate-face",
     "upgrow": "builtin-blur-upgrow"
   },
   "source_manifest": "harness/configs/effect_catalog_sources.json",
-  "source_manifest_sha256": "4ddc13f1b66f535953ea1cf69f22d0c7e574baa862c44e0ddd61ecc07777cab6",
+  "source_manifest_sha256": "00e9f698ad65dd1fc2e9b966234309d01197be62d0f2ef9c86cc8702857ad20d",
   "source_manifest_version": 1,
   "source_root": "harness"
 }

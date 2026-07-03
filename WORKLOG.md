@@ -8,7 +8,7 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 
 ## Last Completed
 
-- Expanded the deterministic effect catalog with additional real `OverlayTrPlugInFx` registrations for blur and glitch wrapper families.
+- Expanded the deterministic effect catalog with additional real `OverlayTrPlugInFx` registrations for blur and glitch wrapper families, including the last direct `FxInfo.h` wrapper set.
 - Wired the new builtin styles through planner and analyzer retrieval so they can be selected before placeholder generation.
 - Regenerated `harness/configs/effect_catalog.json` from the checked-in source manifest.
 - Added unit coverage for the new retrieval styles and updated the catalog audit expectations.

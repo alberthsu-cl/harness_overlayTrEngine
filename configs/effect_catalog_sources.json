@@ -178,6 +178,42 @@
       ]
     },
     {
+      "effect_id": "builtin-blur-hexbokeh",
+      "mode": "builtin-blur-hexbokeh",
+      "effect_source": "builtin",
+      "family": "blur",
+      "fx_id": "Blur_HexBokeh",
+      "style_hints": [
+        "blur-hexbokeh",
+        "hexbokeh"
+      ],
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ]
+    },
+    {
+      "effect_id": "builtin-blur-diamondbokeh",
+      "mode": "builtin-blur-diamondbokeh",
+      "effect_source": "builtin",
+      "family": "blur",
+      "fx_id": "Blur_DiamondBokeh",
+      "style_hints": [
+        "blur-diamondbokeh",
+        "diamondbokeh"
+      ],
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ]
+    },
+    {
       "effect_id": "builtin-blur-fadeblur",
       "mode": "builtin-blur-fadeblur",
       "effect_source": "builtin",
@@ -312,6 +348,42 @@
       "style_hints": [
         "glitch-stretch-swipe",
         "stretch-swipe"
+      ],
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ]
+    },
+    {
+      "effect_id": "builtin-glitch-hdistortion2",
+      "mode": "builtin-glitch-hdistortion2",
+      "effect_source": "builtin",
+      "family": "glitch",
+      "fx_id": "Glitch_HDistor2",
+      "style_hints": [
+        "glitch-hdistortion2",
+        "hdistortion2"
+      ],
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ]
+    },
+    {
+      "effect_id": "builtin-glitch-tunewave",
+      "mode": "builtin-glitch-tunewave",
+      "effect_source": "builtin",
+      "family": "glitch",
+      "fx_id": "Glitch_TuneWave",
+      "style_hints": [
+        "glitch-tunewave",
+        "tunewave"
       ],
       "retrieval_priority": 0,
       "source_documents": [
