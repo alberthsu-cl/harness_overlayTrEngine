@@ -22,6 +22,7 @@ from overlay_harness.cli import _execute_job_command
 from overlay_harness.cli import _summarize_retrieval_fields
 from overlay_harness.cli import _summarize_retrieval_from_evaluation
 from overlay_harness.cli import _summarize_smoke_test_retrieval
+from overlay_harness.cli import _summarize_smoke_test_validation_retrieval
 from overlay_harness.cli import _resolve_run_report_status
 from overlay_harness.cli import _resolve_run_report_summary
 from overlay_harness.effect_catalog import build_effect_catalog
@@ -419,6 +420,33 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(summary["not_found_count"], 1)
         self.assertEqual(summary["fallback_used_count"], 1)
 
+    def test_summarize_smoke_test_validation_retrieval(self) -> None:
+        summary = _summarize_smoke_test_validation_retrieval(
+            [
+                {
+                    "validate_retrieval_summary": {
+                        "status": "retrieved",
+                        "fallback_used": False,
+                    }
+                },
+                {
+                    "validate_retrieval_summary": {
+                        "status": "not_found",
+                        "fallback_used": True,
+                    }
+                },
+                {
+                    "validate_retrieval_summary": None,
+                },
+            ]
+        )
+
+        self.assertIsNotNone(summary)
+        self.assertEqual(summary["job_count"], 3)
+        self.assertEqual(summary["retrieved_count"], 1)
+        self.assertEqual(summary["not_found_count"], 1)
+        self.assertEqual(summary["fallback_used_count"], 1)
+
     def test_run_command_result_includes_planning_retrieval_summary(self) -> None:
         job_path = self.root / "job.json"
         job_data = json.loads((HARNESS_ROOT.parent / "harness/examples/render_job.sample.json").read_text(encoding="utf-8"))
@@ -485,6 +513,34 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(result["exit_code"], 0)
         self.assertIsNotNone(result["planning_retrieval_summary"])
         self.assertEqual(result["planning_retrieval_summary"]["effect_id"], "builtin-glitch")
+
+    def test_smoke_test_job_result_includes_validation_retrieval_summary(self) -> None:
+        results = [
+            {
+                "job": "harness/examples/render_job.sample.json",
+                "validate_exit_code": 0,
+                "validation_valid": True,
+                "validate_retrieval_summary": {
+                    "status": "retrieved",
+                    "fallback_used": False,
+                },
+            },
+            {
+                "job": "harness/examples/render_job.effect_spec.sample.json",
+                "validate_exit_code": 0,
+                "validation_valid": True,
+                "validate_retrieval_summary": {
+                    "status": "not_found",
+                    "fallback_used": True,
+                },
+            },
+        ]
+
+        summary = _summarize_smoke_test_validation_retrieval(results)
+
+        self.assertEqual(summary["job_count"], 2)
+        self.assertEqual(summary["retrieved_count"], 1)
+        self.assertEqual(summary["not_found_count"], 1)
 
     def test_prepare_command_result_includes_planning_retrieval_summary(self) -> None:
         job_path = self.root / "job.json"
