@@ -516,6 +516,62 @@ class ScoringAlignmentTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "references missing source document"):
             build_effect_catalog(HARNESS_ROOT.parent, source_manifest_path=source_manifest)
 
+    def test_effect_catalog_source_manifest_rejects_invalid_effect_source(self) -> None:
+        source_manifest = self.root / "invalid_source_type_effect_catalog_sources.json"
+        with source_manifest.open("w", encoding="utf-8") as handle:
+            json.dump(
+                {
+                    "catalog_type": "effect_catalog_sources",
+                    "catalog_version": 1,
+                    "registrations": [
+                        {
+                            "effect_id": "invalid-source-effect",
+                            "mode": "builtin-seamless",
+                            "effect_source": "experimental",
+                            "family": "seamless",
+                            "fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
+                            "style_hints": ["seamless"],
+                            "retrieval_priority": 0,
+                            "source_documents": ["harness/examples/effect_specs/builtin_seamless_sliding.json"],
+                        }
+                    ],
+                },
+                handle,
+                indent=2,
+            )
+            handle.write("\n")
+
+        with self.assertRaisesRegex(ValueError, "must use effect_source builtin or generated"):
+            build_effect_catalog(HARNESS_ROOT.parent, source_manifest_path=source_manifest)
+
+    def test_effect_catalog_source_manifest_rejects_generated_without_fallback(self) -> None:
+        source_manifest = self.root / "generated_without_fallback_effect_catalog_sources.json"
+        with source_manifest.open("w", encoding="utf-8") as handle:
+            json.dump(
+                {
+                    "catalog_type": "effect_catalog_sources",
+                    "catalog_version": 1,
+                    "registrations": [
+                        {
+                            "effect_id": "generated-missing-fallback",
+                            "mode": "generated-glitch-placeholder",
+                            "effect_source": "generated",
+                            "family": "glitch",
+                            "fx_id": "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4",
+                            "style_hints": ["generated-glitch"],
+                            "retrieval_priority": 10,
+                            "source_documents": ["harness/examples/effect_specs/generated_glitch_placeholder.json"],
+                        }
+                    ],
+                },
+                handle,
+                indent=2,
+            )
+            handle.write("\n")
+
+        with self.assertRaisesRegex(ValueError, "must include fallback_fx_id for generated entries"):
+            build_effect_catalog(HARNESS_ROOT.parent, source_manifest_path=source_manifest)
+
     def test_effect_catalog_audit_reports_manifest_alignment(self) -> None:
         audit = build_effect_catalog_audit(HARNESS_ROOT.parent)
 

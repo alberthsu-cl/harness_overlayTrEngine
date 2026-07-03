@@ -222,6 +222,24 @@ def _load_effect_catalog_source_manifest(
         if effect_id in seen_effect_ids:
             raise ValueError(f"duplicate effect_id in effect catalog source manifest: {effect_id}")
         seen_effect_ids.add(effect_id)
+        mode = registration.get("mode")
+        effect_source = registration.get("effect_source")
+        family = registration.get("family")
+        fx_id = registration.get("fx_id")
+        if not isinstance(mode, str) or not mode:
+            raise ValueError(f"effect catalog source manifest registration '{effect_id}' must include a non-empty mode")
+        if effect_source not in {"builtin", "generated"}:
+            raise ValueError(
+                f"effect catalog source manifest registration '{effect_id}' must use effect_source builtin or generated"
+            )
+        if not isinstance(family, str) or not family:
+            raise ValueError(f"effect catalog source manifest registration '{effect_id}' must include a non-empty family")
+        if not isinstance(fx_id, str) or not fx_id:
+            raise ValueError(f"effect catalog source manifest registration '{effect_id}' must include a non-empty fx_id")
+        if effect_source == "generated" and not isinstance(registration.get("fallback_fx_id"), str):
+            raise ValueError(
+                f"effect catalog source manifest registration '{effect_id}' must include fallback_fx_id for generated entries"
+            )
         style_hints = registration.get("style_hints")
         if not isinstance(style_hints, list) or not all(isinstance(style, str) and style for style in style_hints):
             raise ValueError(f"effect catalog source manifest registration '{effect_id}' must include string style_hints")
