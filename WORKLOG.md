@@ -14,6 +14,7 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 - Added generated-seamless fallback symmetry tests so the placeholder path is covered the same way as generated-glitch.
 - Added a new `flow` command that runs the end-to-end transition pipeline from transition video plus prepared source A/B inputs and writes a single report.
 - Added README invocation examples for the new `flow` command.
+- Added MP4 demo encoding for successful render outputs so runs and flows now leave an easy-to-share `artifacts/rendered.mp4`.
 - Trimmed the worklog handoff so it stays restart-friendly.
 
 ## Next Implementation Step
@@ -22,6 +23,7 @@ Expand Milestone 2 retrieval coverage:
 
 1. Keep generated-placeholder modes as the fallback path only, with explicit fallback metadata.
 2. Move to the next source-backed retrieval task when a new clear mapping is available.
+3. Keep the render/demo artifact contract stable while additional retrieval work continues.
 
 ## Why This Is Next
 

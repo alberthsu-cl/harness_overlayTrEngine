@@ -141,8 +141,9 @@ The practical handoff is:
 3. `validate_job` in `validator.py` enforces the prepared-reference contract before rendering.
 4. `run` in `cli.py` writes the render request and invokes the renderer through `renderer.py`.
 5. The native renderer produces PNG frames and `renderer_result.json`.
-6. If `inputs.reference_transition` is present, `run` automatically scores the result through `evaluator.py`.
-7. The detailed score goes to `reports/similarity_score.json`, and the combined summary goes to `reports/run_report.json`.
+6. `run` also tries to encode the rendered PNG sequence into `artifacts/rendered.mp4` for easy demo playback.
+7. If `inputs.reference_transition` is present, `run` automatically scores the result through `evaluator.py`.
+8. The detailed score goes to `reports/similarity_score.json`, and the combined summary goes to `reports/run_report.json`.
 
 The `flow` command wraps that same sequence into one entry point and also writes a top-level `flow_report.json` with the step artifacts and summaries.
 
@@ -397,13 +398,15 @@ Each run creates a new work folder under `harness/work/` named after the job and
 Each run writes these key artifacts inside its work folder:
 
 - `artifacts/`
-  rendered output frames such as `frame_0000.png`
+  rendered output frames such as `frame_0000.png`, plus `rendered.mp4` when ffmpeg encoding succeeds
 - `render/render_request.json`
   the exact request passed from Python to the native renderer
 - `render/renderer_result.json`
   native renderer result summary, including resolved effect information
 - `reports/run_report.json`
   versioned Python-side summary containing process output, frame-count checks, renderer result data, and evaluation status
+- `artifacts/rendered.mp4`
+  optional demo MP4 assembled from the rendered PNG frames
 - `reports/similarity_score.json`
   written automatically when the render job includes `inputs.reference_transition` and the renderer produced output frames
 

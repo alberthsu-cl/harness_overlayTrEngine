@@ -718,6 +718,80 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["run"]["status"], "succeeded")
         self.assertEqual(payload["data"]["reference_transition"]["frame_count"], 30)
 
+    def test_run_command_records_demo_video_artifact(self) -> None:
+        job = self._build_job(reference_transition=self.root / "reference", frame_count=3)
+        job.inputs.reference_transition = None
+        job_path = self.root / "job.json"
+        with job_path.open("w", encoding="utf-8") as handle:
+            json.dump(job.to_dict(), handle)
+            handle.write("\n")
+
+        workspace_root = self.root / "workspace"
+        workspace = SimpleNamespace(
+            root=workspace_root,
+            inputs_dir=workspace_root / "inputs",
+            render_dir=workspace_root / "render",
+            reports_dir=workspace_root / "reports",
+            artifacts_dir=workspace_root / "artifacts",
+        )
+        for path in (workspace.inputs_dir, workspace.render_dir, workspace.reports_dir, workspace.artifacts_dir):
+            path.mkdir(parents=True, exist_ok=True)
+
+        invocation = SimpleNamespace(
+            renderer_executable="renderer.exe",
+            request_file=workspace.render_dir / "render_request.json",
+            expected_output_dir=workspace.artifacts_dir,
+            result_file=workspace.render_dir / "renderer_result.json",
+            status="succeeded",
+            message="renderer completed successfully",
+            exit_code=0,
+            stdout="",
+            stderr="",
+            produced_frame_count=3,
+            expected_frame_count=3,
+            output_check_message="renderer produced 3 expected PNG frames",
+            renderer_result={"status": "ok"},
+            demo_video_file=None,
+            demo_video_status="not_attempted",
+            demo_video_message="",
+            demo_video_exit_code=None,
+        )
+        demo_video_file = workspace.artifacts_dir / "rendered.mp4"
+        demo_video_result = {
+            "status": "succeeded",
+            "message": "encoded demo MP4 at rendered.mp4",
+            "output_file": str(demo_video_file),
+            "frame_count": 3,
+            "ffmpeg_executable": "ffmpeg",
+            "exit_code": 0,
+        }
+
+        with (
+            patch("overlay_harness.cli.create_job_workspace", return_value=workspace),
+            patch("overlay_harness.cli.prepare_render_invocation", return_value=invocation),
+            patch("overlay_harness.cli.validate_job", return_value=SimpleNamespace(is_valid=True, issues=[])),
+            patch("overlay_harness.cli.encode_render_demo_video", return_value=demo_video_result),
+        ):
+            result = _execute_job_command(
+                repo_root=HARNESS_ROOT.parent,
+                harness_root=HARNESS_ROOT,
+                config_dir=HARNESS_ROOT / "configs",
+                job_path=job_path,
+                command_name="run",
+                renderer="renderer.exe",
+            )
+
+        self.assertEqual(result["demo_video_file"], str(demo_video_file))
+        self.assertEqual(result["demo_video_result"]["status"], "succeeded")
+
+        report_path = Path(result["report"])
+        with report_path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+
+        self.assertEqual(payload["data"]["demo_video_file"], str(demo_video_file))
+        self.assertEqual(payload["data"]["demo_video_status"], "succeeded")
+        self.assertEqual(payload["data"]["demo_video_result"]["output_file"], str(demo_video_file))
+
     def test_render_job_preserves_planning_metadata(self) -> None:
         job = self._build_job(reference_transition=self.root / "reference", frame_count=3)
         job.planning = {

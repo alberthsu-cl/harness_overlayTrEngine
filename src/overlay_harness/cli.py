@@ -34,6 +34,7 @@ from .planner import (
     resolve_planned_frame_count,
     resolve_auto_plan,
 )
+from .renderer import encode_render_demo_video
 from .renderer import prepare_render_invocation
 from .report import HarnessReport
 from .validator import validate_job
@@ -543,6 +544,8 @@ def _execute_job_command(
     invocation = prepare_render_invocation(repo_root, workspace, job, renderer)
     similarity_report: dict | None = None
     similarity_report_file: Path | None = None
+    demo_video_result: dict[str, object] | None = None
+    demo_video_file: Path | None = None
     if command_name == "run" and job.inputs.reference_transition and invocation.produced_frame_count > 0:
         similarity_report_file = workspace.reports_dir / "similarity_score.json"
         reference_path = _resolve_path_argument(job.inputs.reference_transition, repo_root)
@@ -567,6 +570,19 @@ def _execute_job_command(
             }
             write_json(similarity_report_file, similarity_report)
 
+    if command_name == "run" and invocation.produced_frame_count > 0:
+        demo_video_file = workspace.artifacts_dir / "rendered.mp4"
+        demo_video_result = encode_render_demo_video(
+            artifacts_dir=workspace.artifacts_dir,
+            output_file=demo_video_file,
+            fps=job.render.fps,
+        )
+        invocation.demo_video_file = str(demo_video_file)
+        invocation.demo_video_status = str(demo_video_result.get("status"))
+        invocation.demo_video_message = str(demo_video_result.get("message"))
+        exit_code = demo_video_result.get("exit_code")
+        invocation.demo_video_exit_code = int(exit_code) if isinstance(exit_code, int) else None
+
     evaluation = _build_run_evaluation_summary(
         invocation,
         similarity_report,
@@ -590,6 +606,11 @@ def _execute_job_command(
             "expected_frame_count": invocation.expected_frame_count,
             "output_check_message": invocation.output_check_message,
             "renderer_result": invocation.renderer_result,
+            "demo_video_file": invocation.demo_video_file,
+            "demo_video_status": invocation.demo_video_status,
+            "demo_video_message": invocation.demo_video_message,
+            "demo_video_exit_code": invocation.demo_video_exit_code,
+            "demo_video_result": demo_video_result,
             "similarity_report_file": str(similarity_report_file) if similarity_report_file is not None else None,
             "similarity_report": similarity_report,
             "evaluation": evaluation,
@@ -606,6 +627,8 @@ def _execute_job_command(
         "report": str(report_path),
         "status": _resolve_run_report_status(invocation.status, similarity_report),
         "summary": _resolve_run_report_summary(invocation.message, similarity_report),
+        "demo_video_file": str(demo_video_file) if demo_video_file is not None else None,
+        "demo_video_result": demo_video_result,
         "planning_retrieval_summary": _summarize_retrieval_from_evaluation(evaluation),
         "evaluation": evaluation,
     }
@@ -1703,6 +1726,7 @@ def _build_flow_report(
                 "job_file": str(job_output) if job_output is not None else None,
                 "effect_spec_file": str(effect_spec_output) if effect_spec_output is not None else None,
                 "run_report": run_result.get("report") if isinstance(run_result, dict) else None,
+                "demo_video_file": run_result.get("demo_video_file") if isinstance(run_result, dict) else None,
             },
             "reference_transition": (
                 {
@@ -1727,6 +1751,8 @@ def _build_flow_report(
             "run": {
                 "status": run_status,
                 "summary": run_summary,
+                "demo_video_file": run_result.get("demo_video_file") if isinstance(run_result, dict) else None,
+                "demo_video_result": run_result.get("demo_video_result") if isinstance(run_result, dict) else None,
                 "evaluation": run_evaluation,
             },
             "flow_error": flow_error,

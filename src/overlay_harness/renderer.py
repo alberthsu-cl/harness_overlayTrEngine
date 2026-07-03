@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 from pathlib import Path
+import shutil
 import subprocess
 
 from .models import RenderJob
@@ -24,6 +25,10 @@ class RenderInvocation:
     expected_frame_count: int = 0
     output_check_message: str = ""
     renderer_result: dict | None = None
+    demo_video_file: str | None = None
+    demo_video_status: str = "not_attempted"
+    demo_video_message: str = ""
+    demo_video_exit_code: int | None = None
 
 
 def prepare_render_invocation(
@@ -125,3 +130,74 @@ def load_renderer_result(result_file: Path) -> dict | None:
 
     with result_file.open("r", encoding="utf-8") as handle:
         return json.load(handle)
+
+
+def encode_render_demo_video(
+    artifacts_dir: Path,
+    output_file: Path,
+    fps: int,
+    ffmpeg_path: str | None = None,
+) -> dict[str, object]:
+    frame_files = sorted(artifacts_dir.glob("frame_*.png"))
+    if not frame_files:
+        return {
+            "status": "skipped",
+            "message": "renderer produced no PNG frames to encode",
+            "output_file": str(output_file),
+            "frame_count": 0,
+            "ffmpeg_executable": ffmpeg_path or shutil.which("ffmpeg"),
+            "exit_code": None,
+        }
+
+    ffmpeg_executable = ffmpeg_path or shutil.which("ffmpeg")
+    if not ffmpeg_executable:
+        return {
+            "status": "blocked",
+            "message": "ffmpeg is required to encode the demo MP4 but was not found on PATH",
+            "output_file": str(output_file),
+            "frame_count": len(frame_files),
+            "ffmpeg_executable": None,
+            "exit_code": None,
+        }
+
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    completed = subprocess.run(
+        [
+            ffmpeg_executable,
+            "-y",
+            "-framerate",
+            str(fps),
+            "-start_number",
+            "0",
+            "-i",
+            str(artifacts_dir / "frame_%04d.png"),
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            "-movflags",
+            "+faststart",
+            str(output_file),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    status = "succeeded" if completed.returncode == 0 else "failed"
+    message = (
+        f"encoded demo MP4 at {output_file}"
+        if completed.returncode == 0
+        else f"ffmpeg exited with code {completed.returncode} while encoding {output_file}"
+    )
+    result: dict[str, object] = {
+        "status": status,
+        "message": message,
+        "output_file": str(output_file),
+        "frame_count": len(frame_files),
+        "ffmpeg_executable": ffmpeg_executable,
+        "exit_code": completed.returncode,
+    }
+    if completed.returncode != 0:
+        result["stderr"] = completed.stderr.strip()
+    return result
