@@ -452,6 +452,10 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertGreaterEqual(len(catalog["effects"]), 4)
         self.assertEqual(catalog["retrieval_index"]["glitch"], "builtin-glitch")
         self.assertEqual(len(catalog["source_manifest_sha256"]), 64)
+        builtin_seamless = next(effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-seamless")
+        builtin_glitch = next(effect for effect in catalog["effects"] if effect["effect_id"] == "builtin-glitch")
+        self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrSeamlessSliding.cpp", builtin_seamless["source_documents"])
+        self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrGlitchInfoManager.cpp", builtin_glitch["source_documents"])
 
     def test_effect_catalog_source_manifest_rejects_duplicate_effect_ids(self) -> None:
         source_manifest = self.root / "duplicate_effect_catalog_sources.json"

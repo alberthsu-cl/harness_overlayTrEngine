@@ -32,12 +32,13 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 - Added `--output` support for `audit-effects` so the audit can be stored as a JSON artifact.
 - Added SHA-256 provenance to catalog and audit reports so manifest drift is traceable.
 - Tightened source-manifest validation so builtin entries cannot carry fallback metadata and generated entries must carry it.
+- Added checked-in `overlaytrengine` source provenance to the builtin effect registrations so the catalog now points at real transition source in addition to harness examples.
 
 ## Next Implementation Step
 
 Expand Milestone 2 retrieval coverage:
 
-1. Extend the catalog source manifest with more real transition registrations when they are available.
+1. Add more real transition registrations from `overlaytrengine` when there is a clear style mapping.
 2. Keep generated-placeholder modes as the fallback path only, with explicit fallback metadata.
 
 ## Why This Is Next
@@ -66,5 +67,5 @@ Get-Content harness/src/overlay_harness/cli.py
 
 - Keep the catalog deterministic and JSON-stable.
 - Prefer scanning checked-in source and project metadata over any runtime-only discovery.
-- Do not patch `overlaytrengine` yet; this slice should stay inside `harness/`.
+- Keep this slice inside `harness/` unless the user explicitly asks to modify `overlaytrengine`.
 - If future work needs FX naming conventions, registration changes, or generated source locations, ask before guessing as required by `AGENTS.md`.

@@ -24,6 +24,9 @@ _EFFECT_BLUEPRINTS: tuple[dict[str, Any], ...] = (
             "harness/examples/effect_specs/builtin_seamless_sliding.json",
             "harness/examples/render_job.sample.json",
             "harness/examples/render_job.sample.real.json",
+            "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+            "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+            "overlaytrengine/OverlayTrPlugInFx/TrSeamlessSliding.cpp",
         ),
     },
     {
@@ -37,6 +40,10 @@ _EFFECT_BLUEPRINTS: tuple[dict[str, Any], ...] = (
         "source_documents": (
             "harness/examples/render_job.effect_spec.sample.json",
             "harness/examples/render_job.effect_spec.sample.real.json",
+            "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+            "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+            "overlaytrengine/OverlayTrPlugInFx/TrGlitch.cpp",
+            "overlaytrengine/OverlayTrPlugInFx/TrGlitchInfoManager.cpp",
         ),
     },
     {

@@ -12,7 +12,10 @@
       "source_documents": [
         "harness/examples/effect_specs/builtin_seamless_sliding.json",
         "harness/examples/render_job.sample.json",
-        "harness/examples/render_job.sample.real.json"
+        "harness/examples/render_job.sample.real.json",
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrSeamlessSliding.cpp"
       ],
       "style_hints": [
         "seamless",
@@ -29,7 +32,11 @@
       "retrieval_priority": 0,
       "source_documents": [
         "harness/examples/render_job.effect_spec.sample.json",
-        "harness/examples/render_job.effect_spec.sample.real.json"
+        "harness/examples/render_job.effect_spec.sample.real.json",
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrGlitch.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrGlitchInfoManager.cpp"
       ],
       "style_hints": [
         "glitch",
@@ -67,6 +74,7 @@
       ]
     }
   ],
+  "registration_count": 4,
   "retrieval_index": {
     "generated-glitch": "builtin-glitch",
     "generated-seamless": "builtin-seamless",
@@ -74,5 +82,8 @@
     "seamless": "builtin-seamless",
     "smooth": "builtin-seamless"
   },
+  "source_manifest": "harness/configs/effect_catalog_sources.json",
+  "source_manifest_sha256": "c8899c855542e1f6256673d16f682d115d64fa81fa562c31626c097f88195944",
+  "source_manifest_version": 1,
   "source_root": "harness"
 }
