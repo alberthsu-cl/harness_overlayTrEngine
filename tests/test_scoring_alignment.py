@@ -23,6 +23,7 @@ from overlay_harness.effect_catalog import load_effect_catalog
 from overlay_harness.effect_catalog import select_effect_candidate
 from overlay_harness.evaluator import score_frame_sequences
 from overlay_harness.models import EffectSpec, InputSpec, RenderJob, RenderSettings
+from overlay_harness.planner import build_recommended_plan
 from overlay_harness.planner import resolve_auto_plan
 from overlay_harness.report import HarnessReport
 from overlay_harness.validator import validate_job
@@ -157,8 +158,20 @@ class ScoringAlignmentTests(unittest.TestCase):
             "alignment": {"mode": "prepared_reference_manifest"},
             "score": {"frame_count": 3},
         }
+        planning = {
+            "retrieval": {
+                "status": "retrieved",
+                "effect_id": "builtin-glitch",
+                "mode": "builtin-glitch",
+            }
+        }
 
-        summary = _build_run_evaluation_summary(Invocation(), similarity_report, self.root / "similarity_score.json")
+        summary = _build_run_evaluation_summary(
+            Invocation(),
+            similarity_report,
+            self.root / "similarity_score.json",
+            planning,
+        )
 
         self.assertEqual(summary["overall_status"], "succeeded_with_score")
         self.assertEqual(summary["render"]["status"], "succeeded")
@@ -166,6 +179,9 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(summary["score"]["alignment_mode"], "prepared_reference_manifest")
         self.assertEqual(summary["score"]["frame_count"], 3)
         self.assertEqual(summary["score"]["report_file"], str(self.root / "similarity_score.json"))
+        self.assertEqual(summary["planning"]["retrieval_status"], "retrieved")
+        self.assertEqual(summary["planning"]["retrieval_effect_id"], "builtin-glitch")
+        self.assertEqual(summary["planning"]["retrieval_mode"], "builtin-glitch")
 
     def test_run_evaluation_summary_handles_missing_score(self) -> None:
         class Invocation:
@@ -175,7 +191,7 @@ class ScoringAlignmentTests(unittest.TestCase):
             expected_frame_count = 3
             message = "renderer executable is not available yet; render request recorded only"
 
-        summary = _build_run_evaluation_summary(Invocation(), None, None)
+        summary = _build_run_evaluation_summary(Invocation(), None, None, None)
 
         self.assertEqual(summary["overall_status"], "blocked")
         self.assertEqual(summary["render"]["status"], "blocked")
@@ -201,6 +217,24 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["status"], "succeeded")
         self.assertEqual(payload["summary"], "renderer completed successfully")
         self.assertEqual(payload["data"]["evaluation"]["overall_status"], "succeeded_with_score")
+
+    def test_render_job_preserves_planning_metadata(self) -> None:
+        job = self._build_job(reference_transition=self.root / "reference", frame_count=3)
+        job.planning = {
+            "auto": True,
+            "retrieval": {
+                "status": "retrieved",
+                "effect_id": "builtin-glitch",
+                "mode": "builtin-glitch",
+            },
+        }
+
+        payload = job.to_dict()
+        restored = RenderJob.from_dict(payload)
+
+        self.assertEqual(payload["planning"]["retrieval"]["effect_id"], "builtin-glitch")
+        self.assertIsNotNone(restored.planning)
+        self.assertEqual(restored.planning["retrieval"]["mode"], "builtin-glitch")
 
     def test_run_report_status_fails_when_scoring_fails(self) -> None:
         similarity_report = {
@@ -300,6 +334,25 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(input_kind, "real")
         self.assertEqual(mode, "builtin-glitch")
         self.assertEqual(preset, "real-smoke-glitch")
+
+    def test_recommended_plan_includes_retrieval_summary(self) -> None:
+        source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
+        source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
+
+        plan = build_recommended_plan(
+            repo_root=HARNESS_ROOT.parent,
+            source_a=source_a,
+            source_b=source_b,
+            hint_data={
+                "style_hint": "generated-glitch",
+                "input_kind": "real",
+                "job_name": "test_job",
+            },
+        )
+
+        self.assertEqual(plan["retrieval"]["status"], "retrieved")
+        self.assertEqual(plan["retrieval"]["effect_id"], "builtin-glitch")
+        self.assertEqual(plan["retrieval"]["mode"], "builtin-glitch")
 
     def test_index_effects_writes_catalog(self) -> None:
         class Args:

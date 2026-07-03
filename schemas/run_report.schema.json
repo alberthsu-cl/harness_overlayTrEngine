@@ -17,7 +17,21 @@
       "type": "string"
     },
     "data": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "planning": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "evaluation": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      }
     }
   },
   "required": [

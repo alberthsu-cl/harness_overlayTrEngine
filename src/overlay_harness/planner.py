@@ -113,6 +113,7 @@ def build_planned_job(
     job_name: str | None,
     reference_transition: Path | None,
     effect_spec_output: Path | None,
+    planning: dict[str, Any] | None = None,
 ) -> tuple[RenderJob, dict | None]:
     mode_config = PLANNER_MODES[mode]
     effect_spec_path = mode_config["effect_spec"]
@@ -153,6 +154,7 @@ def build_planned_job(
                 frame_count=frame_count,
                 output_format=output_format,
             ),
+            planning=planning,
         ),
         effect_spec_payload,
     )

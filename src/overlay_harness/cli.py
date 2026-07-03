@@ -462,6 +462,7 @@ def _execute_job_command(
         summary=_resolve_run_report_summary(invocation.message, similarity_report),
         data={
             "workspace": str(workspace.root),
+            "planning": job.planning,
             "renderer_executable": invocation.renderer_executable,
             "request_file": str(invocation.request_file),
             "renderer_result_file": str(invocation.result_file),
@@ -475,7 +476,12 @@ def _execute_job_command(
             "renderer_result": invocation.renderer_result,
             "similarity_report_file": str(similarity_report_file) if similarity_report_file is not None else None,
             "similarity_report": similarity_report,
-            "evaluation": _build_run_evaluation_summary(invocation, similarity_report, similarity_report_file),
+            "evaluation": _build_run_evaluation_summary(
+                invocation,
+                similarity_report,
+                similarity_report_file,
+                job.planning,
+            ),
         },
     )
     report_path = workspace.reports_dir / "run_report.json"
@@ -784,10 +790,20 @@ def _build_run_evaluation_summary(
     invocation,
     similarity_report: dict | None,
     similarity_report_file: Path | None,
+    planning: dict | None,
 ) -> dict[str, object]:
     score_status = None
     score_alignment_mode = None
     score_frame_count = None
+    retrieval_status = None
+    retrieval_effect_id = None
+    retrieval_mode = None
+    if isinstance(planning, dict):
+        retrieval = planning.get("retrieval")
+        if isinstance(retrieval, dict):
+            retrieval_status = retrieval.get("status")
+            retrieval_effect_id = retrieval.get("effect_id")
+            retrieval_mode = retrieval.get("mode")
     if similarity_report is not None:
         score_status = similarity_report.get("status")
         score_alignment = similarity_report.get("alignment")
@@ -810,6 +826,11 @@ def _build_run_evaluation_summary(
             "alignment_mode": score_alignment_mode,
             "frame_count": score_frame_count,
             "report_file": str(similarity_report_file) if similarity_report_file is not None else None,
+        },
+        "planning": {
+            "retrieval_status": retrieval_status,
+            "retrieval_effect_id": retrieval_effect_id,
+            "retrieval_mode": retrieval_mode,
         },
         "overall_status": _resolve_run_overall_status(invocation.status, score_status),
     }
@@ -1072,6 +1093,7 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
     source_b_for_auto = None
     auto_input_kind = None
     auto_mode = None
+    planning_metadata: dict | None = analysis_recommended_plan
 
     auto_requested = args.auto or bool(analysis_recommended_plan) or bool(hint_style)
 
@@ -1154,6 +1176,30 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
         if hint_reference_transition
         else None
     )
+    if planning_metadata is None and auto_requested:
+        effective_style = args.style or (
+            str(analysis_recommended_plan.get("style"))
+            if analysis_recommended_plan and analysis_recommended_plan.get("style")
+            else None
+        ) or hint_style
+        effective_input_kind = (
+            str(analysis_recommended_plan.get("input_kind"))
+            if analysis_recommended_plan and analysis_recommended_plan.get("input_kind")
+            else hint_input_kind or args.input_kind
+        )
+        planning_metadata = build_recommended_plan(
+            repo_root=repo_root,
+            source_a=source_a,
+            source_b=source_b,
+            hint_data={
+                "style_hint": effective_style,
+                "input_kind": effective_input_kind,
+                "job_name": job_name,
+                "reference_transition": _format_path_for_output(reference_transition, repo_root)
+                if reference_transition is not None
+                else None,
+            },
+        )
     resolved_frame_count = None
     frame_count_source = None
 
@@ -1175,6 +1221,7 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
             job_name=job_name,
             reference_transition=reference_transition,
             effect_spec_output=effect_spec_output,
+            planning=planning_metadata,
         )
 
         if effect_spec_output is not None and effect_spec_payload is not None:
@@ -1205,6 +1252,7 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
         "frame_count": job.render.frame_count,
         "frame_count_source": frame_count_source,
         "validation_valid": validation.is_valid,
+        "planning": planning_metadata,
         "issues": [
             {"field": issue.field, "level": issue.level, "message": issue.message}
             for issue in validation.issues

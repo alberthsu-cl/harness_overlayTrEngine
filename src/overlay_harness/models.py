@@ -36,6 +36,7 @@ class RenderJob:
     effect: EffectSpec
     inputs: InputSpec
     render: RenderSettings
+    planning: dict[str, Any] | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "RenderJob":
@@ -44,6 +45,7 @@ class RenderJob:
             effect=EffectSpec(**data["effect"]),
             inputs=InputSpec(**data["inputs"]),
             render=RenderSettings(**data["render"]),
+            planning=data.get("planning"),
         )
 
     def to_dict(self) -> dict[str, Any]:

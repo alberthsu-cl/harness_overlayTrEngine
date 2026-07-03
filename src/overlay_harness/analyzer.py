@@ -109,6 +109,7 @@ def build_transition_analysis_artifact(
             "preset": recommended_plan.get("preset"),
             "mode": recommended_plan.get("mode"),
             "job_name": hint.get("job_name"),
+            "retrieval": recommended_plan.get("retrieval"),
             "hint": hint,
         },
     }

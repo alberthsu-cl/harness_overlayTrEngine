@@ -220,7 +220,7 @@ py -3 harness/src/main.py analyze-transition --source-a harness/examples/inputs/
 
 This command writes the same `transition_hint.json` contract consumed by `plan-job --hint-file`, and it also writes a richer analysis artifact that `plan-job --analysis-file` can consume directly.
 
-That richer artifact now includes a versioned `planning_recommendation` block with the analyzer's suggested preset, mode, style, resolved input kind, and embedded hint snapshot.
+That richer artifact now includes a versioned `planning_recommendation` block with the analyzer's suggested preset, mode, style, resolved input kind, retrieval summary, and embedded hint snapshot.
 
 Use `plan-job` to create a valid render job from prepared A/B inputs without hand-editing JSON:
 
@@ -231,6 +231,8 @@ py -3 harness/src/main.py plan-job --source-a harness/examples/inputs/source_a_r
 ```
 
 When `--reference-transition` points at a prepared reference artifact directory, `plan-job` reads `reference_transition_manifest.json` and adopts its `frame_count`. Use `--frame-count` only when you want to override that.
+
+The generated render job now also carries an optional `planning` block when the job came from analyzer or auto-planner logic. That block records the selected preset, mode, style, input kind, and retrieval summary so the downstream run report can echo the same routing decision.
 
 For common workflows, you can use presets instead of repeating the same paths and mode selection:
 
@@ -419,8 +421,10 @@ When `inputs.reference_transition` is present in a render job, `run` now attempt
 
 - `report_type: run_report`
 - `report_version: 1`
+- `data.planning` echoes the planner metadata attached to the job, including retrieval details when available
 - `data.evaluation.render` describes the render outcome
 - `data.evaluation.score` describes the score outcome
+- `data.evaluation.planning` summarizes the retrieval decision used for the run, when present
 - `data.evaluation.overall_status` summarizes the combined result
 - `status` becomes `failed` when scoring fails after a successful render
 

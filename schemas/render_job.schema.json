@@ -98,6 +98,12 @@
         }
       },
       "additionalProperties": true
+    },
+    "planning": {
+      "type": [
+        "object",
+        "null"
+      ]
     }
   },
   "additionalProperties": true
