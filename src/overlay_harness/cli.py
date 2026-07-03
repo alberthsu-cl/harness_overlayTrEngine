@@ -1590,34 +1590,14 @@ def _run_smoke_test_suite(
 
 
 def _summarize_smoke_test_retrieval(results: list[dict]) -> dict[str, int] | None:
-    if not results:
-        return None
-
-    summary = {
-        "job_count": 0,
-        "retrieved_count": 0,
-        "not_found_count": 0,
-        "fallback_used_count": 0,
-    }
-    for job_result in results:
-        if not isinstance(job_result, dict):
-            continue
-        summary["job_count"] += 1
-        retrieval = job_result.get("run_retrieval_summary")
-        if not isinstance(retrieval, dict):
-            continue
-        status = retrieval.get("status")
-        if status == "retrieved":
-            summary["retrieved_count"] += 1
-        elif status == "not_found":
-            summary["not_found_count"] += 1
-        if retrieval.get("fallback_used"):
-            summary["fallback_used_count"] += 1
-
-    return summary
+    return _summarize_smoke_test_retrieval_for_key(results, "run_retrieval_summary")
 
 
 def _summarize_smoke_test_validation_retrieval(results: list[dict]) -> dict[str, int] | None:
+    return _summarize_smoke_test_retrieval_for_key(results, "validate_retrieval_summary")
+
+
+def _summarize_smoke_test_retrieval_for_key(results: list[dict], retrieval_key: str) -> dict[str, int] | None:
     if not results:
         return None
 
@@ -1631,7 +1611,7 @@ def _summarize_smoke_test_validation_retrieval(results: list[dict]) -> dict[str,
         if not isinstance(job_result, dict):
             continue
         summary["job_count"] += 1
-        retrieval = job_result.get("validate_retrieval_summary")
+        retrieval = job_result.get(retrieval_key)
         if not isinstance(retrieval, dict):
             continue
         status = retrieval.get("status")

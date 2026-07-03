@@ -8,8 +8,8 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 
 ## Last Completed
 
+- Consolidated the smoke-test retrieval rollups behind a shared helper while keeping the run and validation batch summaries intact.
 - Propagated retrieval diagnostics into the recommended-plan, run-evaluation, top-level run output, plan-comparison report, smoke-test batch report, and top-level plan-job result payload.
-- Added validation retrieval summaries to smoke-test per-job and suite-level outputs, plus command-level tests for the validation and prepare result payloads.
 - Trimmed the worklog handoff so it stays restart-friendly.
 
 ## Next Implementation Step
