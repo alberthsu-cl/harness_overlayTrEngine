@@ -720,6 +720,43 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertGreaterEqual(plan["retrieval"]["candidate_count"], 1)
         self.assertFalse(plan["retrieval"]["fallback_used"])
 
+    def test_auto_plan_prefers_catalog_retrieval_for_generated_seamless(self) -> None:
+        source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
+        source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
+
+        preset, mode, input_kind = resolve_auto_plan(
+            repo_root=HARNESS_ROOT.parent,
+            source_a=source_a,
+            source_b=source_b,
+            style="generated-seamless",
+            input_kind="auto",
+        )
+
+        self.assertEqual(input_kind, "real")
+        self.assertEqual(mode, "builtin-seamless")
+        self.assertEqual(preset, "real-smoke-seamless")
+
+    def test_recommended_plan_marks_generated_seamless_placeholder_when_catalog_missing(self) -> None:
+        source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
+        source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
+
+        plan = build_recommended_plan(
+            repo_root=self.root,
+            source_a=source_a,
+            source_b=source_b,
+            hint_data={
+                "style_hint": "generated-seamless",
+                "input_kind": "real",
+                "job_name": "test_job",
+            },
+        )
+
+        self.assertEqual(plan["mode"], "generated-seamless-placeholder")
+        self.assertEqual(plan["retrieval"]["status"], "not_found")
+        self.assertTrue(plan["retrieval"]["fallback_used"])
+        self.assertEqual(plan["retrieval"]["fallback_mode"], "generated-seamless-placeholder")
+        self.assertEqual(plan["retrieval"]["fallback_reason"], "effect catalog is unavailable")
+
     def test_recommended_plan_marks_placeholder_fallback_when_catalog_missing(self) -> None:
         source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
         source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
