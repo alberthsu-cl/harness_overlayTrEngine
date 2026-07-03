@@ -24,6 +24,7 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 - Marked placeholder routing as an explicit fallback in planner metadata and run evaluation summaries.
 - Moved effect catalog indexing to a checked-in source manifest so future registrations can be added without code changes.
 - Added manifest validation and a `--source-manifest` override for `index-effects`.
+- Made generated catalogs self-describing with source-manifest provenance and registration counts.
 
 ## Next Implementation Step
 

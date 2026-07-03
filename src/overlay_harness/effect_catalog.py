@@ -84,10 +84,21 @@ def build_effect_catalog(
         for style in record["style_hints"]
         if record["effect_source"] == "builtin"
     }
+    source_manifest_relative = None
+    source_manifest_version = None
+    if source_manifest is not None:
+        source_manifest_relative = _format_optional_repo_path(
+            source_manifest["source_manifest_path"],
+            repo_root,
+        )
+        source_manifest_version = source_manifest["catalog_version"]
     return {
         "catalog_type": "effect_catalog",
         "catalog_version": EFFECT_CATALOG_VERSION,
         "source_root": "harness",
+        "source_manifest": source_manifest_relative,
+        "source_manifest_version": source_manifest_version,
+        "registration_count": len(effects),
         "effects": effects,
         "retrieval_index": retrieval_index,
     }
@@ -177,6 +188,7 @@ def _load_effect_catalog_source_manifest(
     return {
         "catalog_type": source_manifest["catalog_type"],
         "catalog_version": source_manifest.get("catalog_version", 1),
+        "source_manifest_path": source_manifest_path,
         "registrations": registrations,
     }
 
@@ -197,3 +209,9 @@ def _format_repo_path(path: Path, repo_root: Path) -> str:
         return resolved.relative_to(repo_root).as_posix()
     except ValueError:
         return str(resolved)
+
+
+def _format_optional_repo_path(path: Path | None, repo_root: Path) -> str | None:
+    if path is None:
+        return None
+    return _format_repo_path(path, repo_root)

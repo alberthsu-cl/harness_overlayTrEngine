@@ -392,6 +392,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         catalog = load_effect_catalog(self.root / "effect_catalog.json")
         self.assertEqual(catalog["catalog_type"], "effect_catalog")
         self.assertEqual(catalog["catalog_version"], 1)
+        self.assertEqual(catalog["source_manifest"], "harness/configs/effect_catalog_sources.json")
+        self.assertEqual(catalog["registration_count"], len(catalog["effects"]))
         self.assertGreaterEqual(len(catalog["effects"]), 4)
 
     def test_index_effects_uses_custom_source_manifest(self) -> None:
@@ -434,6 +436,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         catalog = load_effect_catalog(self.root / "custom_effect_catalog.json")
         self.assertEqual(catalog["effects"][0]["effect_id"], "custom-builtin-seamless")
         self.assertEqual(catalog["retrieval_index"]["seamless"], "custom-builtin-seamless")
+        self.assertEqual(catalog["source_manifest"], source_manifest.relative_to(HARNESS_ROOT.parent).as_posix())
 
     def test_effect_catalog_source_manifest_is_loaded(self) -> None:
         catalog = build_effect_catalog(HARNESS_ROOT.parent)
@@ -441,6 +444,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(catalog["catalog_type"], "effect_catalog")
         self.assertEqual(catalog["catalog_version"], 1)
         self.assertEqual(catalog["source_root"], "harness")
+        self.assertEqual(catalog["source_manifest"], "harness/configs/effect_catalog_sources.json")
         self.assertGreaterEqual(len(catalog["effects"]), 4)
         self.assertEqual(catalog["retrieval_index"]["glitch"], "builtin-glitch")
 

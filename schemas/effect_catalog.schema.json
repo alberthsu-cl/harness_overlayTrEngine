@@ -13,6 +13,24 @@
     "source_root": {
       "type": "string"
     },
+    "source_manifest": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_manifest_version": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "registration_count": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
     "effects": {
       "type": "array",
       "items": {
