@@ -1556,17 +1556,56 @@ def _run_smoke_test_suite(
 
         results.append(job_result)
 
+    retrieval_summary = _summarize_smoke_test_retrieval(results)
     summary = {
         "status": "succeeded" if overall_exit_code == 0 else "failed",
         "suite": suite_name,
         "renderer": renderer,
+        "retrieval_summary": retrieval_summary,
         "results": results,
     }
     summary_path = smoke_test_root / "smoke_test_report.json"
     write_json(summary_path, summary)
 
-    print(json.dumps({"smoke_test_report": str(summary_path), "results": results}, indent=2))
+    print(
+        json.dumps(
+            {
+                "smoke_test_report": str(summary_path),
+                "retrieval_summary": retrieval_summary,
+                "results": results,
+            },
+            indent=2,
+        )
+    )
     return overall_exit_code
+
+
+def _summarize_smoke_test_retrieval(results: list[dict]) -> dict[str, int] | None:
+    if not results:
+        return None
+
+    summary = {
+        "job_count": 0,
+        "retrieved_count": 0,
+        "not_found_count": 0,
+        "fallback_used_count": 0,
+    }
+    for job_result in results:
+        if not isinstance(job_result, dict):
+            continue
+        summary["job_count"] += 1
+        retrieval = job_result.get("run_retrieval_summary")
+        if not isinstance(retrieval, dict):
+            continue
+        status = retrieval.get("status")
+        if status == "retrieved":
+            summary["retrieved_count"] += 1
+        elif status == "not_found":
+            summary["not_found_count"] += 1
+        if retrieval.get("fallback_used"):
+            summary["fallback_used_count"] += 1
+
+    return summary
 
 
 def _summarize_retrieval_from_evaluation(evaluation: dict | None) -> dict[str, object | None] | None:

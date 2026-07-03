@@ -19,6 +19,7 @@ from overlay_harness.cli import _build_run_evaluation_summary
 from overlay_harness.cli import _handle_audit_effects
 from overlay_harness.cli import _handle_index_effects
 from overlay_harness.cli import _summarize_retrieval_from_evaluation
+from overlay_harness.cli import _summarize_smoke_test_retrieval
 from overlay_harness.cli import _resolve_run_report_status
 from overlay_harness.cli import _resolve_run_report_summary
 from overlay_harness.effect_catalog import build_effect_catalog
@@ -365,6 +366,33 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(summary["effect_id"], "builtin-glitch")
         self.assertEqual(summary["match_kind"], "alias")
         self.assertEqual(summary["candidate_count"], 1)
+
+    def test_summarize_smoke_test_retrieval(self) -> None:
+        summary = _summarize_smoke_test_retrieval(
+            [
+                {
+                    "run_retrieval_summary": {
+                        "status": "retrieved",
+                        "fallback_used": False,
+                    }
+                },
+                {
+                    "run_retrieval_summary": {
+                        "status": "not_found",
+                        "fallback_used": True,
+                    }
+                },
+                {
+                    "run_retrieval_summary": None,
+                },
+            ]
+        )
+
+        self.assertIsNotNone(summary)
+        self.assertEqual(summary["job_count"], 3)
+        self.assertEqual(summary["retrieved_count"], 1)
+        self.assertEqual(summary["not_found_count"], 1)
+        self.assertEqual(summary["fallback_used_count"], 1)
 
     def test_render_job_preserves_planning_metadata(self) -> None:
         job = self._build_job(reference_transition=self.root / "reference", frame_count=3)
