@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 import shutil
 import sys
@@ -912,6 +913,30 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h", builtin_glitch_distortion["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrSeamlessSliding.cpp", generated_seamless["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrGlitchInfoManager.cpp", generated_glitch["source_documents"])
+
+    def test_effect_catalog_source_manifest_covers_fxinfo_mappings(self) -> None:
+        fxinfo_path = HARNESS_ROOT.parent / "overlaytrengine" / "OverlayTrPlugInFx" / "FxInfo.h"
+        fxinfo_content = fxinfo_path.read_text(encoding="utf-8")
+        fxinfo_fx_ids = {
+            match.replace("\\\\", "\\")
+            for match in re.findall(r'^\s*"([^"]+)"\s*,\s*"[^"]+"\s*,\s*\d+\s*$', fxinfo_content, re.MULTILINE)
+        }
+
+        source_manifest = json.loads((HARNESS_ROOT / "configs" / "effect_catalog_sources.json").read_text(encoding="utf-8"))
+        builtin_registrations = [
+            registration for registration in source_manifest["registrations"] if registration["effect_source"] == "builtin"
+        ]
+        generated_registrations = [
+            registration
+            for registration in source_manifest["registrations"]
+            if registration["effect_source"] == "generated"
+        ]
+
+        self.assertEqual({registration["fx_id"] for registration in builtin_registrations}, fxinfo_fx_ids)
+        self.assertEqual(
+            {registration["effect_id"] for registration in generated_registrations},
+            {"generated-seamless-placeholder", "generated-glitch-placeholder"},
+        )
 
     def test_effect_catalog_selects_additional_builtin_families(self) -> None:
         catalog = build_effect_catalog(HARNESS_ROOT.parent)
