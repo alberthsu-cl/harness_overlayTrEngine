@@ -8,8 +8,8 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 
 ## Last Completed
 
-- Propagated retrieval diagnostics into the recommended-plan, run-evaluation, top-level run command output, and plan-comparison report.
-- Added retrieval summary fields to the plan-comparison report for selected, embedded, and recomputed plans.
+- Propagated retrieval diagnostics into the recommended-plan, run-evaluation, top-level run output, plan-comparison report, and smoke-test job summaries.
+- Added a smoke-test retrieval summary helper that derives the planning diagnostics from each run evaluation block.
 - Trimmed the worklog handoff so it stays restart-friendly.
 
 ## Next Implementation Step
@@ -21,7 +21,7 @@ Expand Milestone 2 retrieval coverage:
 
 ## Why This Is Next
 
-- Retrieval metadata now flows through planning, run reports, top-level run output, and plan-comparison reports. Remaining Milestone 2 work is source-manifest coverage and fallback discipline.
+- Retrieval metadata now flows through planning, run reports, top-level run output, plan-comparison reports, and smoke-test summaries. Remaining Milestone 2 work is source-manifest coverage and fallback discipline.
 
 ## Resume Commands
 

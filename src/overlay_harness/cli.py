@@ -1540,6 +1540,8 @@ def _run_smoke_test_suite(
                     "run_summary": run_result.get("summary"),
                     "workspace": run_result.get("workspace"),
                     "report": run_result.get("report"),
+                    "run_evaluation": run_result.get("evaluation"),
+                    "run_retrieval_summary": _summarize_retrieval_from_evaluation(run_result.get("evaluation")),
                 }
             )
             if run_result["exit_code"] != 0:
@@ -1565,6 +1567,28 @@ def _run_smoke_test_suite(
 
     print(json.dumps({"smoke_test_report": str(summary_path), "results": results}, indent=2))
     return overall_exit_code
+
+
+def _summarize_retrieval_from_evaluation(evaluation: dict | None) -> dict[str, object | None] | None:
+    if not isinstance(evaluation, dict):
+        return None
+
+    planning = evaluation.get("planning")
+    if not isinstance(planning, dict):
+        return None
+
+    return {
+        "status": planning.get("retrieval_status"),
+        "effect_id": planning.get("retrieval_effect_id"),
+        "mode": planning.get("retrieval_mode"),
+        "fallback_used": planning.get("retrieval_fallback_used"),
+        "fallback_mode": planning.get("retrieval_fallback_mode"),
+        "fallback_preset": planning.get("retrieval_fallback_preset"),
+        "fallback_reason": planning.get("retrieval_fallback_reason"),
+        "match_kind": planning.get("retrieval_match_kind"),
+        "matched_style_hint": planning.get("retrieval_matched_style_hint"),
+        "candidate_count": planning.get("retrieval_candidate_count"),
+    }
 
 
 def _resolve_path_argument(raw_path: str, repo_root: Path) -> Path:

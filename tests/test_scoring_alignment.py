@@ -18,6 +18,7 @@ from overlay_harness.cli import _build_plan_comparison_report
 from overlay_harness.cli import _build_run_evaluation_summary
 from overlay_harness.cli import _handle_audit_effects
 from overlay_harness.cli import _handle_index_effects
+from overlay_harness.cli import _summarize_retrieval_from_evaluation
 from overlay_harness.cli import _resolve_run_report_status
 from overlay_harness.cli import _resolve_run_report_summary
 from overlay_harness.effect_catalog import build_effect_catalog
@@ -342,6 +343,28 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(report["selected_plan_retrieval_summary"]["effect_id"], "builtin-glitch")
         self.assertEqual(report["embedded_plan_retrieval_summary"]["match_kind"], "alias")
         self.assertEqual(report["recomputed_plan_retrieval_summary"]["candidate_count"], 1)
+
+    def test_summarize_retrieval_from_evaluation(self) -> None:
+        summary = _summarize_retrieval_from_evaluation(
+            {
+                "planning": {
+                    "retrieval_status": "retrieved",
+                    "retrieval_effect_id": "builtin-glitch",
+                    "retrieval_mode": "builtin-glitch",
+                    "retrieval_fallback_used": False,
+                    "retrieval_fallback_mode": "builtin-glitch",
+                    "retrieval_fallback_preset": "real-smoke-glitch",
+                    "retrieval_fallback_reason": None,
+                    "retrieval_match_kind": "alias",
+                    "retrieval_matched_style_hint": "glitch",
+                    "retrieval_candidate_count": 1,
+                }
+            }
+        )
+
+        self.assertEqual(summary["effect_id"], "builtin-glitch")
+        self.assertEqual(summary["match_kind"], "alias")
+        self.assertEqual(summary["candidate_count"], 1)
 
     def test_render_job_preserves_planning_metadata(self) -> None:
         job = self._build_job(reference_transition=self.root / "reference", frame_count=3)
