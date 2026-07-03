@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OverlayEffectCatalog",
+  "type": "object",
+  "properties": {
+    "catalog_type": {
+      "const": "effect_catalog"
+    },
+    "catalog_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "source_root": {
+      "type": "string"
+    },
+    "effects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "effect_id": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "effect_source": {
+            "type": "string"
+          },
+          "family": {
+            "type": "string"
+          },
+          "fx_id": {
+            "type": "string"
+          },
+          "fallback_fx_id": {
+            "type": "string"
+          },
+          "style_hints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "retrieval_priority": {
+            "type": "integer"
+          },
+          "source_documents": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "effect_id",
+          "mode",
+          "effect_source",
+          "family",
+          "fx_id",
+          "style_hints",
+          "retrieval_priority",
+          "source_documents"
+        ],
+        "additionalProperties": true
+      }
+    },
+    "retrieval_index": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "catalog_type",
+    "catalog_version",
+    "effects"
+  ],
+  "additionalProperties": true
+}

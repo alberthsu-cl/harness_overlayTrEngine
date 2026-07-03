@@ -22,6 +22,7 @@ The scaffold added here provides:
 - a renderer shim boundary that can invoke a native executable when provided
 - a native Visual Studio console project scaffold for the headless renderer
 - example `effect_spec.json` files for built-in and generated-placeholder routing
+- a deterministic effect catalog that routes generated styles to built-in effects before placeholder fallback
 
 The headless C++ renderer shim now exists and can render frames when it is built locally and provided via `--renderer`.
 
@@ -86,6 +87,7 @@ py -3 harness/src/main.py prepare-pair --output-root harness/examples/fixtures/b
 py -3 harness/src/main.py prepare-reference-transition --source-video harness/sample_glitch.mp4 --output-dir harness/work/reference_transition --fps 30 --width 1920 --height 1080 --target-frame-count 30
 py -3 harness/src/main.py analyze-transition --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --hint-output harness/examples/analyzed.transition_hint.json --intent "generated glitch transition"
 py -3 harness/src/main.py plan-job --source-a harness/examples/inputs/source_a_real --source-b harness/examples/inputs/source_b_real --job-output harness/examples/planned.render_job.json --mode builtin-seamless
+py -3 harness/src/main.py index-effects --output harness/configs/effect_catalog.json
 py -3 harness/src/main.py validate --job harness/examples/render_job.sample.json
 py -3 harness/src/main.py prepare --job harness/examples/render_job.sample.json
 py -3 harness/src/main.py run --job harness/examples/render_job.sample.json
@@ -103,6 +105,8 @@ py -3 -m unittest discover harness/tests
 If `harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe` exists, `run`, `smoke-test`, and `real-smoke-test` will use it automatically when `--renderer` is omitted.
 
 If you want a different build output, pass `--renderer` explicitly.
+
+The deterministic built-in effect catalog lives at [configs/effect_catalog.json](configs/effect_catalog.json). Use `index-effects` to regenerate it from the checked-in effect registrations and example effect specs.
 
 ## Current Workflow
 

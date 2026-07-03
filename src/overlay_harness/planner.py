@@ -5,6 +5,9 @@ import json
 
 from typing import Any
 
+from .effect_catalog import DEFAULT_EFFECT_CATALOG_RELATIVE_PATH
+from .effect_catalog import load_effect_catalog
+from .effect_catalog import select_effect_candidate
 from .models import EffectSpec, InputSpec, RenderJob, RenderSettings
 
 
@@ -290,6 +293,7 @@ def build_recommended_plan(
         "input_kind": resolved_input_kind,
         "preset": preset,
         "mode": mode,
+        "retrieval": _build_retrieval_summary(repo_root, style=str(style), input_kind=resolved_input_kind),
     }
 
 
@@ -314,6 +318,12 @@ def resolve_auto_plan(
 
     preset = AUTO_KIND_STYLE_TO_PRESET.get((resolved_kind, style))
     mode = AUTO_STYLE_TO_MODE[style]
+
+    retrieval = _load_effect_catalog(repo_root)
+    retrieved_effect = select_effect_candidate(retrieval, style=style, input_kind=resolved_kind) if retrieval else None
+    if retrieved_effect is not None:
+        mode = str(retrieved_effect["mode"])
+        preset = _resolve_preset_for_retrieved_mode(resolved_kind, style, mode, preset)
     return preset, mode, resolved_kind
 
 
@@ -348,3 +358,51 @@ def _try_relative_repo_path(path: Path, repo_root: Path) -> Path | None:
         return resolved.relative_to(repo_root)
     except ValueError:
         return None
+
+
+def _load_effect_catalog(repo_root: Path) -> dict[str, Any] | None:
+    catalog_path = repo_root / DEFAULT_EFFECT_CATALOG_RELATIVE_PATH
+    if not catalog_path.exists():
+        return None
+    return load_effect_catalog(catalog_path)
+
+
+def _resolve_preset_for_retrieved_mode(
+    resolved_kind: str,
+    style: str,
+    mode: str,
+    existing_preset: str | None,
+) -> str | None:
+    if mode == "builtin-seamless":
+        if resolved_kind == "real":
+            return "real-smoke-seamless"
+        if resolved_kind == "fixture":
+            return "fixture-smoke-seamless"
+    if mode == "builtin-glitch" and resolved_kind == "real":
+        return "real-smoke-glitch"
+
+    if style in {"generated-seamless", "generated-glitch"} and resolved_kind == "real":
+        return "real-smoke-seamless" if mode == "builtin-seamless" else "real-smoke-glitch"
+
+    return existing_preset
+
+
+def _build_retrieval_summary(repo_root: Path, style: str, input_kind: str) -> dict[str, Any] | None:
+    catalog = _load_effect_catalog(repo_root)
+    if catalog is None:
+        return None
+
+    retrieved = select_effect_candidate(catalog, style=style, input_kind=input_kind)
+    if retrieved is None:
+        return {"status": "not_found", "style": style, "input_kind": input_kind}
+    return {
+        "status": "retrieved",
+        "style": style,
+        "input_kind": input_kind,
+        "effect_id": retrieved["effect_id"],
+        "mode": retrieved["mode"],
+        "family": retrieved["family"],
+        "fx_id": retrieved["fx_id"],
+        "retrieval_source": retrieved["retrieval_source"],
+        "source_documents": retrieved["source_documents"],
+    }

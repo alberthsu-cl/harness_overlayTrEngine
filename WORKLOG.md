@@ -19,18 +19,19 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 - Propagated score failures into the top-level run status and summary.
 - Promoted prepared-reference dimension mismatches from warnings to validation errors.
 - Froze the Milestone 1 acceptance boundary in `MILESTONE1_ACCEPTANCE.md`.
+- Added a deterministic effect catalog and routed generated styles through retrieval before placeholder fallback.
 
 ## Next Implementation Step
 
-Start Milestone 2 retrieval work:
+Expand Milestone 2 retrieval coverage:
 
-1. Add a deterministic built-in effect catalog in `harness/`.
-2. Index existing `OverlayTrPlugInFx` transitions and project registrations.
-3. Use retrieval before generated-placeholder fallback modes.
+1. Extend the catalog with more real transition registrations when they are available.
+2. Surface retrieval details more explicitly in planner and run reports.
+3. Keep generated-placeholder modes as the fallback path only.
 
 ## Why This Is Next
 
-- Milestone 1 is now frozen, so the next useful work is the retrieval layer called for by the roadmap.
+- The first retrieval slice is now in place, so the remaining Milestone 2 work is catalog coverage and reporting clarity.
 
 ## Resume Commands
 

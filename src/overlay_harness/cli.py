@@ -7,6 +7,9 @@ from pathlib import Path
 import sys
 
 from .config import load_allowed_effects, load_eval_thresholds
+from .effect_catalog import build_effect_catalog
+from .effect_catalog import load_effect_catalog
+from .effect_catalog import select_effect_candidate
 from .evaluator import score_frame_sequences
 from .models import load_render_job
 from .analyzer import analyze_transition
@@ -80,6 +83,8 @@ def main(argv: list[str] | None = None) -> int:
         return _handle_real_smoke_test(args, repo_root, harness_root, config_dir, default_renderer)
     if args.command == "score":
         return _handle_score(args, repo_root)
+    if args.command == "index-effects":
+        return _handle_index_effects(args, repo_root)
 
     result = _execute_job_command(
         repo_root=repo_root,
@@ -244,6 +249,19 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional reference transition path to record in the generated hint file",
     )
     analyze_transition_cmd.add_argument("--job-name", required=False, help="Optional job_name hint for downstream planning")
+
+    index_effects_cmd = subparsers.add_parser(
+        "index-effects",
+        help="Build the deterministic built-in effect catalog used for retrieval before generation",
+    )
+    index_effects_cmd.add_argument(
+        "--output",
+        required=False,
+        help=(
+            "Output path for the effect catalog JSON; defaults to "
+            "harness/configs/effect_catalog.json"
+        ),
+    )
 
     plan_job = subparsers.add_parser(
         "plan-job",
@@ -603,6 +621,34 @@ def _handle_score(args, repo_root: Path) -> int:
                 "mse": similarity_report["score"]["mse"],
                 "mae": similarity_report["score"]["mae"],
                 "psnr_db": similarity_report["score"]["psnr_db"],
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
+def _handle_index_effects(args, repo_root: Path) -> int:
+    output = (
+        _resolve_path_argument(args.output, repo_root)
+        if args.output
+        else (repo_root / "harness" / "configs" / "effect_catalog.json").resolve()
+    )
+
+    try:
+        catalog = build_effect_catalog(repo_root)
+        write_json(output, catalog)
+    except Exception as exc:
+        print(f"index-effects failed: {exc}")
+        return 1
+
+    print(
+        json.dumps(
+            {
+                "output": str(output),
+                "catalog_type": catalog.get("catalog_type"),
+                "catalog_version": catalog.get("catalog_version"),
+                "effect_count": len(catalog.get("effects", [])),
             },
             indent=2,
         )

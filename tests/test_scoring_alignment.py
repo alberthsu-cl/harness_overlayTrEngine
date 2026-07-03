@@ -15,10 +15,15 @@ if str(SRC_ROOT) not in sys.path:
 
 from overlay_harness.cli import _build_similarity_report
 from overlay_harness.cli import _build_run_evaluation_summary
+from overlay_harness.cli import _handle_index_effects
 from overlay_harness.cli import _resolve_run_report_status
 from overlay_harness.cli import _resolve_run_report_summary
+from overlay_harness.effect_catalog import build_effect_catalog
+from overlay_harness.effect_catalog import load_effect_catalog
+from overlay_harness.effect_catalog import select_effect_candidate
 from overlay_harness.evaluator import score_frame_sequences
 from overlay_harness.models import EffectSpec, InputSpec, RenderJob, RenderSettings
+from overlay_harness.planner import resolve_auto_plan
 from overlay_harness.report import HarnessReport
 from overlay_harness.validator import validate_job
 from overlay_harness.video_prep import write_bmp_frame
@@ -271,6 +276,42 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertTrue(
             any("dimensions do not match render width/height" in issue.message for issue in validation.issues)
         )
+
+    def test_effect_catalog_prefers_builtin_for_generated_styles(self) -> None:
+        catalog = build_effect_catalog(HARNESS_ROOT.parent)
+        selected = select_effect_candidate(catalog, style="generated-glitch", input_kind="real")
+
+        self.assertIsNotNone(selected)
+        self.assertEqual(selected["mode"], "builtin-glitch")
+        self.assertEqual(selected["effect_id"], "builtin-glitch")
+
+    def test_auto_plan_prefers_catalog_retrieval_for_generated_glitch(self) -> None:
+        source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
+        source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
+
+        preset, mode, input_kind = resolve_auto_plan(
+            repo_root=HARNESS_ROOT.parent,
+            source_a=source_a,
+            source_b=source_b,
+            style="generated-glitch",
+            input_kind="auto",
+        )
+
+        self.assertEqual(input_kind, "real")
+        self.assertEqual(mode, "builtin-glitch")
+        self.assertEqual(preset, "real-smoke-glitch")
+
+    def test_index_effects_writes_catalog(self) -> None:
+        class Args:
+            output = str(self.root / "effect_catalog.json")
+
+        exit_code = _handle_index_effects(Args(), HARNESS_ROOT.parent)
+        self.assertEqual(exit_code, 0)
+
+        catalog = load_effect_catalog(self.root / "effect_catalog.json")
+        self.assertEqual(catalog["catalog_type"], "effect_catalog")
+        self.assertEqual(catalog["catalog_version"], 1)
+        self.assertGreaterEqual(len(catalog["effects"]), 4)
 
     def _write_bmp_sequence(self, output_dir: Path, colors: list[tuple[int, int, int]]) -> None:
         output_dir.mkdir(parents=True, exist_ok=True)
