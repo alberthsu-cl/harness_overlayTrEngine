@@ -8,16 +8,17 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 
 ## Last Completed
 
-- Expanded the deterministic effect catalog with additional real `OverlayTrPlugInFx` registrations for blur and glitch wrapper families, including the last direct `FxInfo.h` wrapper set.
+- Expanded the deterministic effect catalog with the remaining direct `OverlayTrPlugInFx` wrapper mappings from `FxInfo.h`.
 - Wired the new builtin styles through planner and analyzer retrieval so they can be selected before placeholder generation.
 - Regenerated `harness/configs/effect_catalog.json` from the checked-in source manifest.
 - Added unit coverage for the new retrieval styles and updated the catalog audit expectations.
+- Audited the remaining `overlaytrengine` source outside `FxInfo.h` and found no additional clear one-to-one style mappings.
 
 ## Next Implementation Step
 
 Expand Milestone 2 retrieval coverage:
 
-1. Add another small batch of real `overlaytrengine` wrapper registrations when the style mapping is still clear.
+1. Move to a different Milestone 2 task, or wait for a new source-backed mapping to become clear.
 2. Keep generated-placeholder modes as the fallback path only, with explicit fallback metadata.
 
 ## Why This Is Next
