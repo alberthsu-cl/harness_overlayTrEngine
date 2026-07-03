@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 import json
 from pathlib import Path
 import sys
+from uuid import uuid4
 
 from .config import load_allowed_effects, load_eval_thresholds
 from .effect_catalog import build_effect_catalog
@@ -76,6 +77,8 @@ def main(argv: list[str] | None = None) -> int:
         return _handle_prepare_reference_transition(args, repo_root)
     if args.command == "analyze-transition":
         return _handle_analyze_transition(args, repo_root)
+    if args.command == "flow":
+        return _handle_flow(args, repo_root, harness_root, config_dir, default_renderer)
     if args.command == "plan-job":
         return _handle_plan_job(args, repo_root, config_dir)
     if args.command == "smoke-test":
@@ -252,6 +255,81 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional reference transition path to record in the generated hint file",
     )
     analyze_transition_cmd.add_argument("--job-name", required=False, help="Optional job_name hint for downstream planning")
+
+    flow_cmd = subparsers.add_parser(
+        "flow",
+        help="Run the end-to-end transition flow from a video and prepared source A/B inputs",
+    )
+    flow_cmd.add_argument("--transition-video", required=True, help="Path to the sample transition video")
+    flow_cmd.add_argument("--source-a", required=True, help="Path to the prepared source A frames")
+    flow_cmd.add_argument("--source-b", required=True, help="Path to the prepared source B frames")
+    flow_cmd.add_argument("--output-root", required=True, help="Directory that will contain the flow artifacts and report")
+    flow_cmd.add_argument(
+        "--renderer",
+        required=False,
+        help=(
+            "Path to the headless renderer executable; defaults to "
+            "harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe "
+            "when that file exists"
+        ),
+    )
+    flow_cmd.add_argument(
+        "--style-hint",
+        required=False,
+        choices=auto_styles(),
+        help="Optional explicit style hint for the transition analysis",
+    )
+    flow_cmd.add_argument(
+        "--intent",
+        required=False,
+        help="Optional freeform intent text used by the deterministic analyzer heuristics",
+    )
+    flow_cmd.add_argument(
+        "--prefer-generated",
+        action="store_true",
+        help="Bias the analyzer toward generated-placeholder styles when intent is ambiguous",
+    )
+    flow_cmd.add_argument(
+        "--input-kind",
+        required=False,
+        default="auto",
+        choices=auto_input_kinds(),
+        help="Input kind hint for the analyzer; defaults to auto detection",
+    )
+    flow_cmd.add_argument("--job-name", required=False, help="Optional job_name hint for downstream planning")
+    flow_cmd.add_argument("--width", type=int, default=1920, help="Target render width")
+    flow_cmd.add_argument("--height", type=int, default=1080, help="Target render height")
+    flow_cmd.add_argument("--fps", type=int, default=30, help="Target frame rate for analysis and render")
+    flow_cmd.add_argument(
+        "--frame-count",
+        type=int,
+        default=None,
+        help="Target render frame count; defaults to the prepared reference manifest count when available, otherwise 30",
+    )
+    flow_cmd.add_argument(
+        "--target-frame-count",
+        type=int,
+        default=30,
+        help="Exact number of normalized reference frames to produce from the transition video",
+    )
+    flow_cmd.add_argument(
+        "--analysis-width",
+        type=int,
+        default=64,
+        help="Low-resolution analysis width for transition detection",
+    )
+    flow_cmd.add_argument(
+        "--analysis-height",
+        type=int,
+        default=36,
+        help="Low-resolution analysis height for transition detection",
+    )
+    flow_cmd.add_argument("--ffmpeg", required=False, help="Optional path to ffmpeg")
+    flow_cmd.add_argument(
+        "--effect-spec-output",
+        required=False,
+        help="Optional output path for a copied effect_spec template when the chosen mode uses a generated placeholder",
+    )
 
     index_effects_cmd = subparsers.add_parser(
         "index-effects",
@@ -1072,6 +1150,155 @@ def _handle_analyze_transition(args, repo_root: Path) -> int:
     return 0
 
 
+def _handle_flow(args, repo_root: Path, harness_root: Path, config_dir: Path, default_renderer: str | None) -> int:
+    output_root = _resolve_path_argument(args.output_root, repo_root)
+    flow_root = output_root / f"transition_flow_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}_{uuid4().hex[:8]}"
+    flow_root.mkdir(parents=True, exist_ok=False)
+
+    reference_output = flow_root / "reference_transition"
+    hint_output = flow_root / "transition_hint.json"
+    analysis_output = flow_root / "transition_analysis.json"
+    job_output = flow_root / "planned.render_job.json"
+    report_output = flow_root / "flow_report.json"
+    effect_spec_output_raw = _resolve_path_argument(args.effect_spec_output, repo_root) if args.effect_spec_output else None
+    effect_spec_output = effect_spec_output_raw
+
+    source_a = _resolve_path_argument(args.source_a, repo_root)
+    source_b = _resolve_path_argument(args.source_b, repo_root)
+    transition_video = _resolve_path_argument(args.transition_video, repo_root)
+    renderer = _resolve_renderer_argument(args.renderer, default_renderer)
+
+    reference_result = None
+    hint = None
+    analysis_artifact = None
+    planning = None
+    job = None
+    effect_spec_payload = None
+    validation = None
+    run_result: dict | None = None
+    flow_error: str | None = None
+    frame_count_source = None
+
+    try:
+        reference_result = prepare_reference_transition(
+            source_video=transition_video,
+            output_dir=reference_output,
+            fps=args.fps,
+            width=args.width,
+            height=args.height,
+            target_frame_count=args.target_frame_count,
+            ffmpeg_path=args.ffmpeg,
+            analysis_width=args.analysis_width,
+            analysis_height=args.analysis_height,
+        )
+        hint = analyze_transition(
+            repo_root=repo_root,
+            source_a=source_a,
+            source_b=source_b,
+            input_kind=args.input_kind,
+            style_hint=args.style_hint,
+            intent=args.intent,
+            prefer_generated=args.prefer_generated,
+            reference_transition=reference_output,
+            job_name=args.job_name,
+        )
+        write_json(hint_output, hint)
+        analyzer_inputs = {
+            "input_kind": args.input_kind,
+            "style_hint": args.style_hint,
+            "intent": args.intent,
+            "prefer_generated": args.prefer_generated,
+            "reference_transition": _format_path_for_output(reference_output, repo_root),
+            "job_name": args.job_name,
+            "flow": True,
+        }
+        analysis_artifact = build_transition_analysis_artifact(
+            repo_root=repo_root,
+            source_a=source_a,
+            source_b=source_b,
+            analyzer_inputs=analyzer_inputs,
+            hint=hint,
+        )
+        write_json(analysis_output, analysis_artifact)
+        planning = analysis_artifact.get("planning_recommendation")
+        if not isinstance(planning, dict):
+            raise ValueError("transition analysis artifact did not include a planning recommendation")
+
+        if effect_spec_output is None and str(planning.get("mode") or "").startswith("generated-"):
+            effect_spec_output = flow_root / "planned.effect_spec.json"
+
+        resolved_frame_count, frame_count_source = resolve_planned_frame_count(
+            reference_transition=reference_output,
+            explicit_frame_count=args.frame_count,
+        )
+        planned_job_name = args.job_name or (str(planning.get("job_name")) if planning.get("job_name") else None)
+        job, effect_spec_payload = build_planned_job(
+            repo_root=repo_root,
+            source_a=source_a,
+            source_b=source_b,
+            mode=str(planning.get("mode")),
+            width=args.width,
+            height=args.height,
+            fps=args.fps,
+            frame_count=resolved_frame_count,
+            output_format="png_sequence",
+            job_name=planned_job_name,
+            reference_transition=reference_output,
+            effect_spec_output=effect_spec_output,
+            planning=planning,
+        )
+
+        if effect_spec_output is not None and effect_spec_payload is not None:
+            write_json(effect_spec_output, effect_spec_payload)
+
+        write_json(job_output, job.to_dict())
+        validation = validate_job(job, repo_root, load_allowed_effects(config_dir))
+
+        if validation.is_valid:
+            run_result = _execute_job_command(
+                repo_root=repo_root,
+                harness_root=harness_root,
+                config_dir=config_dir,
+                job_path=job_output,
+                command_name="run",
+                renderer=renderer,
+            )
+    except Exception as exc:
+        flow_error = str(exc)
+
+    report_data = _build_flow_report(
+        flow_root=flow_root,
+        transition_video=transition_video,
+        source_a=source_a,
+        source_b=source_b,
+        reference_result=reference_result,
+        hint_output=hint_output,
+        analysis_output=analysis_output,
+        analysis_artifact=analysis_artifact,
+        planning=planning,
+        job_output=job_output,
+        job=job,
+        validation=validation,
+        run_result=run_result,
+        effect_spec_output=effect_spec_output,
+        flow_error=flow_error,
+    )
+    report_data.write(report_output)
+
+    print(
+        json.dumps(
+            {
+                "flow_report": str(report_output),
+                "status": report_data.status,
+                "summary": report_data.summary,
+                "flow_root": str(flow_root),
+            },
+            indent=2,
+        )
+    )
+    return 0 if report_data.status in {"succeeded", "blocked"} else 1
+
+
 def _resolve_analysis_output(raw_path: str | None, hint_output: Path) -> Path:
     if raw_path:
         return Path(raw_path).resolve() if Path(raw_path).is_absolute() else Path(raw_path)
@@ -1421,6 +1648,119 @@ def _summarize_retrieval_fields(plan_data: dict | None) -> dict[str, object | No
         "matched_style_hint": retrieval.get("matched_style_hint"),
         "candidate_count": retrieval.get("candidate_count"),
     }
+
+
+def _build_flow_report(
+    flow_root: Path,
+    transition_video: Path,
+    source_a: Path,
+    source_b: Path,
+    reference_result,
+    hint_output: Path,
+    analysis_output: Path,
+    analysis_artifact: dict | None,
+    planning: dict | None,
+    job_output: Path,
+    job,
+    validation,
+    run_result: dict | None,
+    effect_spec_output: Path | None,
+    flow_error: str | None,
+) -> HarnessReport:
+    validation_valid = validation.is_valid if validation is not None else None
+    validation_issues = []
+    if validation is not None:
+        validation_issues = [
+            {"field": issue.field, "level": issue.level, "message": issue.message}
+            for issue in validation.issues
+        ]
+
+    planning_retrieval_summary = _summarize_retrieval_fields(planning)
+    run_status = run_result.get("status") if isinstance(run_result, dict) else None
+    run_summary = run_result.get("summary") if isinstance(run_result, dict) else None
+    run_evaluation = run_result.get("evaluation") if isinstance(run_result, dict) else None
+
+    status = _resolve_flow_status(flow_error, validation_valid, run_status)
+    summary = _resolve_flow_summary(flow_error, validation_valid, run_summary, reference_result)
+
+    return HarnessReport(
+        status=status,
+        summary=summary,
+        report_type="flow_report",
+        data={
+            "flow_root": str(flow_root),
+            "inputs": {
+                "transition_video": str(transition_video),
+                "source_a": str(source_a),
+                "source_b": str(source_b),
+            },
+            "artifacts": {
+                "reference_transition_dir": str(reference_result.output_dir) if reference_result is not None else None,
+                "reference_transition_manifest": str(reference_result.manifest_file) if reference_result is not None else None,
+                "hint_file": str(hint_output),
+                "analysis_file": str(analysis_output),
+                "analysis_artifact": analysis_artifact,
+                "job_file": str(job_output) if job_output is not None else None,
+                "effect_spec_file": str(effect_spec_output) if effect_spec_output is not None else None,
+                "run_report": run_result.get("report") if isinstance(run_result, dict) else None,
+            },
+            "reference_transition": (
+                {
+                    "frame_count": reference_result.frame_count,
+                    "message": reference_result.message,
+                    "detected_start_frame": reference_result.detected_start_frame,
+                    "detected_end_frame": reference_result.detected_end_frame,
+                    "detected_frame_count": reference_result.detected_frame_count,
+                    "manifest_file": str(reference_result.manifest_file),
+                }
+                if reference_result is not None
+                else None
+            ),
+            "planning": {
+                "job_name": job.job_name if job is not None else None,
+                "mode": planning.get("mode") if isinstance(planning, dict) else None,
+                "preset": planning.get("preset") if isinstance(planning, dict) else None,
+                "retrieval_summary": planning_retrieval_summary,
+                "validation_valid": validation_valid,
+                "issues": validation_issues,
+            },
+            "run": {
+                "status": run_status,
+                "summary": run_summary,
+                "evaluation": run_evaluation,
+            },
+            "flow_error": flow_error,
+        },
+    )
+
+
+def _resolve_flow_status(flow_error: str | None, validation_valid: bool | None, run_status: str | None) -> str:
+    if flow_error is not None:
+        return "failed"
+    if validation_valid is False:
+        return "blocked"
+    if run_status in {"succeeded", "blocked"}:
+        return run_status
+    if run_status is None:
+        return "blocked" if validation_valid else "failed"
+    return "failed"
+
+
+def _resolve_flow_summary(
+    flow_error: str | None,
+    validation_valid: bool | None,
+    run_summary: str | None,
+    reference_result,
+) -> str:
+    if flow_error is not None:
+        return f"end-to-end flow failed: {flow_error}"
+    if validation_valid is False:
+        return "end-to-end flow blocked by validation"
+    if run_summary is not None:
+        return run_summary
+    if reference_result is not None:
+        return "end-to-end flow completed reference preparation and planning"
+    return "end-to-end flow did not start"
 
 
 def _build_plan_comparison_report(
