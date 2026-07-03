@@ -690,6 +690,7 @@ def _handle_index_effects(args, repo_root: Path) -> int:
                 "catalog_version": catalog.get("catalog_version"),
                 "source_manifest": catalog.get("source_manifest"),
                 "source_manifest_version": catalog.get("source_manifest_version"),
+                "source_manifest_sha256": catalog.get("source_manifest_sha256"),
                 "registration_count": catalog.get("registration_count"),
                 "effect_count": len(catalog.get("effects", [])),
             },

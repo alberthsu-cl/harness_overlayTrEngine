@@ -395,6 +395,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(catalog["catalog_type"], "effect_catalog")
         self.assertEqual(catalog["catalog_version"], 1)
         self.assertEqual(catalog["source_manifest"], "harness/configs/effect_catalog_sources.json")
+        self.assertEqual(len(catalog["source_manifest_sha256"]), 64)
         self.assertEqual(catalog["registration_count"], len(catalog["effects"]))
         self.assertGreaterEqual(len(catalog["effects"]), 4)
 
@@ -439,6 +440,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(catalog["effects"][0]["effect_id"], "custom-builtin-seamless")
         self.assertEqual(catalog["retrieval_index"]["seamless"], "custom-builtin-seamless")
         self.assertEqual(catalog["source_manifest"], source_manifest.relative_to(HARNESS_ROOT.parent).as_posix())
+        self.assertEqual(len(catalog["source_manifest_sha256"]), 64)
 
     def test_effect_catalog_source_manifest_is_loaded(self) -> None:
         catalog = build_effect_catalog(HARNESS_ROOT.parent)
@@ -449,6 +451,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(catalog["source_manifest"], "harness/configs/effect_catalog_sources.json")
         self.assertGreaterEqual(len(catalog["effects"]), 4)
         self.assertEqual(catalog["retrieval_index"]["glitch"], "builtin-glitch")
+        self.assertEqual(len(catalog["source_manifest_sha256"]), 64)
 
     def test_effect_catalog_source_manifest_rejects_duplicate_effect_ids(self) -> None:
         source_manifest = self.root / "duplicate_effect_catalog_sources.json"
@@ -581,6 +584,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(audit["manifest_registration_count"], 4)
         self.assertEqual(audit["missing_effect_ids"], [])
         self.assertEqual(audit["extra_effect_ids"], [])
+        self.assertEqual(len(audit["source_manifest_sha256"]), 64)
 
     def test_effect_catalog_audit_reports_missing_manifest(self) -> None:
         audit = build_effect_catalog_audit(self.root)
@@ -598,6 +602,7 @@ class ScoringAlignmentTests(unittest.TestCase):
             ],
         )
         self.assertEqual(audit["extra_effect_ids"], [])
+        self.assertIsNone(audit["source_manifest_sha256"])
 
     def test_audit_effects_returns_nonzero_for_missing_manifest(self) -> None:
         Args = type(

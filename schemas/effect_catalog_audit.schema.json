@@ -25,6 +25,12 @@
         "null"
       ]
     },
+    "source_manifest_sha256": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "baseline_registration_count": {
       "type": "integer"
     },

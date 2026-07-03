@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import json
+import hashlib
 from typing import Any
 
 
@@ -86,18 +87,21 @@ def build_effect_catalog(
     }
     source_manifest_relative = None
     source_manifest_version = None
+    source_manifest_sha256 = None
     if source_manifest is not None:
         source_manifest_relative = _format_optional_repo_path(
             source_manifest["source_manifest_path"],
             repo_root,
         )
         source_manifest_version = source_manifest["catalog_version"]
+        source_manifest_sha256 = _hash_file(source_manifest["source_manifest_path"])
     return {
         "catalog_type": "effect_catalog",
         "catalog_version": EFFECT_CATALOG_VERSION,
         "source_root": "harness",
         "source_manifest": source_manifest_relative,
         "source_manifest_version": source_manifest_version,
+        "source_manifest_sha256": source_manifest_sha256,
         "registration_count": len(effects),
         "effects": effects,
         "retrieval_index": retrieval_index,
@@ -138,6 +142,9 @@ def build_effect_catalog_audit(
         if source_manifest is not None
         else None,
         "source_manifest_version": source_manifest["catalog_version"] if source_manifest is not None else None,
+        "source_manifest_sha256": _hash_file(source_manifest["source_manifest_path"])
+        if source_manifest is not None
+        else None,
         "baseline_registration_count": len(_EFFECT_BLUEPRINTS),
         "manifest_registration_count": len(manifest_registrations),
         "missing_effect_ids": missing_effect_ids,
@@ -288,3 +295,11 @@ def _format_optional_repo_path(path: Path | None, repo_root: Path) -> str | None
     if path is None:
         return None
     return _format_repo_path(path, repo_root)
+
+
+def _hash_file(file_path: Path) -> str:
+    digest = hashlib.sha256()
+    with file_path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(65536), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
