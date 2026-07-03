@@ -708,7 +708,7 @@ def _handle_audit_effects(args, repo_root: Path) -> int:
         return 1
 
     print(json.dumps(audit, indent=2))
-    return 0
+    return 0 if audit.get("status") == "ok" else 1
 
 
 def _handle_prepare_reference_transition(args, repo_root: Path) -> int:

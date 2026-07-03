@@ -15,6 +15,7 @@ if str(SRC_ROOT) not in sys.path:
 
 from overlay_harness.cli import _build_similarity_report
 from overlay_harness.cli import _build_run_evaluation_summary
+from overlay_harness.cli import _handle_audit_effects
 from overlay_harness.cli import _handle_index_effects
 from overlay_harness.cli import _resolve_run_report_status
 from overlay_harness.cli import _resolve_run_report_summary
@@ -513,6 +514,24 @@ class ScoringAlignmentTests(unittest.TestCase):
             ],
         )
         self.assertEqual(audit["extra_effect_ids"], [])
+
+    def test_audit_effects_returns_nonzero_for_missing_manifest(self) -> None:
+        Args = type(
+            "Args",
+            (),
+            {
+                "source_manifest": str(self.root / "missing_effect_catalog_sources.json"),
+            },
+        )
+
+        exit_code = _handle_audit_effects(Args(), HARNESS_ROOT.parent)
+        self.assertEqual(exit_code, 1)
+
+    def test_audit_effects_returns_zero_for_matching_manifest(self) -> None:
+        Args = type("Args", (), {"source_manifest": None})
+
+        exit_code = _handle_audit_effects(Args(), HARNESS_ROOT.parent)
+        self.assertEqual(exit_code, 0)
 
     def _write_bmp_sequence(self, output_dir: Path, colors: list[tuple[int, int, int]]) -> None:
         output_dir.mkdir(parents=True, exist_ok=True)

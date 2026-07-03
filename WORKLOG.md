@@ -26,6 +26,7 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 - Added manifest validation and a `--source-manifest` override for `index-effects`.
 - Made generated catalogs self-describing with source-manifest provenance and registration counts.
 - Added `audit-effects` to report baseline-vs-manifest gaps for the source-driven catalog.
+- Made `audit-effects` a non-zero exit-code gate when the source manifest drifts from the baseline.
 
 ## Next Implementation Step
 
