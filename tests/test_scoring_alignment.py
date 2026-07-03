@@ -208,6 +208,32 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertIsNone(summary["score"]["frame_count"])
         self.assertIsNone(summary["score"]["report_file"])
 
+    def test_run_evaluation_summary_includes_fallback_reason(self) -> None:
+        class Invocation:
+            status = "blocked"
+            exit_code = None
+            produced_frame_count = 0
+            expected_frame_count = 3
+            message = "renderer executable is not available yet; render request recorded only"
+
+        planning = {
+            "retrieval": {
+                "status": "not_found",
+                "fallback_used": True,
+                "fallback_mode": "generated-glitch-placeholder",
+                "fallback_preset": None,
+                "fallback_reason": "effect catalog is unavailable",
+            }
+        }
+
+        summary = _build_run_evaluation_summary(Invocation(), None, None, planning)
+
+        self.assertEqual(summary["planning"]["retrieval_status"], "not_found")
+        self.assertTrue(summary["planning"]["retrieval_fallback_used"])
+        self.assertEqual(summary["planning"]["retrieval_fallback_mode"], "generated-glitch-placeholder")
+        self.assertIsNone(summary["planning"]["retrieval_fallback_preset"])
+        self.assertEqual(summary["planning"]["retrieval_fallback_reason"], "effect catalog is unavailable")
+
     def test_run_report_is_versioned(self) -> None:
         report = HarnessReport(
             status="succeeded",

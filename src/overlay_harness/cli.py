@@ -858,6 +858,8 @@ def _build_run_evaluation_summary(
     retrieval_mode = None
     retrieval_fallback_used = None
     retrieval_fallback_mode = None
+    retrieval_fallback_preset = None
+    retrieval_fallback_reason = None
     retrieval_match_kind = None
     retrieval_matched_style_hint = None
     retrieval_candidate_count = None
@@ -869,6 +871,8 @@ def _build_run_evaluation_summary(
             retrieval_mode = retrieval.get("mode")
             retrieval_fallback_used = retrieval.get("fallback_used")
             retrieval_fallback_mode = retrieval.get("fallback_mode")
+            retrieval_fallback_preset = retrieval.get("fallback_preset")
+            retrieval_fallback_reason = retrieval.get("fallback_reason")
             retrieval_match_kind = retrieval.get("match_kind")
             retrieval_matched_style_hint = retrieval.get("matched_style_hint")
             retrieval_candidate_count = retrieval.get("candidate_count")
@@ -901,6 +905,8 @@ def _build_run_evaluation_summary(
             "retrieval_mode": retrieval_mode,
             "retrieval_fallback_used": retrieval_fallback_used,
             "retrieval_fallback_mode": retrieval_fallback_mode,
+            "retrieval_fallback_preset": retrieval_fallback_preset,
+            "retrieval_fallback_reason": retrieval_fallback_reason,
             "retrieval_match_kind": retrieval_match_kind,
             "retrieval_matched_style_hint": retrieval_matched_style_hint,
             "retrieval_candidate_count": retrieval_candidate_count,

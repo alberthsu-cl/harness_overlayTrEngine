@@ -8,8 +8,8 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 
 ## Last Completed
 
-- Propagated retrieval diagnostics into the recommended-plan and run-evaluation summaries.
-- Added coverage for `match_kind`, `matched_style_hint`, and `candidate_count` in the plan and run report tests.
+- Propagated retrieval diagnostics and fallback reason metadata into the recommended-plan and run-evaluation summaries.
+- Added coverage for `match_kind`, `matched_style_hint`, `candidate_count`, and fallback reason reporting in the plan and run report tests.
 - Trimmed the worklog handoff so it stays restart-friendly.
 
 ## Next Implementation Step
@@ -21,7 +21,7 @@ Expand Milestone 2 retrieval coverage:
 
 ## Why This Is Next
 
-- The first retrieval slice is now in place, and retrieval metadata now flows through planning and run reports. Remaining Milestone 2 work is source-manifest coverage and fallback discipline.
+- Retrieval metadata now flows through planning and run reports, including fallback diagnostics. Remaining Milestone 2 work is source-manifest coverage and fallback discipline.
 
 ## Resume Commands
 
