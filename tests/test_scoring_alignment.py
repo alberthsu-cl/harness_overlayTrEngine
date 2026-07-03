@@ -388,6 +388,15 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(catalog["catalog_version"], 1)
         self.assertGreaterEqual(len(catalog["effects"]), 4)
 
+    def test_effect_catalog_source_manifest_is_loaded(self) -> None:
+        catalog = build_effect_catalog(HARNESS_ROOT.parent)
+
+        self.assertEqual(catalog["catalog_type"], "effect_catalog")
+        self.assertEqual(catalog["catalog_version"], 1)
+        self.assertEqual(catalog["source_root"], "harness")
+        self.assertGreaterEqual(len(catalog["effects"]), 4)
+        self.assertEqual(catalog["retrieval_index"]["glitch"], "builtin-glitch")
+
     def _write_bmp_sequence(self, output_dir: Path, colors: list[tuple[int, int, int]]) -> None:
         output_dir.mkdir(parents=True, exist_ok=True)
         for frame_index, color in enumerate(colors):

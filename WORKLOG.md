@@ -22,17 +22,18 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 - Added a deterministic effect catalog and routed generated styles through retrieval before placeholder fallback.
 - Surfaced planner retrieval metadata into analyzer recommendations, planned jobs, and run reports.
 - Marked placeholder routing as an explicit fallback in planner metadata and run evaluation summaries.
+- Moved effect catalog indexing to a checked-in source manifest so future registrations can be added without code changes.
 
 ## Next Implementation Step
 
 Expand Milestone 2 retrieval coverage:
 
-1. Extend the catalog with more real transition registrations when they are available.
+1. Extend the catalog source manifest with more real transition registrations when they are available.
 2. Keep generated-placeholder modes as the fallback path only, with explicit fallback metadata.
 
 ## Why This Is Next
 
-- The first retrieval slice is now in place, and retrieval metadata now flows through planning, run reports, and fallback metadata. Remaining Milestone 2 work is catalog coverage and fallback discipline.
+- The first retrieval slice is now in place, and retrieval metadata now flows through planning, run reports, and fallback metadata. Remaining Milestone 2 work is source-manifest coverage and fallback discipline.
 
 ## Resume Commands
 

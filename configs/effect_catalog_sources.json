@@ -1,0 +1,70 @@
+{
+  "catalog_type": "effect_catalog_sources",
+  "catalog_version": 1,
+  "registrations": [
+    {
+      "effect_id": "builtin-seamless",
+      "mode": "builtin-seamless",
+      "effect_source": "builtin",
+      "family": "seamless",
+      "fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
+      "style_hints": [
+        "seamless",
+        "smooth",
+        "generated-seamless"
+      ],
+      "retrieval_priority": 0,
+      "source_documents": [
+        "harness/examples/effect_specs/builtin_seamless_sliding.json",
+        "harness/examples/render_job.sample.json",
+        "harness/examples/render_job.sample.real.json"
+      ]
+    },
+    {
+      "effect_id": "builtin-glitch",
+      "mode": "builtin-glitch",
+      "effect_source": "builtin",
+      "family": "glitch",
+      "fx_id": "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4",
+      "style_hints": [
+        "glitch",
+        "generated-glitch"
+      ],
+      "retrieval_priority": 0,
+      "source_documents": [
+        "harness/examples/render_job.effect_spec.sample.json",
+        "harness/examples/render_job.effect_spec.sample.real.json"
+      ]
+    },
+    {
+      "effect_id": "generated-seamless-placeholder",
+      "mode": "generated-seamless-placeholder",
+      "effect_source": "generated",
+      "family": "seamless",
+      "fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
+      "fallback_fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
+      "style_hints": [
+        "generated-seamless"
+      ],
+      "retrieval_priority": 10,
+      "source_documents": [
+        "harness/examples/effect_specs/generated_SeamlessSliding_placeholder.json"
+      ]
+    },
+    {
+      "effect_id": "generated-glitch-placeholder",
+      "mode": "generated-glitch-placeholder",
+      "effect_source": "generated",
+      "family": "glitch",
+      "fx_id": "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4",
+      "fallback_fx_id": "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4",
+      "style_hints": [
+        "generated-glitch"
+      ],
+      "retrieval_priority": 10,
+      "source_documents": [
+        "harness/examples/effect_specs/generated_glitch_placeholder.json"
+      ]
+    }
+  ]
+}

@@ -7,6 +7,7 @@ from typing import Any
 
 EFFECT_CATALOG_VERSION = 1
 DEFAULT_EFFECT_CATALOG_RELATIVE_PATH = Path("harness/configs/effect_catalog.json")
+DEFAULT_EFFECT_CATALOG_SOURCE_RELATIVE_PATH = Path("harness/configs/effect_catalog_sources.json")
 
 
 _EFFECT_BLUEPRINTS: tuple[dict[str, Any], ...] = (
@@ -67,7 +68,13 @@ _EFFECT_BLUEPRINTS: tuple[dict[str, Any], ...] = (
 
 
 def build_effect_catalog(repo_root: Path) -> dict[str, Any]:
-    effects = [_build_effect_record(repo_root, blueprint) for blueprint in _EFFECT_BLUEPRINTS]
+    source_manifest = _load_effect_catalog_source_manifest(repo_root)
+    source_blueprints = (
+        source_manifest["registrations"]
+        if source_manifest is not None
+        else list(_EFFECT_BLUEPRINTS)
+    )
+    effects = [_build_effect_record(repo_root, blueprint) for blueprint in source_blueprints]
     retrieval_index = {
         style: record["effect_id"]
         for record in effects
@@ -125,6 +132,28 @@ def select_effect_candidate(catalog: dict[str, Any], style: str, input_kind: str
         "retrieval_source": "effect_catalog",
         "retrieval_priority": selected.get("retrieval_priority"),
         "source_documents": selected.get("source_documents"),
+    }
+
+
+def _load_effect_catalog_source_manifest(repo_root: Path) -> dict[str, Any] | None:
+    source_manifest_path = repo_root / DEFAULT_EFFECT_CATALOG_SOURCE_RELATIVE_PATH
+    if not source_manifest_path.exists():
+        return None
+
+    with source_manifest_path.open("r", encoding="utf-8") as handle:
+        source_manifest = json.load(handle)
+
+    if source_manifest.get("catalog_type") != "effect_catalog_sources":
+        raise ValueError(f"effect catalog source manifest is invalid: {source_manifest_path}")
+
+    registrations = source_manifest.get("registrations")
+    if not isinstance(registrations, list):
+        raise ValueError("effect catalog source manifest registrations must be a list")
+
+    return {
+        "catalog_type": source_manifest["catalog_type"],
+        "catalog_version": source_manifest.get("catalog_version", 1),
+        "registrations": registrations,
     }
 
 
