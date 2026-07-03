@@ -14,6 +14,7 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from overlay_harness.cli import _build_similarity_report
+from overlay_harness.cli import _build_plan_comparison_report
 from overlay_harness.cli import _build_run_evaluation_summary
 from overlay_harness.cli import _handle_audit_effects
 from overlay_harness.cli import _handle_index_effects
@@ -251,6 +252,96 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["status"], "succeeded")
         self.assertEqual(payload["summary"], "renderer completed successfully")
         self.assertEqual(payload["data"]["evaluation"]["overall_status"], "succeeded_with_score")
+
+    def test_plan_comparison_report_includes_retrieval_summaries(self) -> None:
+        report = _build_plan_comparison_report(
+            analysis_file="harness/work/example/analysis.json",
+            job_output=self.root / "job.json",
+            plan_source="analysis_embedded_or_hint",
+            selected_plan={
+                "auto": True,
+                "style": "generated-glitch",
+                "input_kind": "real",
+                "preset": "real-smoke-glitch",
+                "mode": "builtin-glitch",
+                "job_name": "example",
+            },
+            selected_plan_retrieval_summary={
+                "status": "retrieved",
+                "effect_id": "builtin-glitch",
+                "mode": "builtin-glitch",
+                "fallback_used": False,
+                "fallback_mode": "builtin-glitch",
+                "fallback_preset": "real-smoke-glitch",
+                "fallback_reason": None,
+                "match_kind": "alias",
+                "matched_style_hint": "glitch",
+                "candidate_count": 1,
+            },
+            embedded_plan={
+                "auto": True,
+                "style": "generated-glitch",
+                "input_kind": "real",
+                "preset": "real-smoke-glitch",
+                "mode": "builtin-glitch",
+                "job_name": "example",
+                "retrieval": {
+                    "status": "retrieved",
+                    "effect_id": "builtin-glitch",
+                    "mode": "builtin-glitch",
+                    "fallback_used": False,
+                    "fallback_mode": "builtin-glitch",
+                    "fallback_preset": "real-smoke-glitch",
+                    "fallback_reason": None,
+                    "match_kind": "alias",
+                    "matched_style_hint": "glitch",
+                    "candidate_count": 1,
+                },
+            },
+            embedded_plan_summary={
+                "auto": True,
+                "style": "generated-glitch",
+                "input_kind": "real",
+                "preset": "real-smoke-glitch",
+                "mode": "builtin-glitch",
+                "job_name": "example",
+            },
+            recomputed_plan={
+                "auto": True,
+                "style": "generated-glitch",
+                "input_kind": "real",
+                "preset": "real-smoke-glitch",
+                "mode": "builtin-glitch",
+                "job_name": "example",
+                "retrieval": {
+                    "status": "retrieved",
+                    "effect_id": "builtin-glitch",
+                    "mode": "builtin-glitch",
+                    "fallback_used": False,
+                    "fallback_mode": "builtin-glitch",
+                    "fallback_preset": "real-smoke-glitch",
+                    "fallback_reason": None,
+                    "match_kind": "alias",
+                    "matched_style_hint": "glitch",
+                    "candidate_count": 1,
+                },
+            },
+            recomputed_plan_summary={
+                "auto": True,
+                "style": "generated-glitch",
+                "input_kind": "real",
+                "preset": "real-smoke-glitch",
+                "mode": "builtin-glitch",
+                "job_name": "example",
+            },
+            recompute_matches_embedded=True,
+            validation_valid=True,
+            issues=[],
+        )
+
+        self.assertEqual(report["selected_plan_retrieval_summary"]["effect_id"], "builtin-glitch")
+        self.assertEqual(report["embedded_plan_retrieval_summary"]["match_kind"], "alias")
+        self.assertEqual(report["recomputed_plan_retrieval_summary"]["candidate_count"], 1)
 
     def test_render_job_preserves_planning_metadata(self) -> None:
         job = self._build_job(reference_transition=self.root / "reference", frame_count=3)

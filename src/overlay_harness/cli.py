@@ -1035,6 +1035,7 @@ def _handle_analyze_transition(args, repo_root: Path) -> int:
                 job_output=None,
                 plan_source="analyze_transition_embedded_and_recomputed",
                 selected_plan=_summarize_plan_fields(embedded_plan),
+                selected_plan_retrieval_summary=_summarize_retrieval_fields(embedded_plan),
                 embedded_plan=embedded_plan,
                 embedded_plan_summary=_summarize_plan_fields(embedded_plan),
                 recomputed_plan=recomputed_plan,
@@ -1334,6 +1335,7 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
         "frame_count_source": frame_count_source,
         "validation_valid": validation.is_valid,
         "planning": planning_metadata,
+        "planning_retrieval_summary": _summarize_retrieval_fields(planning_metadata),
         "issues": [
             {"field": issue.field, "level": issue.level, "message": issue.message}
             for issue in validation.issues
@@ -1366,6 +1368,7 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
                 "mode": mode,
                 "job_name": job.job_name,
             },
+            selected_plan_retrieval_summary=result.get("planning_retrieval_summary"),
             embedded_plan=embedded_plan,
             embedded_plan_summary=result.get("embedded_plan_summary"),
             recomputed_plan=recomputed_plan,
@@ -1392,11 +1395,34 @@ def _summarize_plan_fields(plan_data: dict) -> dict[str, str | bool | None]:
     }
 
 
+def _summarize_retrieval_fields(plan_data: dict | None) -> dict[str, object | None] | None:
+    if not isinstance(plan_data, dict):
+        return None
+
+    retrieval = plan_data.get("retrieval")
+    if not isinstance(retrieval, dict):
+        return None
+
+    return {
+        "status": retrieval.get("status"),
+        "effect_id": retrieval.get("effect_id"),
+        "mode": retrieval.get("mode"),
+        "fallback_used": retrieval.get("fallback_used"),
+        "fallback_mode": retrieval.get("fallback_mode"),
+        "fallback_preset": retrieval.get("fallback_preset"),
+        "fallback_reason": retrieval.get("fallback_reason"),
+        "match_kind": retrieval.get("match_kind"),
+        "matched_style_hint": retrieval.get("matched_style_hint"),
+        "candidate_count": retrieval.get("candidate_count"),
+    }
+
+
 def _build_plan_comparison_report(
     analysis_file: str | None,
     job_output: Path | None,
     plan_source: str,
     selected_plan: dict[str, str | bool | None],
+    selected_plan_retrieval_summary: dict[str, object | None] | None,
     embedded_plan: dict | None,
     embedded_plan_summary: dict[str, str | bool | None] | None,
     recomputed_plan: dict | None,
@@ -1412,10 +1438,13 @@ def _build_plan_comparison_report(
         "job_output": str(job_output) if job_output is not None else None,
         "plan_source": plan_source,
         "selected_plan": selected_plan,
+        "selected_plan_retrieval_summary": selected_plan_retrieval_summary,
         "embedded_plan": embedded_plan,
         "embedded_plan_summary": embedded_plan_summary,
+        "embedded_plan_retrieval_summary": _summarize_retrieval_fields(embedded_plan),
         "recomputed_plan": recomputed_plan,
         "recomputed_plan_summary": recomputed_plan_summary,
+        "recomputed_plan_retrieval_summary": _summarize_retrieval_fields(recomputed_plan),
         "recompute_matches_embedded": recompute_matches_embedded,
         "validation_valid": validation_valid,
         "issues": issues,
