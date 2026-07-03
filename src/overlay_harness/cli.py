@@ -279,6 +279,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Compare the checked-in source manifest against the built-in effect baseline",
     )
     audit_effects_cmd.add_argument(
+        "--output",
+        required=False,
+        help="Optional output path for the audit report JSON",
+    )
+    audit_effects_cmd.add_argument(
         "--source-manifest",
         required=False,
         help=(
@@ -695,6 +700,7 @@ def _handle_index_effects(args, repo_root: Path) -> int:
 
 
 def _handle_audit_effects(args, repo_root: Path) -> int:
+    output = _resolve_path_argument(args.output, repo_root) if args.output else None
     source_manifest = (
         _resolve_path_argument(args.source_manifest, repo_root)
         if args.source_manifest
@@ -707,6 +713,8 @@ def _handle_audit_effects(args, repo_root: Path) -> int:
         print(f"audit-effects failed: {exc}")
         return 1
 
+    if output is not None:
+        write_json(output, audit)
     print(json.dumps(audit, indent=2))
     return 0 if audit.get("status") == "ok" else 1
 

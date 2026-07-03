@@ -29,6 +29,7 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 - Made `audit-effects` a non-zero exit-code gate when the source manifest drifts from the baseline.
 - Validated source-manifest `source_documents` so missing spec references fail fast.
 - Tightened source-manifest validation for effect source type, required fields, and generated fallback wiring.
+- Added `--output` support for `audit-effects` so the audit can be stored as a JSON artifact.
 
 ## Next Implementation Step
 

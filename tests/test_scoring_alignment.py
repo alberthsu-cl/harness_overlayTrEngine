@@ -604,6 +604,7 @@ class ScoringAlignmentTests(unittest.TestCase):
             "Args",
             (),
             {
+                "output": None,
                 "source_manifest": str(self.root / "missing_effect_catalog_sources.json"),
             },
         )
@@ -612,10 +613,30 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(exit_code, 1)
 
     def test_audit_effects_returns_zero_for_matching_manifest(self) -> None:
-        Args = type("Args", (), {"source_manifest": None})
+        Args = type("Args", (), {"output": None, "source_manifest": None})
 
         exit_code = _handle_audit_effects(Args(), HARNESS_ROOT.parent)
         self.assertEqual(exit_code, 0)
+
+    def test_audit_effects_writes_audit_report(self) -> None:
+        Args = type(
+            "Args",
+            (),
+            {
+                "output": str(self.root / "effect_catalog_audit.json"),
+                "source_manifest": str(self.root / "missing_effect_catalog_sources.json"),
+            },
+        )
+
+        exit_code = _handle_audit_effects(Args(), HARNESS_ROOT.parent)
+        self.assertEqual(exit_code, 1)
+
+        with (self.root / "effect_catalog_audit.json").open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+
+        self.assertEqual(payload["report_type"], "effect_catalog_audit")
+        self.assertEqual(payload["status"], "missing_source_manifest")
+        self.assertEqual(payload["baseline_registration_count"], 4)
 
     def _write_bmp_sequence(self, output_dir: Path, colors: list[tuple[int, int, int]]) -> None:
         output_dir.mkdir(parents=True, exist_ok=True)
