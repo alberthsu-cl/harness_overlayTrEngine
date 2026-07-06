@@ -22,6 +22,7 @@ from overlay_harness.cli import _build_run_evaluation_summary
 from overlay_harness.cli import _handle_audit_effects
 from overlay_harness.cli import _handle_index_effects
 from overlay_harness.cli import _handle_flow
+from overlay_harness.cli import _handle_sample_video
 from overlay_harness.cli import _execute_job_command
 from overlay_harness.cli import _summarize_retrieval_fields
 from overlay_harness.cli import _summarize_retrieval_from_evaluation
@@ -791,6 +792,58 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["demo_video_file"], str(demo_video_file))
         self.assertEqual(payload["data"]["demo_video_status"], "succeeded")
         self.assertEqual(payload["data"]["demo_video_result"]["output_file"], str(demo_video_file))
+
+    def test_sample_video_command_with_explicit_fx_id_copies_output_video(self) -> None:
+        source_a = self.root / "source_a"
+        source_b = self.root / "source_b"
+        self._write_bmp_sequence(source_a, [(0, 0, 0), (0, 0, 0), (0, 0, 0)])
+        self._write_bmp_sequence(source_b, [(255, 255, 255), (255, 255, 255), (255, 255, 255)])
+
+        output_video = self.root / "sample_reference.mp4"
+        sample_demo_source = self.root / "sample_demo_source.mp4"
+        sample_demo_source.write_bytes(b"demo-video")
+
+        run_result = {
+            "exit_code": 0,
+            "workspace": str(self.root / "workspace"),
+            "report": str(self.root / "workspace" / "reports" / "run_report.json"),
+            "status": "succeeded",
+            "summary": "renderer produced 30 expected PNG frames",
+            "demo_video_file": str(sample_demo_source),
+        }
+
+        args = SimpleNamespace(
+            source_a=source_a,
+            source_b=source_b,
+            output_video=output_video,
+            fx_id="CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
+            job_name=None,
+            width=1920,
+            height=1080,
+            fps=30,
+            frame_count=30,
+            renderer=None,
+            ffmpeg=None,
+        )
+
+        with (
+            patch("overlay_harness.cli._execute_job_command", return_value=run_result),
+            patch("overlay_harness.cli.validate_job", return_value=SimpleNamespace(is_valid=True, issues=[])),
+        ):
+            exit_code = _handle_sample_video(args, HARNESS_ROOT.parent, HARNESS_ROOT, HARNESS_ROOT / "configs", None)
+
+        self.assertEqual(exit_code, 0)
+        self.assertTrue(output_video.exists())
+
+        report_files = list(self.root.glob("sample_video_*/sample_video_report.json"))
+        self.assertEqual(len(report_files), 1)
+        with report_files[0].open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+
+        self.assertEqual(payload["status"], "succeeded")
+        self.assertEqual(payload["data"]["selected_fx_id"], "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC")
+        self.assertEqual(payload["data"]["output_video"], str(output_video))
+        self.assertEqual(output_video.read_bytes(), sample_demo_source.read_bytes())
 
     def test_render_job_preserves_planning_metadata(self) -> None:
         job = self._build_job(reference_transition=self.root / "reference", frame_count=3)

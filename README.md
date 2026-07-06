@@ -126,6 +126,14 @@ py -3 harness/src/main.py flow --transition-video harness/sample_glitch.mp4 --so
 
 That command prepares a normalized reference transition from the video, plans the job from the prepared A/B inputs, runs the render, scores the result, and writes `flow_report.json` under a timestamped subdirectory of `harness/work/flow_example/`.
 
+If you want to generate a synthetic sample MP4 from rendered frames, use `sample-video`:
+
+```powershell
+py -3 harness/src/main.py sample-video --source-a harness/examples/inputs/source_a_clean --source-b harness/examples/inputs/source_b_clean --output-video harness/sample_seamless.mp4 --fx-id CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC
+```
+
+When `--fx-id` is provided, the command renders that exact effect and copies the encoded MP4 to `--output-video`. If you omit `--fx-id`, the command falls back to the current A/B-driven planner before rendering.
+
 ### Real Sample Flow
 
 When you run a real sample transition, the harness moves through these code slices:

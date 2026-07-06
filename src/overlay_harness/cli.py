@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 from datetime import UTC, datetime
 import json
+import re
+import shutil
 from pathlib import Path
 import sys
 from uuid import uuid4
@@ -37,6 +39,10 @@ from .planner import (
 from .renderer import encode_render_demo_video
 from .renderer import prepare_render_invocation
 from .report import HarnessReport
+from .models import EffectSpec
+from .models import InputSpec
+from .models import RenderJob
+from .models import RenderSettings
 from .validator import validate_job
 from .video_prep import (
     extract_video_frames,
@@ -80,6 +86,8 @@ def main(argv: list[str] | None = None) -> int:
         return _handle_analyze_transition(args, repo_root)
     if args.command == "flow":
         return _handle_flow(args, repo_root, harness_root, config_dir, default_renderer)
+    if args.command == "sample-video":
+        return _handle_sample_video(args, repo_root, harness_root, config_dir, default_renderer)
     if args.command == "plan-job":
         return _handle_plan_job(args, repo_root, config_dir)
     if args.command == "smoke-test":
@@ -331,6 +339,39 @@ def _build_parser() -> argparse.ArgumentParser:
         required=False,
         help="Optional output path for a copied effect_spec template when the chosen mode uses a generated placeholder",
     )
+
+    sample_video_cmd = subparsers.add_parser(
+        "sample-video",
+        help="Render a reference MP4 from A/B inputs using an explicit fx_id or the current A/B planner",
+    )
+    sample_video_cmd.add_argument("--source-a", required=True, help="Path to the prepared source A frames")
+    sample_video_cmd.add_argument("--source-b", required=True, help="Path to the prepared source B frames")
+    sample_video_cmd.add_argument("--output-video", required=True, help="Path for the final sample MP4")
+    sample_video_cmd.add_argument(
+        "--fx-id",
+        required=False,
+        help="Optional explicit fx_id to render; when omitted, the command uses the current A/B-driven planner",
+    )
+    sample_video_cmd.add_argument("--job-name", required=False, help="Optional job_name override")
+    sample_video_cmd.add_argument("--width", type=int, default=1920, help="Target render width")
+    sample_video_cmd.add_argument("--height", type=int, default=1080, help="Target render height")
+    sample_video_cmd.add_argument("--fps", type=int, default=30, help="Target frame rate for the sample video")
+    sample_video_cmd.add_argument(
+        "--frame-count",
+        type=int,
+        default=30,
+        help="Target render frame count for the sample video",
+    )
+    sample_video_cmd.add_argument(
+        "--renderer",
+        required=False,
+        help=(
+            "Path to the headless renderer executable; defaults to "
+            "harness/native_renderer/build/x64/Debug/OverlayTrHarnessRenderer.exe "
+            "when that file exists"
+        ),
+    )
+    sample_video_cmd.add_argument("--ffmpeg", required=False, help="Optional path to ffmpeg for MP4 encoding")
 
     index_effects_cmd = subparsers.add_parser(
         "index-effects",
@@ -1322,6 +1363,168 @@ def _handle_flow(args, repo_root: Path, harness_root: Path, config_dir: Path, de
     return 0 if report_data.status in {"succeeded", "blocked"} else 1
 
 
+def _handle_sample_video(
+    args,
+    repo_root: Path,
+    harness_root: Path,
+    config_dir: Path,
+    default_renderer: str | None,
+) -> int:
+    source_a = _resolve_path_argument(args.source_a, repo_root)
+    source_b = _resolve_path_argument(args.source_b, repo_root)
+    output_video = _resolve_path_argument(args.output_video, repo_root)
+    sample_root = output_video.parent / f"sample_video_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}_{uuid4().hex[:8]}"
+    sample_root.mkdir(parents=True, exist_ok=False)
+
+    renderer = _resolve_renderer_argument(args.renderer, default_renderer)
+    sample_job_output = sample_root / "sample.render_job.json"
+    sample_report_output = sample_root / "sample_video_report.json"
+    flow_error: str | None = None
+    run_result: dict | None = None
+    job = None
+    planning: dict | None = None
+    validation = None
+    sample_hint: dict | None = None
+    selected_fx_id = args.fx_id
+
+    try:
+        if selected_fx_id:
+            job_name = args.job_name or f"sample_{_slugify_text(selected_fx_id)}"
+            job = RenderJob(
+                job_name=job_name,
+                effect=EffectSpec(
+                    fx_id=selected_fx_id,
+                    category="single_pass",
+                    effect_spec=None,
+                    uniforms={"progress": 0.0},
+                ),
+                inputs=InputSpec(
+                    source_a=_format_path_for_output(source_a, repo_root),
+                    source_b=_format_path_for_output(source_b, repo_root),
+                ),
+                render=RenderSettings(
+                    width=args.width,
+                    height=args.height,
+                    fps=args.fps,
+                    frame_count=args.frame_count,
+                    output_format="png_sequence",
+                ),
+            )
+            planning = {
+                "auto": False,
+                "mode": "explicit-fx-id",
+                "preset": None,
+                "job_name": job.job_name,
+                "fx_id": selected_fx_id,
+            }
+        else:
+            sample_hint = analyze_transition(
+                repo_root=repo_root,
+                source_a=source_a,
+                source_b=source_b,
+                input_kind="auto",
+                style_hint=None,
+                intent=None,
+                prefer_generated=False,
+                reference_transition=None,
+                job_name=args.job_name,
+            )
+            write_json(sample_root / "transition_hint.json", sample_hint)
+            planning = build_recommended_plan(
+                repo_root=repo_root,
+                source_a=source_a,
+                source_b=source_b,
+                hint_data={
+                    "style_hint": sample_hint.get("style_hint"),
+                    "input_kind": sample_hint.get("input_kind"),
+                    "job_name": args.job_name,
+                },
+            )
+            mode = str(planning.get("mode"))
+            job_name = args.job_name or str(planning.get("job_name") or "sample_reference")
+            job, _effect_spec_payload = build_planned_job(
+                repo_root=repo_root,
+                source_a=source_a,
+                source_b=source_b,
+                mode=mode,
+                width=args.width,
+                height=args.height,
+                fps=args.fps,
+                frame_count=args.frame_count,
+                output_format="png_sequence",
+                job_name=job_name,
+                reference_transition=None,
+                effect_spec_output=None,
+                planning=planning,
+            )
+            selected_fx_id = job.effect.fx_id
+
+        write_json(sample_job_output, job.to_dict())
+        validation = validate_job(job, repo_root, load_allowed_effects(config_dir))
+        if not validation.is_valid:
+            raise ValueError("sample-video job did not validate")
+
+        run_result = _execute_job_command(
+            repo_root=repo_root,
+            harness_root=harness_root,
+            config_dir=config_dir,
+            job_path=sample_job_output,
+            command_name="run",
+            renderer=renderer,
+        )
+        demo_video_file = run_result.get("demo_video_file") if isinstance(run_result, dict) else None
+        if demo_video_file:
+            demo_video_path = Path(str(demo_video_file))
+            if demo_video_path.exists():
+                output_video.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(demo_video_path, output_video)
+        report = HarnessReport(
+            status="succeeded" if isinstance(run_result, dict) and run_result.get("exit_code") == 0 else "failed",
+            summary="sample video rendered" if isinstance(run_result, dict) and run_result.get("exit_code") == 0 else "sample video failed",
+            data={
+                "sample_root": str(sample_root),
+                "output_video": str(output_video),
+                "selected_fx_id": selected_fx_id,
+                "job_file": str(sample_job_output),
+                "run_result": run_result,
+                "planning": planning,
+                "analysis": sample_hint,
+            },
+        )
+        report.write(sample_report_output)
+    except Exception as exc:
+        flow_error = str(exc)
+        report = HarnessReport(
+            status="failed",
+            summary=f"sample video failed: {flow_error}",
+            data={
+                "sample_root": str(sample_root),
+                "output_video": str(output_video),
+                "selected_fx_id": selected_fx_id,
+                "job_file": str(sample_job_output),
+                "planning": planning,
+                "analysis": sample_hint,
+                "flow_error": flow_error,
+            },
+        )
+        report.write(sample_report_output)
+
+    print(
+        json.dumps(
+            {
+                "sample_report": str(sample_report_output),
+                "sample_root": str(sample_root),
+                "output_video": str(output_video),
+                "selected_fx_id": selected_fx_id,
+                "status": report.status,
+                "summary": report.summary,
+            },
+            indent=2,
+        )
+    )
+    return 0 if report.status == "succeeded" else 1
+
+
 def _resolve_analysis_output(raw_path: str | None, hint_output: Path) -> Path:
     if raw_path:
         return Path(raw_path).resolve() if Path(raw_path).is_absolute() else Path(raw_path)
@@ -1787,6 +1990,12 @@ def _resolve_flow_summary(
     if reference_result is not None:
         return "end-to-end flow completed reference preparation and planning"
     return "end-to-end flow did not start"
+
+
+def _slugify_text(value: str) -> str:
+    normalized = re.sub(r"[^A-Za-z0-9]+", "_", value.strip())
+    normalized = normalized.strip("_")
+    return normalized or "sample_reference"
 
 
 def _build_plan_comparison_report(
