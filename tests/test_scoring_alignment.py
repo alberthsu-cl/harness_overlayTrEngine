@@ -817,6 +817,7 @@ class ScoringAlignmentTests(unittest.TestCase):
             source_b=source_b,
             output_video=output_video,
             fx_id="CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
+            output_root=None,
             job_name=None,
             width=1920,
             height=1080,
@@ -825,6 +826,8 @@ class ScoringAlignmentTests(unittest.TestCase):
             renderer=None,
             ffmpeg=None,
         )
+        work_tests_root = HARNESS_ROOT / "work" / "tests"
+        before_reports = set(work_tests_root.glob("sample_video_*/sample_video_report.json"))
 
         with (
             patch("overlay_harness.cli._execute_job_command", return_value=run_result),
@@ -835,7 +838,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertTrue(output_video.exists())
 
-        report_files = list(self.root.glob("sample_video_*/sample_video_report.json"))
+        report_files = [path for path in work_tests_root.glob("sample_video_*/sample_video_report.json") if path not in before_reports]
         self.assertEqual(len(report_files), 1)
         with report_files[0].open("r", encoding="utf-8") as handle:
             payload = json.load(handle)
@@ -844,6 +847,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["selected_fx_id"], "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC")
         self.assertEqual(payload["data"]["output_video"], str(output_video))
         self.assertEqual(output_video.read_bytes(), sample_demo_source.read_bytes())
+        self.assertIn("work\\tests", payload["data"]["sample_root"])
 
     def test_render_job_preserves_planning_metadata(self) -> None:
         job = self._build_job(reference_transition=self.root / "reference", frame_count=3)

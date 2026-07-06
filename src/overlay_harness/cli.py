@@ -352,6 +352,11 @@ def _build_parser() -> argparse.ArgumentParser:
         required=False,
         help="Optional explicit fx_id to render; when omitted, the command uses the current A/B-driven planner",
     )
+    sample_video_cmd.add_argument(
+        "--output-root",
+        required=False,
+        help="Root directory for sample-video intermediate artifacts; defaults to harness/work/tests",
+    )
     sample_video_cmd.add_argument("--job-name", required=False, help="Optional job_name override")
     sample_video_cmd.add_argument("--width", type=int, default=1920, help="Target render width")
     sample_video_cmd.add_argument("--height", type=int, default=1080, help="Target render height")
@@ -1372,8 +1377,11 @@ def _handle_sample_video(
 ) -> int:
     source_a = _resolve_path_argument(args.source_a, repo_root)
     source_b = _resolve_path_argument(args.source_b, repo_root)
-    output_video = _resolve_path_argument(args.output_video, repo_root)
-    sample_root = output_video.parent / f"sample_video_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}_{uuid4().hex[:8]}"
+    output_root = _resolve_path_argument(args.output_root, repo_root) if getattr(args, "output_root", None) else (harness_root / "work" / "tests")
+    output_video = Path(args.output_video)
+    if not output_video.is_absolute():
+        output_video = (output_root / output_video).resolve()
+    sample_root = output_root / f"sample_video_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}_{uuid4().hex[:8]}"
     sample_root.mkdir(parents=True, exist_ok=False)
 
     renderer = _resolve_renderer_argument(args.renderer, default_renderer)

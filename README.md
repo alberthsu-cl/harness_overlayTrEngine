@@ -133,6 +133,7 @@ py -3 harness/src/main.py sample-video --source-a harness/examples/inputs/source
 ```
 
 When `--fx-id` is provided, the command renders that exact effect and copies the encoded MP4 to `--output-video`. If you omit `--fx-id`, the command falls back to the current A/B-driven planner before rendering.
+By default the intermediate sample workspace is created under `harness/work/tests/`; pass `--output-root` to place it elsewhere.
 
 ### Real Sample Flow
 

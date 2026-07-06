@@ -17,6 +17,7 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 - Added MP4 demo encoding for successful render outputs so runs and flows now leave an easy-to-share `artifacts/rendered.mp4`.
 - Added a clean benchmark A/B fixture pair under `examples/inputs/source_a_clean` and `examples/inputs/source_b_clean` from `Food.jpg` and `Landscape01.jpg`.
 - Added a `sample-video` command that renders a synthetic reference MP4 from either an explicit `fx_id` or the current A/B-driven planner and copies it to a requested output path.
+- Defaulted the sample-video intermediate workspace to `harness/work/tests/` so test artifacts are easier to find.
 - Trimmed the worklog handoff so it stays restart-friendly.
 
 ## Next Implementation Step
@@ -28,6 +29,7 @@ Expand Milestone 2 retrieval coverage:
 3. Keep the render/demo artifact contract stable while additional retrieval work continues.
 4. Use the clean fixture pair as the baseline for repeatable flow scoring.
 5. Use the new `sample-video` command for effect-specific synthetic reference videos.
+6. Keep sample/test artifacts grouped under `harness/work/tests/` unless a caller overrides `--output-root`.
 
 ## Why This Is Next
 
