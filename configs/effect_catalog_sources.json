@@ -31,6 +31,7 @@
       "fx_id": "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4",
       "style_hints": [
         "glitch",
+        "glitch-04",
         "generated-glitch"
       ],
       "retrieval_priority": 0,
