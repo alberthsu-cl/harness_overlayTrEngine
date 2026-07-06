@@ -401,6 +401,7 @@
       "fx_id": "Glitch_HDistor1",
       "style_hints": [
         "distortion",
+        "glitch-distortion",
         "glitch2"
       ],
       "retrieval_priority": 0,

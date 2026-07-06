@@ -1027,6 +1027,22 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(mode, "builtin-glitch")
         self.assertEqual(preset, "real-smoke-glitch")
 
+    def test_auto_plan_prefers_catalog_retrieval_for_glitch_distortion(self) -> None:
+        source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
+        source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
+
+        preset, mode, input_kind = resolve_auto_plan(
+            repo_root=HARNESS_ROOT.parent,
+            source_a=source_a,
+            source_b=source_b,
+            style="glitch-distortion",
+            input_kind="auto",
+        )
+
+        self.assertEqual(input_kind, "real")
+        self.assertEqual(mode, "builtin-glitch-distortion")
+        self.assertEqual(preset, "real-smoke-glitch")
+
     def test_recommended_plan_includes_retrieval_summary(self) -> None:
         source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
         source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
@@ -1362,6 +1378,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         glitch_hdistortion2 = select_effect_candidate(catalog, style="glitch-hdistortion2", input_kind="real")
         glitch_stretch_swipe = select_effect_candidate(catalog, style="glitch-stretch-swipe", input_kind="real")
         glitch_tunewave = select_effect_candidate(catalog, style="glitch-tunewave", input_kind="real")
+        glitch_distortion = select_effect_candidate(catalog, style="glitch-distortion", input_kind="real")
         distortion = select_effect_candidate(catalog, style="distortion", input_kind="real")
         camcorder = select_effect_candidate(catalog, style="camcorder", input_kind="real")
         particle = select_effect_candidate(catalog, style="particle", input_kind="real")
@@ -1383,6 +1400,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertIsNotNone(glitch_hdistortion2)
         self.assertIsNotNone(glitch_stretch_swipe)
         self.assertIsNotNone(glitch_tunewave)
+        self.assertIsNotNone(glitch_distortion)
         self.assertIsNotNone(distortion)
         self.assertIsNotNone(camcorder)
         self.assertIsNotNone(particle)
@@ -1403,12 +1421,14 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(glitch_hdistortion2["effect_id"], "builtin-glitch-hdistortion2")
         self.assertEqual(glitch_stretch_swipe["effect_id"], "builtin-glitch-stretch-swipe")
         self.assertEqual(glitch_tunewave["effect_id"], "builtin-glitch-tunewave")
+        self.assertEqual(glitch_distortion["effect_id"], "builtin-glitch-distortion")
         self.assertEqual(distortion["effect_id"], "builtin-glitch-distortion")
         self.assertEqual(camcorder["effect_id"], "builtin-camcorder")
         self.assertEqual(particle["effect_id"], "builtin-particle-spray")
         self.assertEqual(frame_overlay["effect_id"], "builtin-frame-overlay")
         self.assertEqual(blur_hexbokeh["match_kind"], "exact")
         self.assertEqual(glitch_tunewave["match_kind"], "exact")
+        self.assertEqual(glitch_distortion["match_kind"], "alias")
 
     def test_effect_catalog_source_manifest_rejects_duplicate_effect_ids(self) -> None:
         source_manifest = self.root / "duplicate_effect_catalog_sources.json"

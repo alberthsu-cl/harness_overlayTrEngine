@@ -8,6 +8,7 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 
 ## Last Completed
 
+- Added the `glitch-distortion` retrieval alias for the existing source-backed `builtin-glitch-distortion` effect and verified it resolves through the catalog and auto-plan path.
 - Added explicit fallback metadata for `generated-*-placeholder` planning modes so direct placeholder requests are recorded as fallback usage instead of looking like ordinary plans.
 - Propagated the enriched planning object through `plan-job`, `flow`, and `sample-video` so the emitted reports reflect the fallback metadata.
 - Added a regression test for explicit generated-placeholder planning metadata.
