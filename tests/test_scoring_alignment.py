@@ -817,7 +817,7 @@ class ScoringAlignmentTests(unittest.TestCase):
             source_b=source_b,
             output_video=output_video,
             fx_id="CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
-            output_root=None,
+            output_root=self.root / "sample_workspace",
             job_name=None,
             width=1920,
             height=1080,
@@ -826,8 +826,8 @@ class ScoringAlignmentTests(unittest.TestCase):
             renderer=None,
             ffmpeg=None,
         )
-        work_tests_root = HARNESS_ROOT / "work" / "tests"
-        before_reports = set(work_tests_root.glob("sample_video_*/sample_video_report.json"))
+        sample_workspace_root = self.root / "sample_workspace"
+        before_reports = set(sample_workspace_root.glob("sample_video_*/sample_video_report.json"))
 
         with (
             patch("overlay_harness.cli._execute_job_command", return_value=run_result),
@@ -838,7 +838,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertTrue(output_video.exists())
 
-        report_files = [path for path in work_tests_root.glob("sample_video_*/sample_video_report.json") if path not in before_reports]
+        report_files = [path for path in sample_workspace_root.glob("sample_video_*/sample_video_report.json") if path not in before_reports]
         self.assertEqual(len(report_files), 1)
         with report_files[0].open("r", encoding="utf-8") as handle:
             payload = json.load(handle)
@@ -847,7 +847,64 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["selected_fx_id"], "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC")
         self.assertEqual(payload["data"]["output_video"], str(output_video))
         self.assertEqual(output_video.read_bytes(), sample_demo_source.read_bytes())
-        self.assertIn("work\\tests", payload["data"]["sample_root"])
+        self.assertIn("sample_workspace", payload["data"]["sample_root"])
+
+    def test_sample_video_command_with_force_mode_uses_forced_planner_mode(self) -> None:
+        source_a = self.root / "source_a"
+        source_b = self.root / "source_b"
+        self._write_bmp_sequence(source_a, [(0, 0, 0), (0, 0, 0), (0, 0, 0)])
+        self._write_bmp_sequence(source_b, [(255, 255, 255), (255, 255, 255), (255, 255, 255)])
+
+        output_video = self.root / "forced_glitch.mp4"
+        sample_demo_source = self.root / "sample_demo_source_force.mp4"
+        sample_demo_source.write_bytes(b"demo-video-force")
+
+        run_result = {
+            "exit_code": 0,
+            "workspace": str(self.root / "workspace_force"),
+            "report": str(self.root / "workspace_force" / "reports" / "run_report.json"),
+            "status": "succeeded",
+            "summary": "renderer produced 30 expected PNG frames",
+            "demo_video_file": str(sample_demo_source),
+        }
+
+        args = SimpleNamespace(
+            source_a=source_a,
+            source_b=source_b,
+            output_video=output_video,
+            fx_id=None,
+            style=None,
+            force_mode="builtin-glitch",
+            output_root=self.root / "sample_workspace",
+            job_name=None,
+            width=1920,
+            height=1080,
+            fps=30,
+            frame_count=30,
+            renderer=None,
+            ffmpeg=None,
+        )
+        sample_workspace_root = self.root / "sample_workspace"
+        before_reports = set(sample_workspace_root.glob("sample_video_*/sample_video_report.json"))
+
+        with (
+            patch("overlay_harness.cli._execute_job_command", return_value=run_result),
+            patch("overlay_harness.cli.validate_job", return_value=SimpleNamespace(is_valid=True, issues=[])),
+        ):
+            exit_code = _handle_sample_video(args, HARNESS_ROOT.parent, HARNESS_ROOT, HARNESS_ROOT / "configs", None)
+
+        self.assertEqual(exit_code, 0)
+        self.assertTrue(output_video.exists())
+
+        report_files = [path for path in sample_workspace_root.glob("sample_video_*/sample_video_report.json") if path not in before_reports]
+        self.assertEqual(len(report_files), 1)
+        with report_files[0].open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+
+        self.assertEqual(payload["status"], "succeeded")
+        self.assertEqual(payload["data"]["planning"]["mode"], "builtin-glitch")
+        self.assertEqual(payload["data"]["selected_fx_id"], "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4")
+        self.assertEqual(output_video.read_bytes(), sample_demo_source.read_bytes())
 
     def test_render_job_preserves_planning_metadata(self) -> None:
         job = self._build_job(reference_transition=self.root / "reference", frame_count=3)

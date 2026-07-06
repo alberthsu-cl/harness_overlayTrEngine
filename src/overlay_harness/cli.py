@@ -30,6 +30,7 @@ from .planner import (
     load_reference_transition_manifest,
     load_transition_analysis,
     load_transition_hint,
+    PLANNER_MODES,
     planner_modes,
     planner_preset,
     planner_presets,
@@ -342,7 +343,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     sample_video_cmd = subparsers.add_parser(
         "sample-video",
-        help="Render a reference MP4 from A/B inputs using an explicit fx_id or the current A/B planner",
+        help="Render a reference MP4 from A/B inputs using an explicit fx_id, a style hint, or a forced planner mode",
     )
     sample_video_cmd.add_argument("--source-a", required=True, help="Path to the prepared source A frames")
     sample_video_cmd.add_argument("--source-b", required=True, help="Path to the prepared source B frames")
@@ -351,6 +352,18 @@ def _build_parser() -> argparse.ArgumentParser:
         "--fx-id",
         required=False,
         help="Optional explicit fx_id to render; when omitted, the command uses the current A/B-driven planner",
+    )
+    sample_video_cmd.add_argument(
+        "--style",
+        required=False,
+        choices=auto_styles(),
+        help="Optional style hint when no explicit fx_id is provided",
+    )
+    sample_video_cmd.add_argument(
+        "--force-mode",
+        required=False,
+        choices=planner_modes(),
+        help="Optional planner mode to force when generating the synthetic sample video",
     )
     sample_video_cmd.add_argument(
         "--output-root",
@@ -1430,45 +1443,76 @@ def _handle_sample_video(
                 "fx_id": selected_fx_id,
             }
         else:
-            sample_hint = analyze_transition(
-                repo_root=repo_root,
-                source_a=source_a,
-                source_b=source_b,
-                input_kind="auto",
-                style_hint=None,
-                intent=None,
-                prefer_generated=False,
-                reference_transition=None,
-                job_name=args.job_name,
-            )
-            write_json(sample_root / "transition_hint.json", sample_hint)
-            planning = build_recommended_plan(
-                repo_root=repo_root,
-                source_a=source_a,
-                source_b=source_b,
-                hint_data={
-                    "style_hint": sample_hint.get("style_hint"),
-                    "input_kind": sample_hint.get("input_kind"),
-                    "job_name": args.job_name,
-                },
-            )
-            mode = str(planning.get("mode"))
-            job_name = args.job_name or str(planning.get("job_name") or "sample_reference")
-            job, _effect_spec_payload = build_planned_job(
-                repo_root=repo_root,
-                source_a=source_a,
-                source_b=source_b,
-                mode=mode,
-                width=args.width,
-                height=args.height,
-                fps=args.fps,
-                frame_count=args.frame_count,
-                output_format="png_sequence",
-                job_name=job_name,
-                reference_transition=None,
-                effect_spec_output=None,
-                planning=planning,
-            )
+            forced_mode = args.force_mode
+            requested_style = args.style
+            if forced_mode:
+                job_name = args.job_name or PLANNER_MODES.get(forced_mode, {}).get("job_name") or forced_mode
+                planning = {
+                    "auto": False,
+                    "mode": forced_mode,
+                    "preset": None,
+                    "job_name": job_name,
+                    "forced": True,
+                    "style": requested_style,
+                }
+                if requested_style is not None:
+                    planning["style"] = requested_style
+                    planning["style_hint"] = requested_style
+                job, _effect_spec_payload = build_planned_job(
+                    repo_root=repo_root,
+                    source_a=source_a,
+                    source_b=source_b,
+                    mode=forced_mode,
+                    width=args.width,
+                    height=args.height,
+                    fps=args.fps,
+                    frame_count=args.frame_count,
+                    output_format="png_sequence",
+                    job_name=job_name,
+                    reference_transition=None,
+                    effect_spec_output=None,
+                    planning=planning,
+                )
+            else:
+                sample_hint = analyze_transition(
+                    repo_root=repo_root,
+                    source_a=source_a,
+                    source_b=source_b,
+                    input_kind="auto",
+                    style_hint=requested_style,
+                    intent=None,
+                    prefer_generated=False,
+                    reference_transition=None,
+                    job_name=args.job_name,
+                )
+                write_json(sample_root / "transition_hint.json", sample_hint)
+                planning = build_recommended_plan(
+                    repo_root=repo_root,
+                    source_a=source_a,
+                    source_b=source_b,
+                    hint_data={
+                        "style_hint": sample_hint.get("style_hint"),
+                        "input_kind": sample_hint.get("input_kind"),
+                        "job_name": args.job_name,
+                    },
+                )
+                mode = str(planning.get("mode"))
+                job_name = args.job_name or str(planning.get("job_name") or "sample_reference")
+                job, _effect_spec_payload = build_planned_job(
+                    repo_root=repo_root,
+                    source_a=source_a,
+                    source_b=source_b,
+                    mode=mode,
+                    width=args.width,
+                    height=args.height,
+                    fps=args.fps,
+                    frame_count=args.frame_count,
+                    output_format="png_sequence",
+                    job_name=job_name,
+                    reference_transition=None,
+                    effect_spec_output=None,
+                    planning=planning,
+                )
             selected_fx_id = job.effect.fx_id
 
         write_json(sample_job_output, job.to_dict())

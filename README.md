@@ -130,9 +130,11 @@ If you want to generate a synthetic sample MP4 from rendered frames, use `sample
 
 ```powershell
 py -3 harness/src/main.py sample-video --source-a harness/examples/inputs/source_a_clean --source-b harness/examples/inputs/source_b_clean --output-video harness/sample_seamless.mp4 --fx-id CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC
+py -3 harness/src/main.py sample-video --source-a harness/examples/inputs/source_a_clean --source-b harness/examples/inputs/source_b_clean --output-video harness/sample_glitch.mp4 --style glitch
+py -3 harness/src/main.py sample-video --source-a harness/examples/inputs/source_a_clean --source-b harness/examples/inputs/source_b_clean --output-video harness/sample_glitch.mp4 --force-mode builtin-glitch
 ```
 
-When `--fx-id` is provided, the command renders that exact effect and copies the encoded MP4 to `--output-video`. If you omit `--fx-id`, the command falls back to the current A/B-driven planner before rendering.
+When `--fx-id` is provided, the command renders that exact effect and copies the encoded MP4 to `--output-video`. If you omit `--fx-id`, `--style glitch` nudges the A/B-driven planner toward a glitch result, and `--force-mode builtin-glitch` bypasses planner selection and renders that builtin mode directly.
 By default the intermediate sample workspace is created under `harness/work/tests/`; pass `--output-root` to place it elsewhere.
 
 ### Real Sample Flow

@@ -8,6 +8,8 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 
 ## Last Completed
 
+- Added `sample-video --style glitch` and `sample-video --force-mode builtin-glitch` support so synthetic reference MP4s can be generated either from planner hints or from a forced builtin mode.
+- Documented the new sample-video invocation options in the README.
 - Consolidated the smoke-test retrieval rollups behind a shared helper while keeping the run and validation batch summaries intact.
 - Propagated retrieval diagnostics into the recommended-plan, run-evaluation, top-level run output, plan-comparison report, smoke-test batch report, and top-level plan-job result payload.
 - Added a source-manifest audit test that verifies every builtin registration matches the live `overlaytrengine/OverlayTrPlugInFx/FxInfo.h` mappings.
@@ -28,7 +30,7 @@ Expand Milestone 2 retrieval coverage:
 2. Move to the next source-backed retrieval task when a new clear mapping is available.
 3. Keep the render/demo artifact contract stable while additional retrieval work continues.
 4. Use the clean fixture pair as the baseline for repeatable flow scoring.
-5. Use the new `sample-video` command for effect-specific synthetic reference videos.
+5. Use the new `sample-video` command for effect-specific synthetic reference videos, including `--style glitch` and `--force-mode builtin-glitch`.
 6. Keep sample/test artifacts grouped under `harness/work/tests/` unless a caller overrides `--output-root`.
 
 ## Why This Is Next
