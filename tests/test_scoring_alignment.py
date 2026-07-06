@@ -1494,6 +1494,39 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(glitch_04["match_kind"], "alias")
         self.assertEqual(glitch_distortion["match_kind"], "alias")
 
+    def test_effect_catalog_prefers_earlier_source_alias_when_priority_ties(self) -> None:
+        catalog = {
+            "effects": [
+                {
+                    "effect_id": "builtin-z-last",
+                    "effect_source": "builtin",
+                    "family": "demo",
+                    "fx_id": "fx-z",
+                    "mode": "builtin-z-last",
+                    "retrieval_priority": 0,
+                    "source_documents": ["demo/z.json"],
+                    "style_hints": ["alpha", "shared"],
+                },
+                {
+                    "effect_id": "builtin-a-first",
+                    "effect_source": "builtin",
+                    "family": "demo",
+                    "fx_id": "fx-a",
+                    "mode": "builtin-a-first",
+                    "retrieval_priority": 0,
+                    "source_documents": ["demo/a.json"],
+                    "style_hints": ["beta", "gamma", "shared"],
+                },
+            ]
+        }
+
+        selected = select_effect_candidate(catalog, style="shared", input_kind="real")
+
+        self.assertIsNotNone(selected)
+        self.assertEqual(selected["effect_id"], "builtin-z-last")
+        self.assertEqual(selected["match_kind"], "alias")
+        self.assertEqual(selected["candidate_count"], 2)
+
     def test_effect_catalog_source_manifest_rejects_duplicate_effect_ids(self) -> None:
         source_manifest = self.root / "duplicate_effect_catalog_sources.json"
         with source_manifest.open("w", encoding="utf-8") as handle:

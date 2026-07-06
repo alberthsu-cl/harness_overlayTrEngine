@@ -499,6 +499,7 @@ def select_effect_candidate(catalog: dict[str, Any], style: str, input_kind: str
     candidates.sort(
         key=lambda effect: (
             _style_match_rank(style, effect),
+            _resolve_style_match_index(style, effect),
             int(effect.get("retrieval_priority", 999)),
             str(effect.get("family", "")),
             str(effect.get("effect_id", "")),
@@ -632,6 +633,17 @@ def _resolve_primary_style_hint(effect: dict[str, Any]) -> str | None:
         return None
 
     return str(style_hints[0]) if style_hints else None
+
+
+def _resolve_style_match_index(style: str, effect: dict[str, Any]) -> int:
+    style_hints = effect.get("style_hints")
+    if not isinstance(style_hints, list):
+        return 999
+
+    for index, style_hint in enumerate(style_hints):
+        if style_hint == style:
+            return index
+    return 999
 
 
 def _style_match_rank(style: str, effect: dict[str, Any]) -> int:

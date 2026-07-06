@@ -29,6 +29,8 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 - Defaulted the sample-video intermediate workspace to `harness/work/tests/` so test artifacts are easier to find.
 - Trimmed the worklog handoff so it stays restart-friendly.
 
+- Refined retrieval tie-breaking to prefer the candidate whose matching style appears earlier in the source manifest when priority is otherwise equal.
+
 ## Next Implementation Step
 
 Expand Milestone 2 retrieval coverage:
