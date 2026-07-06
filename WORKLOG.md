@@ -8,6 +8,9 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 
 ## Last Completed
 
+- Added explicit fallback metadata for `generated-*-placeholder` planning modes so direct placeholder requests are recorded as fallback usage instead of looking like ordinary plans.
+- Propagated the enriched planning object through `plan-job`, `flow`, and `sample-video` so the emitted reports reflect the fallback metadata.
+- Added a regression test for explicit generated-placeholder planning metadata.
 - Added `sample-video --style glitch` and `sample-video --force-mode builtin-glitch` support so synthetic reference MP4s can be generated either from planner hints or from a forced builtin mode.
 - Documented the new sample-video invocation options in the README.
 - Consolidated the smoke-test retrieval rollups behind a shared helper while keeping the run and validation batch summaries intact.
@@ -26,12 +29,10 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 
 Expand Milestone 2 retrieval coverage:
 
-1. Keep generated-placeholder modes as the fallback path only, with explicit fallback metadata.
-2. Move to the next source-backed retrieval task when a new clear mapping is available.
-3. Keep the render/demo artifact contract stable while additional retrieval work continues.
-4. Use the clean fixture pair as the baseline for repeatable flow scoring.
-5. Use the new `sample-video` command for effect-specific synthetic reference videos, including `--style glitch` and `--force-mode builtin-glitch`.
-6. Keep sample/test artifacts grouped under `harness/work/tests/` unless a caller overrides `--output-root`.
+1. Move to the next source-backed retrieval task when a new clear mapping is available.
+2. Keep the render/demo artifact contract stable while additional retrieval work continues.
+3. Use the clean fixture pair as the baseline for repeatable flow scoring.
+4. Keep sample/test artifacts grouped under `harness/work/tests/` unless a caller overrides `--output-root`.
 
 ## Why This Is Next
 

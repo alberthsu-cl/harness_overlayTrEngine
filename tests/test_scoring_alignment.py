@@ -37,6 +37,7 @@ from overlay_harness.effect_catalog import select_effect_candidate
 from overlay_harness.evaluator import score_frame_sequences
 from overlay_harness.models import EffectSpec, InputSpec, RenderJob, RenderSettings
 from overlay_harness.planner import build_recommended_plan
+from overlay_harness.planner import build_planned_job
 from overlay_harness.planner import resolve_auto_plan
 from overlay_harness.report import HarnessReport
 from overlay_harness.validator import validate_job
@@ -1106,6 +1107,44 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertTrue(plan["retrieval"]["fallback_used"])
         self.assertEqual(plan["retrieval"]["fallback_mode"], "generated-glitch-placeholder")
         self.assertEqual(plan["retrieval"]["fallback_reason"], "effect catalog is unavailable")
+
+    def test_explicit_generated_placeholder_mode_includes_fallback_metadata(self) -> None:
+        source_a = self.root / "source_a"
+        source_b = self.root / "source_b"
+        source_a.mkdir(parents=True, exist_ok=True)
+        source_b.mkdir(parents=True, exist_ok=True)
+
+        job, _effect_spec_payload = build_planned_job(
+            repo_root=HARNESS_ROOT.parent,
+            source_a=source_a,
+            source_b=source_b,
+            mode="generated-glitch-placeholder",
+            width=1920,
+            height=1080,
+            fps=30,
+            frame_count=30,
+            output_format="png_sequence",
+            job_name="explicit_placeholder",
+            reference_transition=None,
+            effect_spec_output=None,
+            planning={
+                "auto": False,
+                "mode": "generated-glitch-placeholder",
+                "preset": "real-smoke-generated-glitch",
+                "job_name": "explicit_placeholder",
+            },
+        )
+
+        self.assertIsNotNone(job.planning)
+        self.assertEqual(job.planning["mode"], "generated-glitch-placeholder")
+        self.assertEqual(job.planning["retrieval"]["status"], "not_found")
+        self.assertTrue(job.planning["retrieval"]["fallback_used"])
+        self.assertEqual(job.planning["retrieval"]["fallback_mode"], "generated-glitch-placeholder")
+        self.assertEqual(job.planning["retrieval"]["fallback_preset"], "real-smoke-generated-glitch")
+        self.assertEqual(
+            job.planning["retrieval"]["fallback_reason"],
+            "generated-placeholder mode was requested explicitly",
+        )
 
     def test_index_effects_writes_catalog(self) -> None:
         Args = type(

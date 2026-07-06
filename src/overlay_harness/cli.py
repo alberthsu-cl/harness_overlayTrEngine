@@ -1332,6 +1332,7 @@ def _handle_flow(args, repo_root: Path, harness_root: Path, config_dir: Path, de
             effect_spec_output=effect_spec_output,
             planning=planning,
         )
+        planning = job.planning
 
         if effect_spec_output is not None and effect_spec_payload is not None:
             write_json(effect_spec_output, effect_spec_payload)
@@ -1473,6 +1474,7 @@ def _handle_sample_video(
                     effect_spec_output=None,
                     planning=planning,
                 )
+                planning = job.planning
             else:
                 sample_hint = analyze_transition(
                     repo_root=repo_root,
@@ -1513,6 +1515,7 @@ def _handle_sample_video(
                     effect_spec_output=None,
                     planning=planning,
                 )
+            planning = job.planning
             selected_fx_id = job.effect.fx_id
 
         write_json(sample_job_output, job.to_dict())
@@ -1819,6 +1822,7 @@ def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
             effect_spec_output=effect_spec_output,
             planning=planning_metadata,
         )
+        planning_metadata = job.planning
 
         if effect_spec_output is not None and effect_spec_payload is not None:
             write_json(effect_spec_output, effect_spec_payload)

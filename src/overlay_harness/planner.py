@@ -262,6 +262,12 @@ AUTO_KIND_STYLE_TO_PRESET: dict[tuple[str, str], str] = {
 }
 
 
+GENERATED_PLACEHOLDER_MODES: tuple[str, ...] = (
+    "generated-seamless-placeholder",
+    "generated-glitch-placeholder",
+)
+
+
 def build_planned_job(
     repo_root: Path,
     source_a: Path,
@@ -280,6 +286,14 @@ def build_planned_job(
     mode_config = PLANNER_MODES[mode]
     effect_spec_path = mode_config["effect_spec"]
     effect_spec_payload: dict | None = None
+    planning_payload = dict(planning) if planning is not None else None
+
+    if planning_payload is not None and "retrieval" not in planning_payload and mode in GENERATED_PLACEHOLDER_MODES:
+        planning_payload["retrieval"] = _build_placeholder_fallback_summary(
+            mode=mode,
+            fallback_preset=planning_payload.get("preset") if isinstance(planning_payload.get("preset"), str) else None,
+            input_kind=planning_payload.get("input_kind") if isinstance(planning_payload.get("input_kind"), str) else None,
+        )
 
     if effect_spec_output:
         template_path_raw = mode_config["effect_spec_template"]
@@ -316,10 +330,26 @@ def build_planned_job(
                 frame_count=frame_count,
                 output_format=output_format,
             ),
-            planning=planning,
+            planning=planning_payload,
         ),
         effect_spec_payload,
     )
+
+
+def _build_placeholder_fallback_summary(
+    mode: str,
+    fallback_preset: str | None,
+    input_kind: str | None,
+) -> dict[str, Any]:
+    return {
+        "status": "not_found",
+        "style": mode.removesuffix("-placeholder"),
+        "input_kind": input_kind or "auto",
+        "fallback_used": True,
+        "fallback_mode": mode,
+        "fallback_preset": fallback_preset,
+        "fallback_reason": "generated-placeholder mode was requested explicitly",
+    }
 
 
 def planner_modes() -> tuple[str, ...]:
