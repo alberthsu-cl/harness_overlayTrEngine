@@ -14,19 +14,19 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 
 - Added source-backed display-name aliases for `blur-dollarbokeh`, `glitch-hdistor1`, and `ui-snapshot` so the planner can resolve more of the plugin's literal `FxInfo.h` names.
 - Refined retrieval tie-breaking to prefer the candidate whose matching style appears earlier in the source manifest when priority is otherwise equal.
 - Added the Milestone 3 checklist so the next slice stays bounded to the fixed generated-effect grammar.
+- Added the first Milestone 3 grammar slice: canonical generated styles now resolve through deterministic planner mappings and unsupported generated styles are rejected explicitly.
+- Added tests for the approved generated grammar styles and unsupported-style rejection.
 
 Milestone 2 is complete on the harness side: retrieval is wired through planning, fallback metadata is explicit, the source manifest and planner vocabulary are aligned, and the remaining retrieval improvements were reduced to source-backed alias coverage and tie-breaking.
 
 ## Next Implementation Step
 
-Define Milestone 3 as a bounded grammar layer:
+Continue Milestone 3 grammar coverage:
 
-1. Add a canonical generated-effect grammar for the approved styles: wipe, dissolve, mask, UV shift, feathering, RGB split, and noise.
-2. Map each approved grammar entry to a deterministic planner style and retrieval fallback path.
-3. Keep unsupported generated styles out of auto-plan resolution until they are explicitly added to the grammar.
-4. Add tests that verify the grammar accepts only approved styles and still preserves existing builtin retrieval behavior.
-5. Keep sample/test artifacts grouped under `harness/work/tests/` unless a caller overrides `--output-root`.
-6. Keep the render/demo artifact contract stable while the grammar layer is introduced.
+1. Decide whether any additional grammar aliases or naming cleanup are needed for the approved generated styles.
+2. Keep unsupported generated styles out of auto-plan resolution until they are explicitly added to the grammar.
+3. Keep sample/test artifacts grouped under `harness/work/tests/` unless a caller overrides `--output-root`.
+4. Keep the render/demo artifact contract stable while the grammar layer is expanded.
 
 ## Why This Is Next
 

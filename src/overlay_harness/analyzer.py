@@ -198,6 +198,20 @@ def _resolve_style_hint(
             return "particle", "the intent mentions particle or sparkle motion"
         if any(token in normalized_intent for token in ("frame overlay", "film roll", "overlay")):
             return "frame-overlay", "the intent mentions a frame overlay or film-roll look"
+        if any(token in normalized_intent for token in ("wipe", "wipe transition")):
+            return "wipe", "the intent mentions a wipe transition"
+        if any(token in normalized_intent for token in ("dissolve", "dissolve transition")):
+            return "dissolve", "the intent mentions a dissolve transition"
+        if any(token in normalized_intent for token in ("mask", "mask transition")):
+            return "mask", "the intent mentions a mask transition"
+        if any(token in normalized_intent for token in ("uv shift", "uv-shift")):
+            return "uv-shift", "the intent mentions a UV shift transition"
+        if any(token in normalized_intent for token in ("feathering", "feather")):
+            return "feathering", "the intent mentions a feathering transition"
+        if any(token in normalized_intent for token in ("rgb split", "rgb-split")):
+            return "rgb-split", "the intent mentions an RGB split transition"
+        if any(token in normalized_intent for token in ("noise", "noisy")):
+            return "noise", "the intent mentions a noise transition"
         if any(token in normalized_intent for token in ("blur", "bokeh", "soft focus")):
             return "blur", "the intent mentions a blur or bokeh transition"
         if any(token in normalized_intent for token in ("upgrow", "up grow")):

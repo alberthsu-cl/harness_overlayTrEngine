@@ -37,6 +37,7 @@ from overlay_harness.effect_catalog import select_effect_candidate
 from overlay_harness.evaluator import score_frame_sequences
 from overlay_harness.models import EffectSpec, InputSpec, RenderJob, RenderSettings
 from overlay_harness.planner import build_recommended_plan
+from overlay_harness.planner import GENERATED_EFFECT_GRAMMAR
 from overlay_harness.planner import build_planned_job
 from overlay_harness.planner import auto_styles
 from overlay_harness.planner import resolve_auto_plan
@@ -1417,7 +1418,52 @@ class ScoringAlignmentTests(unittest.TestCase):
             for style in registration["style_hints"]
         }
 
-        self.assertEqual(set(auto_styles()), builtin_style_hints)
+        auto_style_set = set(auto_styles())
+        self.assertTrue(builtin_style_hints.issubset(auto_style_set))
+        self.assertTrue(set(GENERATED_EFFECT_GRAMMAR).issubset(auto_style_set))
+        self.assertIn("generated-seamless", auto_style_set)
+        self.assertIn("generated-glitch", auto_style_set)
+
+    def test_auto_plan_resolves_generated_grammar_styles(self) -> None:
+        source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
+        source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
+
+        expected_modes = {
+            "wipe": ("generated-seamless-placeholder", "real-smoke-seamless"),
+            "dissolve": ("generated-seamless-placeholder", "real-smoke-seamless"),
+            "mask": ("generated-seamless-placeholder", "real-smoke-seamless"),
+            "uv-shift": ("generated-glitch-placeholder", "real-smoke-glitch"),
+            "feathering": ("generated-seamless-placeholder", "real-smoke-seamless"),
+            "rgb-split": ("generated-glitch-placeholder", "real-smoke-glitch"),
+            "noise": ("generated-glitch-placeholder", "real-smoke-glitch"),
+        }
+
+        for style, (expected_mode, expected_preset) in expected_modes.items():
+            with self.subTest(style=style):
+                preset, mode, input_kind = resolve_auto_plan(
+                    repo_root=HARNESS_ROOT.parent,
+                    source_a=source_a,
+                    source_b=source_b,
+                    style=style,
+                    input_kind="auto",
+                )
+
+                self.assertEqual(input_kind, "real")
+                self.assertEqual(mode, expected_mode)
+                self.assertEqual(preset, expected_preset)
+
+    def test_resolve_auto_plan_rejects_unsupported_generated_style(self) -> None:
+        source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
+        source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
+
+        with self.assertRaisesRegex(ValueError, "unsupported style 'generated-warp'"):
+            resolve_auto_plan(
+                repo_root=HARNESS_ROOT.parent,
+                source_a=source_a,
+                source_b=source_b,
+                style="generated-warp",
+                input_kind="auto",
+            )
 
     def test_effect_catalog_selects_additional_builtin_families(self) -> None:
         catalog = build_effect_catalog(HARNESS_ROOT.parent)

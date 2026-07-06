@@ -201,6 +201,38 @@ PLANNER_PRESET_ALIASES: dict[str, str] = {
 }
 
 
+GENERATED_EFFECT_GRAMMAR: dict[str, dict[str, str]] = {
+    "wipe": {
+        "mode": "generated-seamless-placeholder",
+        "preset": "real-smoke-seamless",
+    },
+    "dissolve": {
+        "mode": "generated-seamless-placeholder",
+        "preset": "real-smoke-seamless",
+    },
+    "mask": {
+        "mode": "generated-seamless-placeholder",
+        "preset": "real-smoke-seamless",
+    },
+    "uv-shift": {
+        "mode": "generated-glitch-placeholder",
+        "preset": "real-smoke-glitch",
+    },
+    "feathering": {
+        "mode": "generated-seamless-placeholder",
+        "preset": "real-smoke-seamless",
+    },
+    "rgb-split": {
+        "mode": "generated-glitch-placeholder",
+        "preset": "real-smoke-glitch",
+    },
+    "noise": {
+        "mode": "generated-glitch-placeholder",
+        "preset": "real-smoke-glitch",
+    },
+}
+
+
 AUTO_STYLE_TO_MODE: dict[str, str] = {
     "seamless": "builtin-seamless",
     "smooth": "builtin-seamless",
@@ -256,6 +288,7 @@ AUTO_STYLE_TO_MODE: dict[str, str] = {
     "tunewave": "builtin-glitch-tunewave",
     "distortion": "builtin-glitch-distortion",
     "glitch2": "builtin-glitch-distortion",
+    **{style: spec["mode"] for style, spec in GENERATED_EFFECT_GRAMMAR.items()},
     "generated-seamless": "generated-seamless-placeholder",
     "generated-glitch": "generated-glitch-placeholder",
 }
@@ -529,7 +562,9 @@ def resolve_auto_plan(
         resolved_kind = infer_input_kind(repo_root, source_a, source_b)
 
     preset = AUTO_KIND_STYLE_TO_PRESET.get((resolved_kind, style))
-    mode = AUTO_STYLE_TO_MODE[style]
+    mode = _resolve_style_mode(style)
+    if preset is None and resolved_kind == "real":
+        preset = GENERATED_EFFECT_GRAMMAR.get(style, {}).get("preset")
 
     retrieval = _load_effect_catalog(repo_root)
     retrieved_effect = select_effect_candidate(retrieval, style=style, input_kind=resolved_kind) if retrieval else None
@@ -593,10 +628,20 @@ def _resolve_preset_for_retrieved_mode(
     if mode == "builtin-glitch" and resolved_kind == "real":
         return "real-smoke-glitch"
 
+    if style in GENERATED_EFFECT_GRAMMAR and resolved_kind == "real":
+        return GENERATED_EFFECT_GRAMMAR[style]["preset"]
+
     if style in {"generated-seamless", "generated-glitch"} and resolved_kind == "real":
         return "real-smoke-seamless" if mode == "builtin-seamless" else "real-smoke-glitch"
 
     return existing_preset
+
+
+def _resolve_style_mode(style: str) -> str:
+    try:
+        return AUTO_STYLE_TO_MODE[style]
+    except KeyError as exc:
+        raise ValueError(f"unsupported style '{style}'") from exc
 
 
 def _build_retrieval_summary(
