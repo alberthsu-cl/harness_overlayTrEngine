@@ -1,0 +1,9 @@
+﻿{
+    "mode":  "still_image_pair",
+    "source_image":  "Food.jpg",
+    "format":  "bmp_sequence",
+    "fps":  30,
+    "frame_count":  30,
+    "width":  1920,
+    "height":  1080
+}
