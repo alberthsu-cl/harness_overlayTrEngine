@@ -16,6 +16,8 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 
 - Added the Milestone 3 checklist so the next slice stays bounded to the fixed generated-effect grammar.
 - Added the first Milestone 3 grammar slice: canonical generated styles now resolve through deterministic planner mappings and unsupported generated styles are rejected explicitly.
 - Added tests for the approved generated grammar styles and unsupported-style rejection.
+- Added generated-style aliases like `generated-wipe` and `generated-rgb-split` so the approved grammar can be addressed with consistent naming.
+- Added an analyzer regression test for generated intent phrases that map to the new generated-style aliases.
 
 Milestone 2 is complete on the harness side: retrieval is wired through planning, fallback metadata is explicit, the source manifest and planner vocabulary are aligned, and the remaining retrieval improvements were reduced to source-backed alias coverage and tie-breaking.
 
@@ -26,7 +28,6 @@ Continue Milestone 3 grammar coverage:
 1. Decide whether any additional grammar aliases or naming cleanup are needed for the approved generated styles.
 2. Keep unsupported generated styles out of auto-plan resolution until they are explicitly added to the grammar.
 3. Keep sample/test artifacts grouped under `harness/work/tests/` unless a caller overrides `--output-root`.
-4. Keep the render/demo artifact contract stable while the grammar layer is expanded.
 
 ## Why This Is Next
 

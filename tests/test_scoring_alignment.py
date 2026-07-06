@@ -34,10 +34,12 @@ from overlay_harness.effect_catalog import build_effect_catalog
 from overlay_harness.effect_catalog import build_effect_catalog_audit
 from overlay_harness.effect_catalog import load_effect_catalog
 from overlay_harness.effect_catalog import select_effect_candidate
+from overlay_harness.analyzer import analyze_transition
 from overlay_harness.evaluator import score_frame_sequences
 from overlay_harness.models import EffectSpec, InputSpec, RenderJob, RenderSettings
 from overlay_harness.planner import build_recommended_plan
 from overlay_harness.planner import GENERATED_EFFECT_GRAMMAR
+from overlay_harness.planner import GENERATED_EFFECT_GRAMMAR_ALIASES
 from overlay_harness.planner import build_planned_job
 from overlay_harness.planner import auto_styles
 from overlay_harness.planner import resolve_auto_plan
@@ -1116,6 +1118,24 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertGreaterEqual(plan["retrieval"]["candidate_count"], 1)
         self.assertFalse(plan["retrieval"]["fallback_used"])
 
+    def test_analyzer_prefers_generated_alias_styles_from_intent(self) -> None:
+        source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
+        source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
+
+        hint = analyze_transition(
+            repo_root=HARNESS_ROOT.parent,
+            source_a=source_a,
+            source_b=source_b,
+            input_kind="auto",
+            style_hint=None,
+            intent="generated rgb split transition",
+            prefer_generated=False,
+            reference_transition=None,
+            job_name=None,
+        )
+
+        self.assertEqual(hint["style_hint"], "generated-rgb-split")
+
     def test_auto_plan_prefers_catalog_retrieval_for_generated_seamless(self) -> None:
         source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
         source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
@@ -1421,6 +1441,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         auto_style_set = set(auto_styles())
         self.assertTrue(builtin_style_hints.issubset(auto_style_set))
         self.assertTrue(set(GENERATED_EFFECT_GRAMMAR).issubset(auto_style_set))
+        self.assertTrue(set(GENERATED_EFFECT_GRAMMAR_ALIASES).issubset(auto_style_set))
         self.assertIn("generated-seamless", auto_style_set)
         self.assertIn("generated-glitch", auto_style_set)
 
@@ -1436,6 +1457,30 @@ class ScoringAlignmentTests(unittest.TestCase):
             "feathering": ("generated-seamless-placeholder", "real-smoke-seamless"),
             "rgb-split": ("generated-glitch-placeholder", "real-smoke-glitch"),
             "noise": ("generated-glitch-placeholder", "real-smoke-glitch"),
+        }
+
+        for style, (expected_mode, expected_preset) in expected_modes.items():
+            with self.subTest(style=style):
+                preset, mode, input_kind = resolve_auto_plan(
+                    repo_root=HARNESS_ROOT.parent,
+                    source_a=source_a,
+                    source_b=source_b,
+                    style=style,
+                    input_kind="auto",
+                )
+
+                self.assertEqual(input_kind, "real")
+                self.assertEqual(mode, expected_mode)
+                self.assertEqual(preset, expected_preset)
+
+    def test_auto_plan_resolves_generated_grammar_alias_styles(self) -> None:
+        source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
+        source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
+
+        expected_modes = {
+            "generated-wipe": ("generated-seamless-placeholder", "real-smoke-seamless"),
+            "generated-uv-shift": ("generated-glitch-placeholder", "real-smoke-glitch"),
+            "generated-rgb-split": ("generated-glitch-placeholder", "real-smoke-glitch"),
         }
 
         for style, (expected_mode, expected_preset) in expected_modes.items():

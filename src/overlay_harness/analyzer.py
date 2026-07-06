@@ -198,6 +198,22 @@ def _resolve_style_hint(
             return "particle", "the intent mentions particle or sparkle motion"
         if any(token in normalized_intent for token in ("frame overlay", "film roll", "overlay")):
             return "frame-overlay", "the intent mentions a frame overlay or film-roll look"
+        if "generated" in normalized_intent and any(token in normalized_intent for token in ("wipe", "wipe transition")):
+            return "generated-wipe", "the intent mentions a generated wipe transition"
+        if "generated" in normalized_intent and any(
+            token in normalized_intent for token in ("dissolve", "dissolve transition")
+        ):
+            return "generated-dissolve", "the intent mentions a generated dissolve transition"
+        if "generated" in normalized_intent and any(token in normalized_intent for token in ("mask", "mask transition")):
+            return "generated-mask", "the intent mentions a generated mask transition"
+        if "generated" in normalized_intent and any(token in normalized_intent for token in ("uv shift", "uv-shift")):
+            return "generated-uv-shift", "the intent mentions a generated UV shift transition"
+        if "generated" in normalized_intent and any(token in normalized_intent for token in ("feathering", "feather")):
+            return "generated-feathering", "the intent mentions a generated feathering transition"
+        if "generated" in normalized_intent and any(token in normalized_intent for token in ("rgb split", "rgb-split")):
+            return "generated-rgb-split", "the intent mentions a generated RGB split transition"
+        if "generated" in normalized_intent and any(token in normalized_intent for token in ("noise", "noisy")):
+            return "generated-noise", "the intent mentions a generated noise transition"
         if any(token in normalized_intent for token in ("wipe", "wipe transition")):
             return "wipe", "the intent mentions a wipe transition"
         if any(token in normalized_intent for token in ("dissolve", "dissolve transition")):
