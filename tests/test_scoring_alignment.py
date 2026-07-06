@@ -1044,6 +1044,22 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(mode, "builtin-glitch")
         self.assertEqual(preset, "real-smoke-glitch")
 
+    def test_auto_plan_prefers_catalog_retrieval_for_ui_snapshot(self) -> None:
+        source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
+        source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
+
+        preset, mode, input_kind = resolve_auto_plan(
+            repo_root=HARNESS_ROOT.parent,
+            source_a=source_a,
+            source_b=source_b,
+            style="ui-snapshot",
+            input_kind="auto",
+        )
+
+        self.assertEqual(input_kind, "real")
+        self.assertEqual(mode, "builtin-ui-snapshot")
+        self.assertIsNone(preset)
+
     def test_auto_plan_prefers_catalog_retrieval_for_slide_07(self) -> None:
         source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
         source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
@@ -1415,10 +1431,13 @@ class ScoringAlignmentTests(unittest.TestCase):
         blur_fadeblur = select_effect_candidate(catalog, style="blur-fadeblur", input_kind="real")
         blur_rotateblur = select_effect_candidate(catalog, style="blur-rotateblur", input_kind="real")
         blur_dimfade = select_effect_candidate(catalog, style="blur-dimfade", input_kind="real")
+        blur_dollarbokeh = select_effect_candidate(catalog, style="blur-dollarbokeh", input_kind="real")
         ui = select_effect_candidate(catalog, style="ui", input_kind="real")
         ui_app_swipe = select_effect_candidate(catalog, style="ui-app-swipe", input_kind="real")
         ui_rotate_face = select_effect_candidate(catalog, style="ui-rotate-face", input_kind="real")
+        ui_snapshot = select_effect_candidate(catalog, style="ui-snapshot", input_kind="real")
         glitch_hdistortion = select_effect_candidate(catalog, style="glitch-hdistortion", input_kind="real")
+        glitch_hdistor1 = select_effect_candidate(catalog, style="glitch-hdistor1", input_kind="real")
         glitch_hdistortion2 = select_effect_candidate(catalog, style="glitch-hdistortion2", input_kind="real")
         glitch_stretch_swipe = select_effect_candidate(catalog, style="glitch-stretch-swipe", input_kind="real")
         glitch_tunewave = select_effect_candidate(catalog, style="glitch-tunewave", input_kind="real")
@@ -1442,10 +1461,13 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertIsNotNone(blur_fadeblur)
         self.assertIsNotNone(blur_rotateblur)
         self.assertIsNotNone(blur_dimfade)
+        self.assertIsNotNone(blur_dollarbokeh)
         self.assertIsNotNone(ui)
         self.assertIsNotNone(ui_app_swipe)
         self.assertIsNotNone(ui_rotate_face)
+        self.assertIsNotNone(ui_snapshot)
         self.assertIsNotNone(glitch_hdistortion)
+        self.assertIsNotNone(glitch_hdistor1)
         self.assertIsNotNone(glitch_hdistortion2)
         self.assertIsNotNone(glitch_stretch_swipe)
         self.assertIsNotNone(glitch_tunewave)
@@ -1468,10 +1490,13 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(blur_fadeblur["effect_id"], "builtin-blur-fadeblur")
         self.assertEqual(blur_rotateblur["effect_id"], "builtin-blur-rotateblur")
         self.assertEqual(blur_dimfade["effect_id"], "builtin-blur-dimfade")
+        self.assertEqual(blur_dollarbokeh["effect_id"], "builtin-blur")
         self.assertEqual(ui["effect_id"], "builtin-ui-snapshot")
         self.assertEqual(ui_app_swipe["effect_id"], "builtin-ui-app-swipe")
         self.assertEqual(ui_rotate_face["effect_id"], "builtin-ui-rotate-face")
+        self.assertEqual(ui_snapshot["effect_id"], "builtin-ui-snapshot")
         self.assertEqual(glitch_hdistortion["effect_id"], "builtin-glitch-hdistortion")
+        self.assertEqual(glitch_hdistor1["effect_id"], "builtin-glitch-hdistortion")
         self.assertEqual(glitch_hdistortion2["effect_id"], "builtin-glitch-hdistortion2")
         self.assertEqual(glitch_stretch_swipe["effect_id"], "builtin-glitch-stretch-swipe")
         self.assertEqual(glitch_tunewave["effect_id"], "builtin-glitch-tunewave")
@@ -1486,6 +1511,9 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(particle["effect_id"], "builtin-particle-spray")
         self.assertEqual(frame_overlay["effect_id"], "builtin-frame-overlay")
         self.assertEqual(blur_hexbokeh["match_kind"], "exact")
+        self.assertEqual(blur_dollarbokeh["match_kind"], "exact")
+        self.assertEqual(ui_snapshot["match_kind"], "exact")
+        self.assertEqual(glitch_hdistor1["match_kind"], "exact")
         self.assertEqual(glitch_tunewave["match_kind"], "exact")
         self.assertEqual(slide_07["match_kind"], "alias")
         self.assertEqual(camera_02["match_kind"], "alias")

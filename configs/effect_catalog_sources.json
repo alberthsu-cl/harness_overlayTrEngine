@@ -117,6 +117,7 @@
       "family": "blur",
       "fx_id": "Blur_DollarBokeh",
       "style_hints": [
+        "blur-dollarbokeh",
         "blur",
         "bokeh"
       ],
@@ -279,6 +280,7 @@
       "family": "ui",
       "fx_id": "UI_Snapshot",
       "style_hints": [
+        "ui-snapshot",
         "ui",
         "snapshot"
       ],
@@ -333,6 +335,7 @@
       "family": "glitch",
       "fx_id": "Glitch_HDistor1",
       "style_hints": [
+        "glitch-hdistor1",
         "glitch-hdistortion",
         "hdistortion"
       ],

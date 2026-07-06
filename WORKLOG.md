@@ -29,6 +29,7 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 - Defaulted the sample-video intermediate workspace to `harness/work/tests/` so test artifacts are easier to find.
 - Trimmed the worklog handoff so it stays restart-friendly.
 
+- Added source-backed display-name aliases for `blur-dollarbokeh`, `glitch-hdistor1`, and `ui-snapshot` so the planner can resolve more of the plugin's literal `FxInfo.h` names.
 - Refined retrieval tie-breaking to prefer the candidate whose matching style appears earlier in the source manifest when priority is otherwise equal.
 
 ## Next Implementation Step
