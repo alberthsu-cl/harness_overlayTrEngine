@@ -4,7 +4,7 @@ This file is the persistent session handoff for the `harness/` project. Update i
 
 ## Current Objective
 
-Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next major objective is Milestone 2: index existing `OverlayTrPlugInFx` transitions and use retrieval before generation.
+Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retrieval coverage is complete; the next major objective is Milestone 3, to be defined.
 
 ## Last Completed
 
@@ -32,14 +32,15 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 - Added source-backed display-name aliases for `blur-dollarbokeh`, `glitch-hdistor1`, and `ui-snapshot` so the planner can resolve more of the plugin's literal `FxInfo.h` names.
 - Refined retrieval tie-breaking to prefer the candidate whose matching style appears earlier in the source manifest when priority is otherwise equal.
 
+Milestone 2 is complete on the harness side: retrieval is wired through planning, fallback metadata is explicit, the source manifest and planner vocabulary are aligned, and the remaining retrieval improvements were reduced to source-backed alias coverage and tie-breaking.
+
 ## Next Implementation Step
 
-Expand Milestone 2 retrieval coverage:
+Define Milestone 3 scope and acceptance criteria:
 
-1. Move to the next source-backed retrieval task when a new clear mapping is available.
-2. Keep the render/demo artifact contract stable while additional retrieval work continues.
-3. Use the clean fixture pair as the baseline for repeatable flow scoring.
-4. Keep sample/test artifacts grouped under `harness/work/tests/` unless a caller overrides `--output-root`.
+1. Confirm the Milestone 3 objective before changing code.
+2. Keep the render/demo artifact contract stable while the next milestone is defined.
+3. Keep sample/test artifacts grouped under `harness/work/tests/` unless a caller overrides `--output-root`.
 
 ## Why This Is Next
 
