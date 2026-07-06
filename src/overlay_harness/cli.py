@@ -550,6 +550,7 @@ def _execute_job_command(
     job_path: Path,
     command_name: str,
     renderer: str | None = None,
+    ffmpeg_path: str | None = None,
 ) -> dict:
     job = load_render_job(job_path)
     allowed_effects = load_allowed_effects(config_dir)
@@ -604,6 +605,7 @@ def _execute_job_command(
                 height=job.render.height,
                 frame_count=job.render.frame_count,
                 output=similarity_report_file,
+                ffmpeg_path=ffmpeg_path,
             )
         except Exception as exc:
             similarity_report = {
@@ -622,6 +624,7 @@ def _execute_job_command(
             artifacts_dir=workspace.artifacts_dir,
             output_file=demo_video_file,
             fps=job.render.fps,
+            ffmpeg_path=ffmpeg_path,
         )
         invocation.demo_video_file = str(demo_video_file)
         invocation.demo_video_status = str(demo_video_result.get("status"))
@@ -1331,6 +1334,7 @@ def _handle_flow(args, repo_root: Path, harness_root: Path, config_dir: Path, de
                 job_path=job_output,
                 command_name="run",
                 renderer=renderer,
+                ffmpeg_path=args.ffmpeg,
             )
     except Exception as exc:
         flow_error = str(exc)
@@ -1380,7 +1384,7 @@ def _handle_sample_video(
     output_root = _resolve_path_argument(args.output_root, repo_root) if getattr(args, "output_root", None) else (harness_root / "work" / "tests")
     output_video = Path(args.output_video)
     if not output_video.is_absolute():
-        output_video = (output_root / output_video).resolve()
+        output_video = (repo_root / output_video).resolve()
     sample_root = output_root / f"sample_video_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}_{uuid4().hex[:8]}"
     sample_root.mkdir(parents=True, exist_ok=False)
 
@@ -1479,6 +1483,7 @@ def _handle_sample_video(
             job_path=sample_job_output,
             command_name="run",
             renderer=renderer,
+            ffmpeg_path=args.ffmpeg,
         )
         demo_video_file = run_result.get("demo_video_file") if isinstance(run_result, dict) else None
         if demo_video_file:
