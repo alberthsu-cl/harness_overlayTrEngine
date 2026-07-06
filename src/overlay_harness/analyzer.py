@@ -192,6 +192,16 @@ def _resolve_style_hint(
 
     normalized_intent = (intent or "").strip().lower()
     if normalized_intent:
+        def _generated_or_builtin(
+            generated_style: str,
+            builtin_style: str,
+            generated_reason: str,
+            builtin_reason: str,
+        ) -> tuple[str, str]:
+            if prefer_generated:
+                return generated_style, generated_reason
+            return builtin_style, builtin_reason
+
         if any(token in normalized_intent for token in ("camcorder", "camera")):
             return "camcorder", "the intent mentions a camcorder or camera transition"
         if any(token in normalized_intent for token in ("particle", "sparkle", "spray")):
@@ -215,19 +225,54 @@ def _resolve_style_hint(
         if "generated" in normalized_intent and any(token in normalized_intent for token in ("noise", "noisy")):
             return "generated-noise", "the intent mentions a generated noise transition"
         if any(token in normalized_intent for token in ("wipe", "wipe transition")):
-            return "wipe", "the intent mentions a wipe transition"
+            return _generated_or_builtin(
+                "generated-wipe",
+                "wipe",
+                "the intent mentions a generated wipe transition",
+                "the intent mentions a wipe transition",
+            )
         if any(token in normalized_intent for token in ("dissolve", "dissolve transition")):
-            return "dissolve", "the intent mentions a dissolve transition"
+            return _generated_or_builtin(
+                "generated-dissolve",
+                "dissolve",
+                "the intent mentions a generated dissolve transition",
+                "the intent mentions a dissolve transition",
+            )
         if any(token in normalized_intent for token in ("mask", "mask transition")):
-            return "mask", "the intent mentions a mask transition"
+            return _generated_or_builtin(
+                "generated-mask",
+                "mask",
+                "the intent mentions a generated mask transition",
+                "the intent mentions a mask transition",
+            )
         if any(token in normalized_intent for token in ("uv shift", "uv-shift")):
-            return "uv-shift", "the intent mentions a UV shift transition"
+            return _generated_or_builtin(
+                "generated-uv-shift",
+                "uv-shift",
+                "the intent mentions a generated UV shift transition",
+                "the intent mentions a UV shift transition",
+            )
         if any(token in normalized_intent for token in ("feathering", "feather")):
-            return "feathering", "the intent mentions a feathering transition"
+            return _generated_or_builtin(
+                "generated-feathering",
+                "feathering",
+                "the intent mentions a generated feathering transition",
+                "the intent mentions a feathering transition",
+            )
         if any(token in normalized_intent for token in ("rgb split", "rgb-split")):
-            return "rgb-split", "the intent mentions an RGB split transition"
+            return _generated_or_builtin(
+                "generated-rgb-split",
+                "rgb-split",
+                "the intent mentions a generated RGB split transition",
+                "the intent mentions an RGB split transition",
+            )
         if any(token in normalized_intent for token in ("noise", "noisy")):
-            return "noise", "the intent mentions a noise transition"
+            return _generated_or_builtin(
+                "generated-noise",
+                "noise",
+                "the intent mentions a generated noise transition",
+                "the intent mentions a noise transition",
+            )
         if any(token in normalized_intent for token in ("blur", "bokeh", "soft focus")):
             return "blur", "the intent mentions a blur or bokeh transition"
         if any(token in normalized_intent for token in ("upgrow", "up grow")):

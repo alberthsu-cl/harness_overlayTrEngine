@@ -1136,6 +1136,24 @@ class ScoringAlignmentTests(unittest.TestCase):
 
         self.assertEqual(hint["style_hint"], "generated-rgb-split")
 
+    def test_analyzer_prefers_generated_alias_when_requested(self) -> None:
+        source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
+        source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
+
+        hint = analyze_transition(
+            repo_root=HARNESS_ROOT.parent,
+            source_a=source_a,
+            source_b=source_b,
+            input_kind="auto",
+            style_hint=None,
+            intent="wipe transition",
+            prefer_generated=True,
+            reference_transition=None,
+            job_name=None,
+        )
+
+        self.assertEqual(hint["style_hint"], "generated-wipe")
+
     def test_auto_plan_prefers_catalog_retrieval_for_generated_seamless(self) -> None:
         source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
         source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
