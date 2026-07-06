@@ -1044,6 +1044,22 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(mode, "builtin-glitch")
         self.assertEqual(preset, "real-smoke-glitch")
 
+    def test_auto_plan_prefers_catalog_retrieval_for_slide_07(self) -> None:
+        source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
+        source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
+
+        preset, mode, input_kind = resolve_auto_plan(
+            repo_root=HARNESS_ROOT.parent,
+            source_a=source_a,
+            source_b=source_b,
+            style="slide-07",
+            input_kind="auto",
+        )
+
+        self.assertEqual(input_kind, "real")
+        self.assertEqual(mode, "builtin-seamless")
+        self.assertEqual(preset, "real-smoke-seamless")
+
     def test_auto_plan_prefers_catalog_retrieval_for_glitch_distortion(self) -> None:
         source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
         source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
@@ -1406,6 +1422,10 @@ class ScoringAlignmentTests(unittest.TestCase):
         glitch_hdistortion2 = select_effect_candidate(catalog, style="glitch-hdistortion2", input_kind="real")
         glitch_stretch_swipe = select_effect_candidate(catalog, style="glitch-stretch-swipe", input_kind="real")
         glitch_tunewave = select_effect_candidate(catalog, style="glitch-tunewave", input_kind="real")
+        slide_07 = select_effect_candidate(catalog, style="slide-07", input_kind="real")
+        camera_02 = select_effect_candidate(catalog, style="camera-02", input_kind="real")
+        sparkle_01 = select_effect_candidate(catalog, style="sparkle-01", input_kind="real")
+        film_roll_01 = select_effect_candidate(catalog, style="film-roll-01", input_kind="real")
         glitch_04 = select_effect_candidate(catalog, style="glitch-04", input_kind="real")
         glitch_distortion = select_effect_candidate(catalog, style="glitch-distortion", input_kind="real")
         distortion = select_effect_candidate(catalog, style="distortion", input_kind="real")
@@ -1429,6 +1449,10 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertIsNotNone(glitch_hdistortion2)
         self.assertIsNotNone(glitch_stretch_swipe)
         self.assertIsNotNone(glitch_tunewave)
+        self.assertIsNotNone(slide_07)
+        self.assertIsNotNone(camera_02)
+        self.assertIsNotNone(sparkle_01)
+        self.assertIsNotNone(film_roll_01)
         self.assertIsNotNone(glitch_04)
         self.assertIsNotNone(glitch_distortion)
         self.assertIsNotNone(distortion)
@@ -1451,6 +1475,10 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(glitch_hdistortion2["effect_id"], "builtin-glitch-hdistortion2")
         self.assertEqual(glitch_stretch_swipe["effect_id"], "builtin-glitch-stretch-swipe")
         self.assertEqual(glitch_tunewave["effect_id"], "builtin-glitch-tunewave")
+        self.assertEqual(slide_07["effect_id"], "builtin-seamless")
+        self.assertEqual(camera_02["effect_id"], "builtin-camcorder")
+        self.assertEqual(sparkle_01["effect_id"], "builtin-particle-spray")
+        self.assertEqual(film_roll_01["effect_id"], "builtin-frame-overlay")
         self.assertEqual(glitch_04["effect_id"], "builtin-glitch")
         self.assertEqual(glitch_distortion["effect_id"], "builtin-glitch-distortion")
         self.assertEqual(distortion["effect_id"], "builtin-glitch-distortion")
@@ -1459,6 +1487,10 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(frame_overlay["effect_id"], "builtin-frame-overlay")
         self.assertEqual(blur_hexbokeh["match_kind"], "exact")
         self.assertEqual(glitch_tunewave["match_kind"], "exact")
+        self.assertEqual(slide_07["match_kind"], "alias")
+        self.assertEqual(camera_02["match_kind"], "alias")
+        self.assertEqual(sparkle_01["match_kind"], "alias")
+        self.assertEqual(film_roll_01["match_kind"], "alias")
         self.assertEqual(glitch_04["match_kind"], "alias")
         self.assertEqual(glitch_distortion["match_kind"], "alias")
 

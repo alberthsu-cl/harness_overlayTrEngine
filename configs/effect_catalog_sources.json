@@ -10,6 +10,7 @@
       "fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
       "style_hints": [
         "seamless",
+        "slide-07",
         "smooth",
         "generated-seamless"
       ],
@@ -52,6 +53,7 @@
       "fx_id": "CES_PlugIn_Camera.dll\\DSP_TR_Camera_Camcorder",
       "style_hints": [
         "camera",
+        "camera-02",
         "camcorder"
       ],
       "retrieval_priority": 0,
@@ -72,6 +74,7 @@
       "fx_id": "CES_PlugIn_ParticleSpray.dll\\DSP_TR_Sparkle_01",
       "style_hints": [
         "particle",
+        "sparkle-01",
         "sparkle",
         "spray"
       ],
@@ -94,6 +97,7 @@
       "fx_id": "CES_PlugIn_FrameOverlay.dll\\DSP_TR_FrameOverlay_01",
       "style_hints": [
         "frame-overlay",
+        "film-roll-01",
         "film-roll",
         "overlay"
       ],

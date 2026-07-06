@@ -8,6 +8,7 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. The next maj
 
 ## Last Completed
 
+- Added display-name aliases from `FxInfo.h` for `slide-07`, `camera-02`, `sparkle-01`, and `film-roll-01` so the source-backed vocabulary is closer to the plugin’s own labels.
 - Added the `glitch-04` source-backed alias for the builtin glitch effect and verified it resolves through retrieval and auto-plan.
 - Added a guardrail test that keeps planner style aliases aligned with the builtin source manifest style hints.
 - Added the `glitch-distortion` retrieval alias for the existing source-backed `builtin-glitch-distortion` effect and verified it resolves through the catalog and auto-plan path.
