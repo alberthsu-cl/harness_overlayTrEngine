@@ -38,6 +38,7 @@ from overlay_harness.evaluator import score_frame_sequences
 from overlay_harness.models import EffectSpec, InputSpec, RenderJob, RenderSettings
 from overlay_harness.planner import build_recommended_plan
 from overlay_harness.planner import build_planned_job
+from overlay_harness.planner import auto_styles
 from overlay_harness.planner import resolve_auto_plan
 from overlay_harness.report import HarnessReport
 from overlay_harness.validator import validate_job
@@ -1358,6 +1359,17 @@ class ScoringAlignmentTests(unittest.TestCase):
             {registration["effect_id"] for registration in generated_registrations},
             {"generated-seamless-placeholder", "generated-glitch-placeholder"},
         )
+
+    def test_planner_styles_match_builtin_source_manifest_aliases(self) -> None:
+        source_manifest = json.loads((HARNESS_ROOT / "configs" / "effect_catalog_sources.json").read_text(encoding="utf-8"))
+        builtin_style_hints = {
+            style
+            for registration in source_manifest["registrations"]
+            if registration["effect_source"] == "builtin"
+            for style in registration["style_hints"]
+        }
+
+        self.assertEqual(set(auto_styles()), builtin_style_hints)
 
     def test_effect_catalog_selects_additional_builtin_families(self) -> None:
         catalog = build_effect_catalog(HARNESS_ROOT.parent)
