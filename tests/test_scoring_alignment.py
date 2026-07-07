@@ -966,11 +966,17 @@ class ScoringAlignmentTests(unittest.TestCase):
 
         self.assertEqual(result["demo_video_file"], str(demo_video_file))
         self.assertEqual(result["demo_video_result"]["status"], "succeeded")
+        self.assertEqual(result["workspace"], str(workspace_root))
+        self.assertEqual(result["render_dir"], str(workspace.render_dir))
+        self.assertEqual(result["reports_dir"], str(workspace.reports_dir))
+        self.assertEqual(result["artifacts_dir"], str(workspace.artifacts_dir))
 
         report_path = Path(result["report"])
         with report_path.open("r", encoding="utf-8") as handle:
             payload = json.load(handle)
 
+        self.assertEqual(payload["data"]["request_file"], str(workspace.render_dir / "render_request.json"))
+        self.assertEqual(payload["data"]["renderer_result_file"], str(workspace.render_dir / "renderer_result.json"))
         self.assertEqual(payload["data"]["demo_video_file"], str(demo_video_file))
         self.assertEqual(payload["data"]["demo_video_status"], "succeeded")
         self.assertEqual(payload["data"]["demo_video_result"]["output_file"], str(demo_video_file))
