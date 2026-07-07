@@ -240,7 +240,7 @@ GENERATED_EFFECT_STYLES: tuple[str, ...] = tuple(GENERATED_EFFECT_GRAMMAR.keys()
 GENERATED_EFFECT_STYLE_ALIASES: tuple[str, ...] = tuple(GENERATED_EFFECT_GRAMMAR_ALIASES.keys())
 GENERATED_EFFECT_SUPPORTED_STYLES: tuple[str, ...] = GENERATED_EFFECT_STYLES + GENERATED_EFFECT_STYLE_ALIASES
 GENERATED_EFFECT_PLACEHOLDER_MODES: tuple[str, ...] = tuple(
-    sorted({spec["mode"] for spec in GENERATED_EFFECT_GRAMMAR.values()})
+    dict.fromkeys(spec["mode"] for spec in GENERATED_EFFECT_GRAMMAR.values())
 )
 
 
