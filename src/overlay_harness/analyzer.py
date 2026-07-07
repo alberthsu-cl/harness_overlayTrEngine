@@ -6,12 +6,10 @@ from pathlib import Path
 
 from typing import Any
 
-from .planner import auto_styles, build_recommended_plan, infer_input_kind
-from .planner import GENERATED_EFFECT_SUPPORTED_STYLES
+from .planner import GENERATED_EFFECT_SUPPORTED_STYLES, auto_styles, build_recommended_plan, infer_input_kind
 
 
 STYLE_HINTS = set(auto_styles())
-GENERATED_STYLE_HINTS = set(GENERATED_EFFECT_SUPPORTED_STYLES)
 ANALYSIS_ARTIFACT_VERSION = 2
 
 
