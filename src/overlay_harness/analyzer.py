@@ -135,6 +135,7 @@ def build_transition_analysis_artifact(
             "analysis_mode": analyzer_inputs.get("analysis_mode", "deterministic_rules"),
             "transition_summary": _build_transition_summary(signals),
             "transition_window": analyzer_inputs.get("transition_window"),
+            "transition_progression": _build_transition_progression(analyzer_inputs.get("transition_window")),
             "resolved": {
                 "style_hint": hint.get("style_hint"),
                 "input_kind": hint.get("input_kind"),
@@ -491,4 +492,32 @@ def _build_transition_summary(signals: dict[str, Any]) -> dict[str, Any]:
         "combined_motion_level": signals.get("combined_motion_level") if isinstance(signals, dict) else None,
         "combined_visual_energy": signals.get("combined_visual_energy") if isinstance(signals, dict) else None,
         "detected_static_pair": signals.get("detected_static_pair") if isinstance(signals, dict) else None,
+    }
+
+
+def _build_transition_progression(transition_window: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(transition_window, dict):
+        return {
+            "window_span_frames": None,
+            "window_midpoint_frame": None,
+            "window_coverage_ratio": None,
+            "window_message": None,
+        }
+
+    frame_count = transition_window.get("frame_count")
+    detected_start_frame = transition_window.get("detected_start_frame")
+    detected_end_frame = transition_window.get("detected_end_frame")
+    detected_frame_count = transition_window.get("detected_frame_count")
+    midpoint_frame = None
+    if isinstance(detected_start_frame, int) and isinstance(detected_end_frame, int):
+        midpoint_frame = detected_start_frame + ((detected_end_frame - detected_start_frame) // 2)
+    coverage_ratio = None
+    if isinstance(frame_count, int) and frame_count > 0 and isinstance(detected_frame_count, int):
+        coverage_ratio = round(detected_frame_count / frame_count, 4)
+
+    return {
+        "window_span_frames": detected_frame_count,
+        "window_midpoint_frame": midpoint_frame,
+        "window_coverage_ratio": coverage_ratio,
+        "window_message": transition_window.get("message"),
     }
