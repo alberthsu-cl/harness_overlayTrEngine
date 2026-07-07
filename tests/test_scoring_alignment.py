@@ -739,6 +739,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["artifacts"]["run_report"], str(run_result["report"]))
         self.assertEqual(payload["data"]["artifacts"]["demo_video_file"], str(run_result["demo_video_file"]))
         self.assertEqual(payload["data"]["run"]["demo_video_file"], str(run_result["demo_video_file"]))
+        self.assertEqual(payload["data"]["artifacts"]["analysis_file"], str(output_root / report_files[0].parent.name / "transition_analysis.json"))
 
     def test_analyze_sample_video_command_writes_video_backed_analysis(self) -> None:
         output_root = self.root / "sample_video_analysis_output"

@@ -1546,6 +1546,8 @@ def _handle_flow(args, repo_root: Path, harness_root: Path, config_dir: Path, de
         json.dumps(
             {
                 "flow_report": str(report_output),
+                "analysis_output": str(analysis_output),
+                "analysis_artifact": analysis_artifact,
                 "status": report_data.status,
                 "summary": report_data.summary,
                 "flow_root": str(flow_root),
