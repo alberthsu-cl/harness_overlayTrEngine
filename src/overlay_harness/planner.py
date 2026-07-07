@@ -239,6 +239,9 @@ GENERATED_EFFECT_GRAMMAR_ALIASES: dict[str, str] = {
 GENERATED_EFFECT_STYLES: tuple[str, ...] = tuple(GENERATED_EFFECT_GRAMMAR.keys())
 GENERATED_EFFECT_STYLE_ALIASES: tuple[str, ...] = tuple(GENERATED_EFFECT_GRAMMAR_ALIASES.keys())
 GENERATED_EFFECT_SUPPORTED_STYLES: tuple[str, ...] = GENERATED_EFFECT_STYLES + GENERATED_EFFECT_STYLE_ALIASES
+GENERATED_EFFECT_PLACEHOLDER_MODES: tuple[str, ...] = tuple(
+    sorted({spec["mode"] for spec in GENERATED_EFFECT_GRAMMAR.values()})
+)
 
 
 AUTO_STYLE_TO_MODE: dict[str, str] = {
@@ -321,10 +324,7 @@ AUTO_KIND_STYLE_TO_PRESET: dict[tuple[str, str], str] = {
 }
 
 
-GENERATED_PLACEHOLDER_MODES: tuple[str, ...] = (
-    "generated-seamless-placeholder",
-    "generated-glitch-placeholder",
-)
+GENERATED_PLACEHOLDER_MODES: tuple[str, ...] = GENERATED_EFFECT_PLACEHOLDER_MODES
 
 
 def build_planned_job(

@@ -42,6 +42,7 @@ from overlay_harness.planner import build_recommended_plan
 from overlay_harness.planner import GENERATED_EFFECT_GRAMMAR
 from overlay_harness.planner import GENERATED_EFFECT_GRAMMAR_ALIASES
 from overlay_harness.planner import GENERATED_EFFECT_STYLE_ALIASES
+from overlay_harness.planner import GENERATED_EFFECT_PLACEHOLDER_MODES
 from overlay_harness.planner import GENERATED_EFFECT_SUPPORTED_STYLES
 from overlay_harness.planner import GENERATED_EFFECT_STYLES
 from overlay_harness.planner import build_planned_job
@@ -1530,6 +1531,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertTrue(set(GENERATED_EFFECT_SUPPORTED_STYLES).issubset(auto_style_set))
         self.assertTrue(set(GENERATED_EFFECT_STYLES).issubset(auto_style_set))
         self.assertTrue(set(GENERATED_EFFECT_STYLE_ALIASES).issubset(auto_style_set))
+        self.assertEqual(set(GENERATED_EFFECT_PLACEHOLDER_MODES), {"generated-seamless-placeholder", "generated-glitch-placeholder"})
         self.assertIn("generated-seamless", auto_style_set)
         self.assertIn("generated-glitch", auto_style_set)
 
