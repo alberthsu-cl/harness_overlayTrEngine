@@ -8,10 +8,8 @@ Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retr
 
 ## Last Completed
 
-- Added the first Milestone 3 grammar slice: canonical generated styles now resolve through deterministic planner mappings and unsupported generated styles are rejected explicitly.
-- Added generated-style aliases like `generated-wipe`, `generated-rgb-split`, and `generated-dissolve` so the approved grammar can be addressed with consistent naming.
-- Added analyzer regressions for generated intent phrases, `prefer_generated` behavior, and metadata-derived generated preference.
-- Kept generated preference inside the approved grammar by using `generated-noise`, `generated-dissolve`, and `generated-rgb-split` as the generic fallback aliases.
+- Added generated-style alias cleanup for the approved grammar and kept the compatibility surface explicit.
+- Kept analyzer and planner checks aligned with the approved generated effect slice.
 - Kept the worklog restart-friendly by trimming older completion history.
 
 Milestone 2 is complete on the harness side: retrieval is wired through planning, fallback metadata is explicit, the source manifest and planner vocabulary are aligned, and the remaining retrieval improvements were reduced to source-backed alias coverage and tie-breaking.
