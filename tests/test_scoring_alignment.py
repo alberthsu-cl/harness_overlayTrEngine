@@ -22,6 +22,7 @@ from overlay_harness.cli import _build_run_evaluation_summary
 from overlay_harness.cli import _handle_audit_effects
 from overlay_harness.cli import _handle_index_effects
 from overlay_harness.cli import _handle_flow
+from overlay_harness.cli import _handle_analyze_sample_video
 from overlay_harness.cli import _handle_sample_video
 from overlay_harness.cli import _execute_job_command
 from overlay_harness.cli import _summarize_retrieval_fields
@@ -732,6 +733,88 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["artifacts"]["run_report"], str(run_result["report"]))
         self.assertEqual(payload["data"]["artifacts"]["demo_video_file"], str(run_result["demo_video_file"]))
         self.assertEqual(payload["data"]["run"]["demo_video_file"], str(run_result["demo_video_file"]))
+
+    def test_analyze_sample_video_command_writes_video_backed_analysis(self) -> None:
+        output_root = self.root / "sample_video_analysis_output"
+        output_root.mkdir(parents=True, exist_ok=True)
+
+        args = SimpleNamespace(
+            transition_video="harness/sample_glitch.mp4",
+            source_a="harness/examples/inputs/source_a_real",
+            source_b="harness/examples/inputs/source_b_real",
+            output_root=str(output_root),
+            style_hint=None,
+            intent="generated glitch transition",
+            prefer_generated=False,
+            input_kind="auto",
+            job_name="sample_analysis_job",
+            width=1920,
+            height=1080,
+            fps=30,
+            target_frame_count=30,
+            analysis_width=64,
+            analysis_height=36,
+            ffmpeg=None,
+            analysis_output=None,
+            comparison_output=None,
+        )
+        reference_result = SimpleNamespace(
+            output_dir=output_root / "sample_video_analysis_stub" / "reference_transition",
+            manifest_file=output_root / "sample_video_analysis_stub" / "reference_transition" / "reference_transition_manifest.json",
+            frame_count=30,
+            message="prepared",
+            detected_start_frame=0,
+            detected_end_frame=29,
+            detected_frame_count=30,
+        )
+
+        with (
+            patch("overlay_harness.cli.prepare_reference_transition", return_value=reference_result),
+            patch(
+                "overlay_harness.cli.analyze_transition",
+                return_value={
+                    "style_hint": "generated-noise",
+                    "input_kind": "real",
+                    "reference_transition": str(reference_result.output_dir),
+                    "job_name": "sample_analysis_job",
+                    "notes": "analyzer selected generated-noise because intent mentioned glitch",
+                    "analysis": {"style_reason": "intent mentioned glitch"},
+                },
+            ),
+            patch(
+                "overlay_harness.cli.build_transition_analysis_artifact",
+                return_value={
+                    "artifact_type": "transition_analysis",
+                    "artifact_version": 2,
+                    "sources": {
+                        "source_a": "harness/examples/inputs/source_a_real",
+                        "source_b": "harness/examples/inputs/source_b_real",
+                        "reference_transition": str(reference_result.output_dir),
+                    },
+                    "facts": {
+                        "resolved": {
+                            "style_hint": "generated-noise",
+                            "input_kind": "real",
+                            "job_name": "sample_analysis_job",
+                            "style_reason": "intent mentioned glitch",
+                        },
+                        "analyzer_inputs": {"sample_video": True},
+                    },
+                    "planning_recommendation": {"mode": "generated-glitch-placeholder"},
+                },
+            ),
+        ):
+            exit_code = _handle_analyze_sample_video(args, HARNESS_ROOT.parent)
+
+        self.assertEqual(exit_code, 0)
+        report_files = list(output_root.glob("sample_video_analysis_*/transition_analysis.json"))
+        self.assertEqual(len(report_files), 1)
+        with report_files[0].open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+
+        self.assertEqual(payload["artifact_type"], "transition_analysis")
+        self.assertEqual(payload["facts"]["resolved"]["style_hint"], "generated-noise")
+        self.assertTrue(payload["facts"]["analyzer_inputs"]["sample_video"])
 
     def test_run_command_records_demo_video_artifact(self) -> None:
         job = self._build_job(reference_transition=self.root / "reference", frame_count=3)

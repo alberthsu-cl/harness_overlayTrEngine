@@ -85,6 +85,8 @@ def main(argv: list[str] | None = None) -> int:
         return _handle_prepare_reference_transition(args, repo_root)
     if args.command == "analyze-transition":
         return _handle_analyze_transition(args, repo_root)
+    if args.command == "analyze-sample-video":
+        return _handle_analyze_sample_video(args, repo_root)
     if args.command == "flow":
         return _handle_flow(args, repo_root, harness_root, config_dir, default_renderer)
     if args.command == "sample-video":
@@ -339,6 +341,71 @@ def _build_parser() -> argparse.ArgumentParser:
         "--effect-spec-output",
         required=False,
         help="Optional output path for a copied effect_spec template when the chosen mode uses a generated placeholder",
+    )
+
+    analyze_sample_video_cmd = subparsers.add_parser(
+        "analyze-sample-video",
+        help="Normalize a sample transition video and emit the deterministic analysis artifact",
+    )
+    analyze_sample_video_cmd.add_argument("--transition-video", required=True, help="Path to the sample transition video")
+    analyze_sample_video_cmd.add_argument("--source-a", required=True, help="Path to the prepared source A frames")
+    analyze_sample_video_cmd.add_argument("--source-b", required=True, help="Path to the prepared source B frames")
+    analyze_sample_video_cmd.add_argument("--output-root", required=True, help="Directory that will contain the analysis artifacts")
+    analyze_sample_video_cmd.add_argument(
+        "--style-hint",
+        required=False,
+        choices=auto_styles(),
+        help="Optional explicit style hint for the transition analysis",
+    )
+    analyze_sample_video_cmd.add_argument(
+        "--intent",
+        required=False,
+        help="Optional freeform intent text used by the deterministic analyzer heuristics",
+    )
+    analyze_sample_video_cmd.add_argument(
+        "--prefer-generated",
+        action="store_true",
+        help="Bias the analyzer toward generated-placeholder styles when intent is ambiguous",
+    )
+    analyze_sample_video_cmd.add_argument(
+        "--input-kind",
+        required=False,
+        default="auto",
+        choices=auto_input_kinds(),
+        help="Input kind hint for the analyzer; defaults to auto detection",
+    )
+    analyze_sample_video_cmd.add_argument("--job-name", required=False, help="Optional job_name hint for downstream planning")
+    analyze_sample_video_cmd.add_argument("--width", type=int, default=1920, help="Target output width")
+    analyze_sample_video_cmd.add_argument("--height", type=int, default=1080, help="Target output height")
+    analyze_sample_video_cmd.add_argument("--fps", type=int, default=30, help="Target frame rate for analysis")
+    analyze_sample_video_cmd.add_argument(
+        "--target-frame-count",
+        type=int,
+        default=30,
+        help="Exact number of normalized reference frames to produce from the transition video",
+    )
+    analyze_sample_video_cmd.add_argument(
+        "--analysis-width",
+        type=int,
+        default=64,
+        help="Low-resolution analysis width for transition detection",
+    )
+    analyze_sample_video_cmd.add_argument(
+        "--analysis-height",
+        type=int,
+        default=36,
+        help="Low-resolution analysis height for transition detection",
+    )
+    analyze_sample_video_cmd.add_argument("--ffmpeg", required=False, help="Optional path to ffmpeg")
+    analyze_sample_video_cmd.add_argument(
+        "--analysis-output",
+        required=False,
+        help="Optional output path for the richer transition analysis artifact; defaults under the output root",
+    )
+    analyze_sample_video_cmd.add_argument(
+        "--comparison-output",
+        required=False,
+        help="Optional output path for a plan-comparison audit report",
     )
 
     sample_video_cmd = subparsers.add_parser(
@@ -1220,6 +1287,101 @@ def _handle_analyze_transition(args, repo_root: Path) -> int:
             write_json(comparison_output, comparison_report)
     except Exception as exc:
         print(f"analyze-transition failed: {exc}")
+        return 1
+
+
+def _handle_analyze_sample_video(args, repo_root: Path) -> int:
+    output_root = _resolve_path_argument(args.output_root, repo_root)
+    analysis_root = output_root / f"sample_video_analysis_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}_{uuid4().hex[:8]}"
+    analysis_root.mkdir(parents=True, exist_ok=False)
+
+    reference_output = analysis_root / "reference_transition"
+    hint_output = analysis_root / "transition_hint.json"
+    analysis_output = _resolve_path_argument(args.analysis_output, repo_root) if args.analysis_output else analysis_root / "transition_analysis.json"
+    comparison_output = _resolve_path_argument(args.comparison_output, repo_root) if args.comparison_output else None
+
+    source_a = _resolve_path_argument(args.source_a, repo_root)
+    source_b = _resolve_path_argument(args.source_b, repo_root)
+    transition_video = _resolve_path_argument(args.transition_video, repo_root)
+
+    try:
+        reference_result = prepare_reference_transition(
+            source_video=transition_video,
+            output_dir=reference_output,
+            fps=args.fps,
+            width=args.width,
+            height=args.height,
+            target_frame_count=args.target_frame_count,
+            ffmpeg_path=args.ffmpeg,
+            analysis_width=args.analysis_width,
+            analysis_height=args.analysis_height,
+        )
+        hint = analyze_transition(
+            repo_root=repo_root,
+            source_a=source_a,
+            source_b=source_b,
+            input_kind=args.input_kind,
+            style_hint=args.style_hint,
+            intent=args.intent,
+            prefer_generated=args.prefer_generated,
+            reference_transition=reference_output,
+            job_name=args.job_name,
+        )
+        write_json(hint_output, hint)
+        analyzer_inputs = {
+            "input_kind": args.input_kind,
+            "style_hint": args.style_hint,
+            "intent": args.intent,
+            "prefer_generated": args.prefer_generated,
+            "reference_transition": _format_path_for_output(reference_output, repo_root),
+            "job_name": args.job_name,
+            "sample_video": True,
+        }
+        analysis_artifact = build_transition_analysis_artifact(
+            repo_root=repo_root,
+            source_a=source_a,
+            source_b=source_b,
+            analyzer_inputs=analyzer_inputs,
+            hint=hint,
+        )
+        write_json(analysis_output, analysis_artifact)
+
+        if comparison_output is not None:
+            embedded_plan = extract_plan_from_analysis(analysis_artifact)
+            resolved_facts = extract_resolved_facts_from_analysis(analysis_artifact)
+            if not embedded_plan or not resolved_facts:
+                raise ValueError("analysis artifact is missing planning or resolved facts for comparison output")
+
+            recomputed_plan = build_recommended_plan(
+                repo_root=repo_root,
+                source_a=source_a,
+                source_b=source_b,
+                hint_data={
+                    "style_hint": resolved_facts.get("style_hint"),
+                    "input_kind": resolved_facts.get("input_kind"),
+                    "job_name": resolved_facts.get("job_name"),
+                    "reference_transition": analysis_artifact.get("sources", {}).get("reference_transition"),
+                },
+            )
+            comparison_report = _build_plan_comparison_report(
+                analysis_file=_format_path_for_output(analysis_output, repo_root),
+                job_output=None,
+                plan_source="analyze_sample_video_embedded_and_recomputed",
+                selected_plan=_summarize_plan_fields(embedded_plan),
+                selected_plan_retrieval_summary=_summarize_retrieval_fields(embedded_plan),
+                embedded_plan=embedded_plan,
+                embedded_plan_summary=_summarize_plan_fields(embedded_plan),
+                recomputed_plan=recomputed_plan,
+                recomputed_plan_summary=_summarize_plan_fields(recomputed_plan),
+                recompute_matches_embedded=(
+                    _summarize_plan_fields(embedded_plan) == _summarize_plan_fields(recomputed_plan)
+                ),
+                validation_valid=True,
+                issues=[],
+            )
+            write_json(comparison_output, comparison_report)
+    except Exception as exc:
+        print(f"analyze-sample-video failed: {exc}")
         return 1
 
     print(
