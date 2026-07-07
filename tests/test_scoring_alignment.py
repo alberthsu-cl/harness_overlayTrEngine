@@ -722,6 +722,8 @@ class ScoringAlignmentTests(unittest.TestCase):
                             "window_span_frames": 30,
                             "window_midpoint_frame": 14,
                             "window_coverage_ratio": 1.0,
+                            "window_start_progress": 0.0,
+                            "window_end_progress": 1.0,
                             "window_message": "prepared",
                         },
                     },
@@ -753,6 +755,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["transition_summary"]["combined_motion_level"], "high")
         self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["transition_window"]["frame_count"], 30)
         self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["transition_progression"]["window_span_frames"], 30)
+        self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["transition_progression"]["window_start_progress"], 0.0)
         self.assertEqual(payload["data"]["artifacts"]["run_report"], str(run_result["report"]))
         self.assertEqual(payload["data"]["artifacts"]["demo_video_file"], str(run_result["demo_video_file"]))
         self.assertEqual(payload["data"]["run"]["demo_video_file"], str(run_result["demo_video_file"]))
@@ -836,6 +839,8 @@ class ScoringAlignmentTests(unittest.TestCase):
                             "window_span_frames": 30,
                             "window_midpoint_frame": 14,
                             "window_coverage_ratio": 1.0,
+                            "window_start_progress": 0.0,
+                            "window_end_progress": 1.0,
                             "window_message": "prepared",
                         },
                     },
@@ -858,6 +863,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["facts"]["transition_summary"]["combined_motion_level"], "high")
         self.assertEqual(payload["facts"]["transition_window"]["frame_count"], 30)
         self.assertEqual(payload["facts"]["transition_progression"]["window_span_frames"], 30)
+        self.assertEqual(payload["facts"]["transition_progression"]["window_end_progress"], 1.0)
         self.assertEqual(payload["planning_recommendation"]["analysis_engine"], "deterministic_rules_v1")
 
     def test_run_command_records_demo_video_artifact(self) -> None:

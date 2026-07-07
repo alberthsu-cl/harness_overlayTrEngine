@@ -501,6 +501,8 @@ def _build_transition_progression(transition_window: dict[str, Any] | None) -> d
             "window_span_frames": None,
             "window_midpoint_frame": None,
             "window_coverage_ratio": None,
+            "window_start_progress": None,
+            "window_end_progress": None,
             "window_message": None,
         }
 
@@ -514,10 +516,19 @@ def _build_transition_progression(transition_window: dict[str, Any] | None) -> d
     coverage_ratio = None
     if isinstance(frame_count, int) and frame_count > 0 and isinstance(detected_frame_count, int):
         coverage_ratio = round(detected_frame_count / frame_count, 4)
+    start_progress = None
+    end_progress = None
+    if isinstance(frame_count, int) and frame_count > 1:
+        if isinstance(detected_start_frame, int):
+            start_progress = round(detected_start_frame / (frame_count - 1), 4)
+        if isinstance(detected_end_frame, int):
+            end_progress = round(detected_end_frame / (frame_count - 1), 4)
 
     return {
         "window_span_frames": detected_frame_count,
         "window_midpoint_frame": midpoint_frame,
         "window_coverage_ratio": coverage_ratio,
+        "window_start_progress": start_progress,
+        "window_end_progress": end_progress,
         "window_message": transition_window.get("message"),
     }
