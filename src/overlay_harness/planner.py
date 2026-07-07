@@ -648,7 +648,7 @@ def _resolve_preset_for_retrieved_mode(
     if style in GENERATED_EFFECT_GRAMMAR and resolved_kind == "real":
         return GENERATED_EFFECT_GRAMMAR[style]["preset"]
 
-    if style in {"generated-seamless", "generated-glitch"} and resolved_kind == "real":
+    if style in GENERATED_EFFECT_SUPPORTED_STYLES and resolved_kind == "real":
         return "real-smoke-seamless" if mode == "builtin-seamless" else "real-smoke-glitch"
 
     return existing_preset
