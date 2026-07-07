@@ -1391,6 +1391,7 @@ def _handle_analyze_sample_video(args, repo_root: Path) -> int:
             {
                 "hint_output": str(hint_output),
                 "analysis_output": str(analysis_output),
+                "analysis_artifact": analysis_artifact,
                 "comparison_output": str(comparison_output) if comparison_output is not None else None,
                 "style_hint": hint.get("style_hint"),
                 "input_kind": hint.get("input_kind"),
