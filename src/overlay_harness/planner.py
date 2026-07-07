@@ -304,8 +304,6 @@ AUTO_STYLE_TO_MODE: dict[str, str] = {
         alias: GENERATED_EFFECT_GRAMMAR[canonical]["mode"]
         for alias, canonical in GENERATED_EFFECT_GRAMMAR_ALIASES.items()
     },
-    **{style: GENERATED_EFFECT_GRAMMAR[style]["mode"] for style in GENERATED_EFFECT_STYLES},
-    **{alias: GENERATED_EFFECT_GRAMMAR[canonical]["mode"] for alias, canonical in GENERATED_EFFECT_GRAMMAR_ALIASES.items()},
     "generated-seamless": "generated-seamless-placeholder",
     "generated-glitch": "generated-glitch-placeholder",
 }
