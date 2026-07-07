@@ -989,6 +989,8 @@ class ScoringAlignmentTests(unittest.TestCase):
             "exit_code": 0,
             "workspace": str(self.root / "workspace"),
             "report": str(self.root / "workspace" / "reports" / "run_report.json"),
+            "request_file": str(self.root / "workspace" / "render" / "render_request.json"),
+            "renderer_result_file": str(self.root / "workspace" / "render" / "renderer_result.json"),
             "status": "succeeded",
             "summary": "renderer produced 30 expected PNG frames",
             "demo_video_file": str(sample_demo_source),
@@ -1029,6 +1031,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["status"], "succeeded")
         self.assertEqual(payload["data"]["workspace_paths"]["sample_root"], str(payload["data"]["sample_root"]))
         self.assertEqual(payload["data"]["workspace_paths"]["demo_video_file"], str(sample_demo_source))
+        self.assertEqual(payload["data"]["workspace_paths"]["render_request_file"], str(run_result["request_file"]))
         self.assertEqual(payload["data"]["selected_fx_id"], "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC")
         self.assertEqual(payload["data"]["output_video"], str(output_video))
         self.assertEqual(output_video.read_bytes(), sample_demo_source.read_bytes())
@@ -1036,6 +1039,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         stdout_payload = json.loads(print_mock.call_args.args[0])
         self.assertEqual(stdout_payload["workspace_paths"]["sample_root"], str(payload["data"]["sample_root"]))
         self.assertEqual(stdout_payload["workspace_paths"]["demo_video_file"], str(sample_demo_source))
+        self.assertIn("render_request_file", stdout_payload["workspace_paths"])
 
     def test_sample_video_command_with_force_mode_uses_forced_planner_mode(self) -> None:
         source_a = self.root / "source_a"
