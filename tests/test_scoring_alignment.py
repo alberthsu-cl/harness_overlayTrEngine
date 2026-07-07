@@ -1032,6 +1032,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["workspace_paths"]["sample_root"], str(payload["data"]["sample_root"]))
         self.assertEqual(payload["data"]["workspace_paths"]["demo_video_file"], str(sample_demo_source))
         self.assertEqual(payload["data"]["workspace_paths"]["render_request_file"], str(run_result["request_file"]))
+        self.assertEqual(payload["data"]["workspace_paths"]["renderer_result_file"], str(run_result["renderer_result_file"]))
         self.assertEqual(payload["data"]["selected_fx_id"], "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC")
         self.assertEqual(payload["data"]["output_video"], str(output_video))
         self.assertEqual(output_video.read_bytes(), sample_demo_source.read_bytes())
@@ -1040,6 +1041,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(stdout_payload["workspace_paths"]["sample_root"], str(payload["data"]["sample_root"]))
         self.assertEqual(stdout_payload["workspace_paths"]["demo_video_file"], str(sample_demo_source))
         self.assertIn("render_request_file", stdout_payload["workspace_paths"])
+        self.assertEqual(stdout_payload["workspace_paths"]["renderer_result_file"], str(run_result["renderer_result_file"]))
 
     def test_sample_video_command_with_force_mode_uses_forced_planner_mode(self) -> None:
         source_a = self.root / "source_a"
