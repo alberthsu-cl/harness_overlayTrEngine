@@ -664,6 +664,9 @@ class ScoringAlignmentTests(unittest.TestCase):
             "status": "succeeded",
             "summary": "renderer completed successfully",
             "evaluation": {
+                "score": {
+                    "report_file": str(output_root / "transition_flow_stub" / "workspace" / "reports" / "similarity_score.json"),
+                },
                 "planning": {
                     "retrieval_status": "retrieved",
                     "retrieval_effect_id": "builtin-glitch",
@@ -758,6 +761,10 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["transition_progression"]["window_span_frames"], 30)
         self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["transition_progression"]["window_start_progress"], 0.0)
         self.assertEqual(payload["data"]["workspace_paths"]["flow_root"], str(output_root / report_files[0].parent.name))
+        self.assertEqual(
+            payload["data"]["workspace_paths"]["similarity_report_file"],
+            str(output_root / "transition_flow_stub" / "workspace" / "reports" / "similarity_score.json"),
+        )
         self.assertEqual(payload["data"]["workspace_paths"]["demo_video_file"], str(run_result["demo_video_file"]))
         self.assertEqual(payload["data"]["artifacts"]["run_report"], str(run_result["report"]))
         self.assertEqual(payload["data"]["artifacts"]["demo_video_file"], str(run_result["demo_video_file"]))
@@ -765,6 +772,10 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["artifacts"]["analysis_file"], str(output_root / report_files[0].parent.name / "transition_analysis.json"))
         stdout_payload = json.loads(print_mock.call_args.args[0])
         self.assertEqual(stdout_payload["workspace_paths"]["flow_root"], str(output_root / report_files[0].parent.name))
+        self.assertEqual(
+            stdout_payload["workspace_paths"]["similarity_report_file"],
+            str(output_root / "transition_flow_stub" / "workspace" / "reports" / "similarity_score.json"),
+        )
         self.assertEqual(stdout_payload["workspace_paths"]["demo_video_file"], str(run_result["demo_video_file"]))
 
     def test_analyze_sample_video_command_writes_video_backed_analysis(self) -> None:

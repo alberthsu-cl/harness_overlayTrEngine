@@ -1557,6 +1557,9 @@ def _handle_flow(args, repo_root: Path, harness_root: Path, config_dir: Path, de
                     "analysis_file": str(analysis_output),
                     "job_file": str(job_output) if job_output is not None else None,
                     "effect_spec_file": str(effect_spec_output) if effect_spec_output is not None else None,
+                    "similarity_report_file": run_result.get("evaluation", {}).get("score", {}).get("report_file")
+                    if isinstance(run_result, dict)
+                    else None,
                     "run_report": run_result.get("report") if isinstance(run_result, dict) else None,
                     "demo_video_file": run_result.get("demo_video_file") if isinstance(run_result, dict) else None,
                 },
@@ -2207,6 +2210,9 @@ def _build_flow_report(
                 "analysis_file": str(analysis_output),
                 "job_file": str(job_output) if job_output is not None else None,
                 "effect_spec_file": str(effect_spec_output) if effect_spec_output is not None else None,
+                "similarity_report_file": run_result.get("evaluation", {}).get("score", {}).get("report_file")
+                if isinstance(run_result, dict)
+                else None,
                 "run_report": run_result.get("report") if isinstance(run_result, dict) else None,
                 "demo_video_file": run_result.get("demo_video_file") if isinstance(run_result, dict) else None,
             },
@@ -2223,6 +2229,9 @@ def _build_flow_report(
                 "analysis_artifact": analysis_artifact,
                 "job_file": str(job_output) if job_output is not None else None,
                 "effect_spec_file": str(effect_spec_output) if effect_spec_output is not None else None,
+                "similarity_report_file": run_result.get("evaluation", {}).get("score", {}).get("report_file")
+                if isinstance(run_result, dict)
+                else None,
                 "run_report": run_result.get("report") if isinstance(run_result, dict) else None,
                 "demo_video_file": run_result.get("demo_video_file") if isinstance(run_result, dict) else None,
             },
