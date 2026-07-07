@@ -707,9 +707,14 @@ class ScoringAlignmentTests(unittest.TestCase):
                             "style_hint": "generated-glitch",
                             "input_kind": "real",
                             "job_name": "flow_job",
-                        }
+                        },
+                        "analyzer_inputs": {"flow": True},
+                        "analysis_mode": "deterministic_rules",
                     },
-                    "planning_recommendation": planning,
+                    "planning_recommendation": {
+                        **planning,
+                        "analysis_engine": "deterministic_rules_v1",
+                    },
                 },
             ),
             patch("overlay_harness.cli.resolve_planned_frame_count", return_value=(30, "reference_transition_manifest")),
@@ -730,6 +735,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["planning"]["retrieval_summary"]["effect_id"], "builtin-glitch")
         self.assertEqual(payload["data"]["run"]["status"], "succeeded")
         self.assertEqual(payload["data"]["reference_transition"]["frame_count"], 30)
+        self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["analysis_mode"], "deterministic_rules")
         self.assertEqual(payload["data"]["artifacts"]["run_report"], str(run_result["report"]))
         self.assertEqual(payload["data"]["artifacts"]["demo_video_file"], str(run_result["demo_video_file"]))
         self.assertEqual(payload["data"]["run"]["demo_video_file"], str(run_result["demo_video_file"]))

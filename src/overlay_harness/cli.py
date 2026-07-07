@@ -1461,6 +1461,7 @@ def _handle_flow(args, repo_root: Path, harness_root: Path, config_dir: Path, de
             "style_hint": args.style_hint,
             "intent": args.intent,
             "prefer_generated": args.prefer_generated,
+            "analysis_mode": "deterministic_rules",
             "reference_transition": _format_path_for_output(reference_output, repo_root),
             "job_name": args.job_name,
             "flow": True,
@@ -2180,6 +2181,7 @@ def _build_flow_report(
                 "validation_valid": validation_valid,
                 "issues": validation_issues,
             },
+            "analysis_artifact": analysis_artifact,
             "run": {
                 "status": run_status,
                 "summary": run_summary,
