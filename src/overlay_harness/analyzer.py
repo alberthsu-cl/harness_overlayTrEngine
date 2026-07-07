@@ -11,6 +11,7 @@ from .planner import GENERATED_EFFECT_SUPPORTED_STYLES, auto_styles, build_recom
 
 STYLE_HINTS = set(auto_styles())
 ANALYSIS_ARTIFACT_VERSION = 2
+ANALYSIS_ENGINE = "deterministic_rules_v1"
 
 
 METADATA_TRANSITION_FAMILY_TO_STYLE: dict[str, str] = {
@@ -142,6 +143,7 @@ def build_transition_analysis_artifact(
         },
         "planning_recommendation": {
             "producer": "deterministic_analyzer",
+            "analysis_engine": ANALYSIS_ENGINE,
             "auto": recommended_plan.get("auto"),
             "style": recommended_plan.get("style"),
             "input_kind": recommended_plan.get("input_kind"),

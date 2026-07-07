@@ -1336,6 +1336,7 @@ def _handle_analyze_sample_video(args, repo_root: Path) -> int:
             "reference_transition": _format_path_for_output(reference_output, repo_root),
             "job_name": args.job_name,
             "sample_video": True,
+            "analysis_engine": "deterministic_rules_v1",
         }
         analysis_artifact = build_transition_analysis_artifact(
             repo_root=repo_root,
