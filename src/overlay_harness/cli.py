@@ -1334,6 +1334,7 @@ def _handle_analyze_sample_video(args, repo_root: Path) -> int:
             "intent": args.intent,
             "prefer_generated": args.prefer_generated,
             "analysis_mode": "deterministic_rules",
+            "transition_window": _summarize_reference_transition_window(reference_result),
             "reference_transition": _format_path_for_output(reference_output, repo_root),
             "job_name": args.job_name,
             "sample_video": True,
@@ -1463,6 +1464,7 @@ def _handle_flow(args, repo_root: Path, harness_root: Path, config_dir: Path, de
             "intent": args.intent,
             "prefer_generated": args.prefer_generated,
             "analysis_mode": "deterministic_rules",
+            "transition_window": _summarize_reference_transition_window(reference_result),
             "reference_transition": _format_path_for_output(reference_output, repo_root),
             "job_name": args.job_name,
             "flow": True,
@@ -1766,6 +1768,25 @@ def _resolve_analysis_output(raw_path: str | None, hint_output: Path) -> Path:
     else:
         base_name = hint_output.name
     return hint_output.with_name(f"{base_name}.analysis.json")
+
+
+def _summarize_reference_transition_window(reference_result) -> dict[str, object | None]:
+    if reference_result is None:
+        return {
+            "frame_count": None,
+            "detected_start_frame": None,
+            "detected_end_frame": None,
+            "detected_frame_count": None,
+            "message": None,
+        }
+
+    return {
+        "frame_count": getattr(reference_result, "frame_count", None),
+        "detected_start_frame": getattr(reference_result, "detected_start_frame", None),
+        "detected_end_frame": getattr(reference_result, "detected_end_frame", None),
+        "detected_frame_count": getattr(reference_result, "detected_frame_count", None),
+        "message": getattr(reference_result, "message", None),
+    }
 
 
 def _format_path_for_output(path: Path | None, repo_root: Path) -> str | None:

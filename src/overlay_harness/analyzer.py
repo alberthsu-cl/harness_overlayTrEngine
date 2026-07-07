@@ -134,6 +134,7 @@ def build_transition_analysis_artifact(
             "analyzer_inputs": analyzer_inputs,
             "analysis_mode": analyzer_inputs.get("analysis_mode", "deterministic_rules"),
             "transition_summary": _build_transition_summary(signals),
+            "transition_window": analyzer_inputs.get("transition_window"),
             "resolved": {
                 "style_hint": hint.get("style_hint"),
                 "input_kind": hint.get("input_kind"),
