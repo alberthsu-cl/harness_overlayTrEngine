@@ -1137,6 +1137,42 @@ class ScoringAlignmentTests(unittest.TestCase):
 
         self.assertEqual(hint["style_hint"], "generated-rgb-split")
 
+    def test_analyzer_uses_approved_alias_for_generated_glitch_intent(self) -> None:
+        source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
+        source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
+
+        hint = analyze_transition(
+            repo_root=HARNESS_ROOT.parent,
+            source_a=source_a,
+            source_b=source_b,
+            input_kind="auto",
+            style_hint=None,
+            intent="generated glitch transition",
+            prefer_generated=False,
+            reference_transition=None,
+            job_name=None,
+        )
+
+        self.assertEqual(hint["style_hint"], "generated-noise")
+
+    def test_analyzer_uses_approved_alias_for_generated_smooth_intent(self) -> None:
+        source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
+        source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
+
+        hint = analyze_transition(
+            repo_root=HARNESS_ROOT.parent,
+            source_a=source_a,
+            source_b=source_b,
+            input_kind="auto",
+            style_hint=None,
+            intent="generated seamless transition",
+            prefer_generated=False,
+            reference_transition=None,
+            job_name=None,
+        )
+
+        self.assertEqual(hint["style_hint"], "generated-dissolve")
+
     def test_analyzer_prefers_generated_alias_when_requested(self) -> None:
         source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
         source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"

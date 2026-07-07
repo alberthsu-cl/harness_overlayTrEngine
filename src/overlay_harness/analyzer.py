@@ -308,18 +308,18 @@ def _resolve_style_hint(
         if any(token in normalized_intent for token in ("distortion", "distort", "warping", "warp")):
             return "distortion", "the intent mentions a distortion-style transition"
         if "generated" in normalized_intent and "glitch" in normalized_intent:
-            return "generated-glitch", "the intent mentions generated and glitch"
+            return "generated-noise", "the intent mentions a generated glitch transition"
         if "generated" in normalized_intent and any(
             token in normalized_intent for token in ("smooth", "seamless", "slide", "sliding")
         ):
-            return "generated-seamless", "the intent mentions generated and a smooth or sliding transition"
+            return "generated-dissolve", "the intent mentions a generated and smooth or sliding transition"
         if "glitch" in normalized_intent:
             if prefer_generated:
-                return "generated-glitch", "the intent mentions glitch and generated output was preferred"
+                return "generated-noise", "the intent mentions glitch and generated output was preferred"
             return "glitch", "the intent mentions glitch"
         if any(token in normalized_intent for token in ("smooth", "seamless", "slide", "sliding")):
             if prefer_generated:
-                return "generated-seamless", "the intent mentions a smooth or sliding transition and generated output was preferred"
+                return "generated-dissolve", "the intent mentions a smooth or sliding transition and generated output was preferred"
             return "seamless", "the intent mentions a smooth or sliding transition"
 
     if prefer_generated:

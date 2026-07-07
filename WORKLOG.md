@@ -21,6 +21,8 @@ Milestone 1 acceptance is now frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 
 - Made the analyzer prefer the generated alias spelling when `prefer_generated` is set for an approved grammar style.
 - Moved the generic generated fallback onto approved aliases like `generated-noise`, `generated-dissolve`, and `generated-rgb-split` so metadata-driven generated preference stays inside the grammar.
 - Added a metadata regression test for the approved generated fallback aliases.
+- Moved the explicit generated-glitch and generated-smooth intent branches onto approved aliases so the analyzer stays inside the Milestone 3 grammar.
+- Added analyzer regressions for generated glitch and smooth intent phrases using the approved alias names.
 
 Milestone 2 is complete on the harness side: retrieval is wired through planning, fallback metadata is explicit, the source manifest and planner vocabulary are aligned, and the remaining retrieval improvements were reduced to source-backed alias coverage and tie-breaking.
 
