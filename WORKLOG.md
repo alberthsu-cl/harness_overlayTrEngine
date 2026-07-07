@@ -4,26 +4,26 @@ This file is the persistent session handoff for the `harness/` project. Keep it 
 
 ## Current Objective
 
-Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retrieval coverage is complete. Milestone 3 is focused on a fixed generated-effect grammar.
+Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retrieval coverage is complete. Milestone 3 generated-grammar compatibility is complete, and the next milestone will focus on the next implementation slice.
 
 ## Last Completed
 
-- Added generated-style alias cleanup for the approved grammar and kept the compatibility surface explicit.
-- Kept analyzer and planner checks aligned with the approved generated effect slice.
+- Completed the current generated-grammar compatibility slice and left the legacy compatibility surface unchanged.
+- Kept analyzer, planner, and catalog checks aligned with the approved generated effect slice.
 - Kept the worklog restart-friendly by trimming older completion history.
 
 Milestone 2 is complete on the harness side: retrieval is wired through planning, fallback metadata is explicit, the source manifest and planner vocabulary are aligned, and the remaining retrieval improvements were reduced to source-backed alias coverage and tie-breaking.
 
 ## Next Implementation Step
 
-Continue Milestone 3 grammar coverage:
+Move into the next milestone scope while keeping the current compatibility surface as-is.
 
-1. Keep unsupported generated styles out of auto-plan resolution until they are explicitly added to the grammar.
+1. Define the next milestone’s first implementation slice explicitly before changing behavior.
 2. Keep sample/test artifacts grouped under `harness/work/tests/` unless a caller overrides `--output-root`.
 
 ## Why This Is Next
 
-- Retrieval metadata now flows through planning, run reports, top-level run output, plan-comparison reports, smoke-test batch summaries, the plan-job result payload, the `validate`/`prepare` command results, and the new end-to-end `flow` command. The remaining gap is narrowing generated outputs to a small, explicit grammar so future work stays deterministic.
+- Retrieval metadata already flows through planning, run reports, top-level run output, plan-comparison reports, smoke-test batch summaries, the plan-job result payload, the `validate`/`prepare` command results, and the new end-to-end `flow` command. The current grammar slice is stable, so the next milestone can focus on the next broader capability.
 
 ## Resume Commands
 
