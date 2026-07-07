@@ -52,3 +52,4 @@ Get-Content harness/src/overlay_harness/cli.py
 - Prefer scanning checked-in source and project metadata over any runtime-only discovery.
 - Keep this slice inside `harness/` unless the user explicitly asks to modify `overlaytrengine`.
 - If future work needs FX naming conventions, registration changes, or generated source locations, ask before guessing as required by `AGENTS.md`.
+- Model-backed analysis is deferred until the rule-based single-pass flow is finished and stable.
