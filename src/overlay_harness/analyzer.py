@@ -133,6 +133,7 @@ def build_transition_analysis_artifact(
         "facts": {
             "analyzer_inputs": analyzer_inputs,
             "analysis_mode": analyzer_inputs.get("analysis_mode", "deterministic_rules"),
+            "transition_summary": _build_transition_summary(signals),
             "resolved": {
                 "style_hint": hint.get("style_hint"),
                 "input_kind": hint.get("input_kind"),
@@ -476,3 +477,17 @@ def _format_optional_path(path: Path | None, repo_root: Path) -> str | None:
         return resolved.relative_to(repo_root).as_posix()
     except ValueError:
         return str(resolved)
+
+
+def _build_transition_summary(signals: dict[str, Any]) -> dict[str, Any]:
+    source_a = signals.get("source_a", {}) if isinstance(signals, dict) else {}
+    source_b = signals.get("source_b", {}) if isinstance(signals, dict) else {}
+    return {
+        "source_a_motion_level": source_a.get("motion_level"),
+        "source_a_visual_energy": source_a.get("visual_energy"),
+        "source_b_motion_level": source_b.get("motion_level"),
+        "source_b_visual_energy": source_b.get("visual_energy"),
+        "combined_motion_level": signals.get("combined_motion_level") if isinstance(signals, dict) else None,
+        "combined_visual_energy": signals.get("combined_visual_energy") if isinstance(signals, dict) else None,
+        "detected_static_pair": signals.get("detected_static_pair") if isinstance(signals, dict) else None,
+    }

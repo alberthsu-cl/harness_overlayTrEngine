@@ -710,6 +710,7 @@ class ScoringAlignmentTests(unittest.TestCase):
                         },
                         "analyzer_inputs": {"flow": True},
                         "analysis_mode": "deterministic_rules",
+                        "transition_summary": {"combined_motion_level": "high"},
                     },
                     "planning_recommendation": {
                         **planning,
@@ -736,6 +737,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["run"]["status"], "succeeded")
         self.assertEqual(payload["data"]["reference_transition"]["frame_count"], 30)
         self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["analysis_mode"], "deterministic_rules")
+        self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["transition_summary"]["combined_motion_level"], "high")
         self.assertEqual(payload["data"]["artifacts"]["run_report"], str(run_result["report"]))
         self.assertEqual(payload["data"]["artifacts"]["demo_video_file"], str(run_result["demo_video_file"]))
         self.assertEqual(payload["data"]["run"]["demo_video_file"], str(run_result["demo_video_file"]))
@@ -807,6 +809,7 @@ class ScoringAlignmentTests(unittest.TestCase):
                         },
                         "analyzer_inputs": {"sample_video": True},
                         "analysis_mode": "deterministic_rules",
+                        "transition_summary": {"combined_motion_level": "high"},
                     },
                     "planning_recommendation": {"mode": "generated-glitch-placeholder", "analysis_engine": "deterministic_rules_v1"},
                 },
@@ -824,6 +827,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["facts"]["resolved"]["style_hint"], "generated-noise")
         self.assertTrue(payload["facts"]["analyzer_inputs"]["sample_video"])
         self.assertEqual(payload["facts"]["analysis_mode"], "deterministic_rules")
+        self.assertEqual(payload["facts"]["transition_summary"]["combined_motion_level"], "high")
         self.assertEqual(payload["planning_recommendation"]["analysis_engine"], "deterministic_rules_v1")
 
     def test_run_command_records_demo_video_artifact(self) -> None:
