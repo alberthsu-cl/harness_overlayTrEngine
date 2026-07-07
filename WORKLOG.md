@@ -18,8 +18,11 @@ Milestone 2 is complete on the harness side: retrieval is wired through planning
 
 Move into the next milestone scope while keeping the current compatibility surface as-is.
 
-1. Define the next milestone’s first implementation slice explicitly before changing behavior.
-2. Keep sample/test artifacts grouped under `harness/work/tests/` unless a caller overrides `--output-root`.
+1. Define the next milestone's first implementation slice explicitly before changing behavior.
+2. List the affected modules and artifacts for that slice.
+3. Add or update the focused tests before the implementation.
+4. Keep sample/test artifacts grouped under `harness/work/tests/` unless a caller overrides `--output-root`.
+5. Commit the slice and trim the worklog back to recent items only.
 
 ## Why This Is Next
 
