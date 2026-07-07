@@ -41,6 +41,8 @@ from overlay_harness.models import EffectSpec, InputSpec, RenderJob, RenderSetti
 from overlay_harness.planner import build_recommended_plan
 from overlay_harness.planner import GENERATED_EFFECT_GRAMMAR
 from overlay_harness.planner import GENERATED_EFFECT_GRAMMAR_ALIASES
+from overlay_harness.planner import GENERATED_EFFECT_STYLE_ALIASES
+from overlay_harness.planner import GENERATED_EFFECT_STYLES
 from overlay_harness.planner import build_planned_job
 from overlay_harness.planner import auto_styles
 from overlay_harness.planner import resolve_auto_plan
@@ -1524,8 +1526,8 @@ class ScoringAlignmentTests(unittest.TestCase):
 
         auto_style_set = set(auto_styles())
         self.assertTrue(builtin_style_hints.issubset(auto_style_set))
-        self.assertTrue(set(GENERATED_EFFECT_GRAMMAR).issubset(auto_style_set))
-        self.assertTrue(set(GENERATED_EFFECT_GRAMMAR_ALIASES).issubset(auto_style_set))
+        self.assertTrue(set(GENERATED_EFFECT_STYLES).issubset(auto_style_set))
+        self.assertTrue(set(GENERATED_EFFECT_STYLE_ALIASES).issubset(auto_style_set))
         self.assertIn("generated-seamless", auto_style_set)
         self.assertIn("generated-glitch", auto_style_set)
 

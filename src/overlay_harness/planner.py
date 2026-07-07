@@ -236,6 +236,10 @@ GENERATED_EFFECT_GRAMMAR_ALIASES: dict[str, str] = {
     f"generated-{style}": style for style in GENERATED_EFFECT_GRAMMAR
 }
 
+GENERATED_EFFECT_STYLES: tuple[str, ...] = tuple(GENERATED_EFFECT_GRAMMAR.keys())
+GENERATED_EFFECT_STYLE_ALIASES: tuple[str, ...] = tuple(GENERATED_EFFECT_GRAMMAR_ALIASES.keys())
+GENERATED_EFFECT_SUPPORTED_STYLES: tuple[str, ...] = GENERATED_EFFECT_STYLES + GENERATED_EFFECT_STYLE_ALIASES
+
 
 AUTO_STYLE_TO_MODE: dict[str, str] = {
     "seamless": "builtin-seamless",
@@ -297,6 +301,8 @@ AUTO_STYLE_TO_MODE: dict[str, str] = {
         alias: GENERATED_EFFECT_GRAMMAR[canonical]["mode"]
         for alias, canonical in GENERATED_EFFECT_GRAMMAR_ALIASES.items()
     },
+    **{style: GENERATED_EFFECT_GRAMMAR[style]["mode"] for style in GENERATED_EFFECT_STYLES},
+    **{alias: GENERATED_EFFECT_GRAMMAR[canonical]["mode"] for alias, canonical in GENERATED_EFFECT_GRAMMAR_ALIASES.items()},
     "generated-seamless": "generated-seamless-placeholder",
     "generated-glitch": "generated-glitch-placeholder",
 }
