@@ -737,6 +737,7 @@ class ScoringAlignmentTests(unittest.TestCase):
             patch("overlay_harness.cli.build_planned_job", return_value=(job, {"effect": "spec"})),
             patch("overlay_harness.cli.validate_job", return_value=SimpleNamespace(is_valid=True, issues=[])),
             patch("overlay_harness.cli._execute_job_command", return_value=run_result),
+            patch("builtins.print") as print_mock,
         ):
             exit_code = _handle_flow(args, HARNESS_ROOT.parent, HARNESS_ROOT, HARNESS_ROOT / "configs", None)
 
@@ -762,6 +763,9 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["artifacts"]["demo_video_file"], str(run_result["demo_video_file"]))
         self.assertEqual(payload["data"]["run"]["demo_video_file"], str(run_result["demo_video_file"]))
         self.assertEqual(payload["data"]["artifacts"]["analysis_file"], str(output_root / report_files[0].parent.name / "transition_analysis.json"))
+        stdout_payload = json.loads(print_mock.call_args.args[0])
+        self.assertEqual(stdout_payload["workspace_paths"]["flow_root"], str(output_root / report_files[0].parent.name))
+        self.assertEqual(stdout_payload["workspace_paths"]["demo_video_file"], str(run_result["demo_video_file"]))
 
     def test_analyze_sample_video_command_writes_video_backed_analysis(self) -> None:
         output_root = self.root / "sample_video_analysis_output"
@@ -981,6 +985,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         with (
             patch("overlay_harness.cli._execute_job_command", return_value=run_result),
             patch("overlay_harness.cli.validate_job", return_value=SimpleNamespace(is_valid=True, issues=[])),
+            patch("builtins.print") as print_mock,
         ):
             exit_code = _handle_sample_video(args, HARNESS_ROOT.parent, HARNESS_ROOT, HARNESS_ROOT / "configs", None)
 
@@ -999,6 +1004,9 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["output_video"], str(output_video))
         self.assertEqual(output_video.read_bytes(), sample_demo_source.read_bytes())
         self.assertIn("sample_workspace", payload["data"]["sample_root"])
+        stdout_payload = json.loads(print_mock.call_args.args[0])
+        self.assertEqual(stdout_payload["workspace_paths"]["sample_root"], str(payload["data"]["sample_root"]))
+        self.assertEqual(stdout_payload["workspace_paths"]["demo_video_file"], str(sample_demo_source))
 
     def test_sample_video_command_with_force_mode_uses_forced_planner_mode(self) -> None:
         source_a = self.root / "source_a"
@@ -1041,6 +1049,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         with (
             patch("overlay_harness.cli._execute_job_command", return_value=run_result),
             patch("overlay_harness.cli.validate_job", return_value=SimpleNamespace(is_valid=True, issues=[])),
+            patch("builtins.print") as print_mock,
         ):
             exit_code = _handle_sample_video(args, HARNESS_ROOT.parent, HARNESS_ROOT, HARNESS_ROOT / "configs", None)
 
@@ -1057,6 +1066,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["workspace_paths"]["sample_root"], str(payload["data"]["sample_root"]))
         self.assertEqual(payload["data"]["selected_fx_id"], "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4")
         self.assertEqual(output_video.read_bytes(), sample_demo_source.read_bytes())
+        stdout_payload = json.loads(print_mock.call_args.args[0])
+        self.assertEqual(stdout_payload["workspace_paths"]["sample_root"], str(payload["data"]["sample_root"]))
 
     def test_render_job_preserves_planning_metadata(self) -> None:
         job = self._build_job(reference_transition=self.root / "reference", frame_count=3)
