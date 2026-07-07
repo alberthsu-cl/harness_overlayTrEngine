@@ -1476,6 +1476,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h", builtin_blur["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h", builtin_blur_upgrow["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h", builtin_blur_shakezoom["source_documents"])
+        self.assertTrue({"generated-wipe", "generated-dissolve", "generated-mask", "generated-feathering"}.issubset(set(generated_seamless["style_hints"])))
+        self.assertTrue({"generated-uv-shift", "generated-rgb-split", "generated-noise"}.issubset(set(generated_glitch["style_hints"])))
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h", builtin_blur_diagblur["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h", builtin_blur_hexbokeh["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h", builtin_blur_diamondbokeh["source_documents"])

@@ -18,7 +18,7 @@ _EFFECT_BLUEPRINTS: tuple[dict[str, Any], ...] = (
         "effect_source": "builtin",
         "family": "seamless",
         "fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
-        "style_hints": ("seamless", "smooth", "generated-seamless"),
+        "style_hints": ("seamless", "smooth", "generated-wipe", "generated-dissolve", "generated-mask", "generated-feathering"),
         "retrieval_priority": 0,
         "source_documents": (
             "harness/examples/effect_specs/builtin_seamless_sliding.json",
@@ -35,7 +35,7 @@ _EFFECT_BLUEPRINTS: tuple[dict[str, Any], ...] = (
         "effect_source": "builtin",
         "family": "glitch",
         "fx_id": "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4",
-        "style_hints": ("glitch", "generated-glitch"),
+        "style_hints": ("glitch", "generated-uv-shift", "generated-rgb-split", "generated-noise"),
         "retrieval_priority": 0,
         "source_documents": (
             "harness/examples/render_job.effect_spec.sample.json",
@@ -359,7 +359,7 @@ _EFFECT_BLUEPRINTS: tuple[dict[str, Any], ...] = (
         "family": "seamless",
         "fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
         "fallback_fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
-        "style_hints": ("generated-seamless",),
+        "style_hints": ("generated-wipe", "generated-dissolve", "generated-mask", "generated-feathering"),
         "retrieval_priority": 10,
         "source_documents": (
             "harness/examples/effect_specs/generated_SeamlessSliding_placeholder.json",
@@ -375,7 +375,7 @@ _EFFECT_BLUEPRINTS: tuple[dict[str, Any], ...] = (
         "family": "glitch",
         "fx_id": "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4",
         "fallback_fx_id": "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4",
-        "style_hints": ("generated-glitch",),
+        "style_hints": ("generated-uv-shift", "generated-rgb-split", "generated-noise"),
         "retrieval_priority": 10,
         "source_documents": (
             "harness/examples/effect_specs/generated_glitch_placeholder.json",
