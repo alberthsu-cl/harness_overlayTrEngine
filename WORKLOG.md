@@ -4,29 +4,26 @@ This file is the persistent session handoff for the `harness/` project. Keep it 
 
 ## Current Objective
 
-Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retrieval coverage is complete. Milestone 3 rule-based single-pass flow is now stable, and the next milestone will focus on the next broader capability.
+Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retrieval coverage is complete. Milestone 3 rule-based single-pass flow is stable. Milestone 4 is focused on the video-backed transition analysis/report path.
 
 ## Last Completed
 
-- Completed the rule-based single-pass flow contract for `flow` and `sample-video`.
-- Kept analyzer, planner, and catalog checks aligned with the approved generated effect slice.
-- Exposed the analysis artifact consistently in both command outputs.
-
-Milestone 2 is complete on the harness side: retrieval is wired through planning, fallback metadata is explicit, the source manifest and planner vocabulary are aligned, and the remaining retrieval improvements were reduced to source-backed alias coverage and tie-breaking.
+- Added deterministic transition progression fields to the analysis artifact.
+- Kept `flow` and `analyze-sample-video` output aligned with the richer analysis artifact.
+- Verified the focused flow and sample-video analysis tests pass.
 
 ## Next Implementation Step
 
-Start the next milestone with a short checklist before changing behavior.
+Start the next Milestone 4 slice with a short checklist before changing behavior.
 
-1. Define the next milestone's first implementation slice explicitly.
-2. List the affected modules and artifacts for that slice.
-3. Add or update the focused tests before the implementation.
-4. Keep sample/test artifacts grouped under `harness/work/tests/` unless a caller overrides `--output-root`.
-5. Commit the slice and trim the worklog back to recent items only.
+1. Pick the next deterministic transition-analysis gap.
+2. List the affected modules and artifacts.
+3. Add or update focused tests before the implementation.
+4. Commit the slice and keep this worklog trimmed to recent items only.
 
 ## Why This Is Next
 
-- Retrieval metadata and the rule-based analysis contract now flow through planning, run reports, top-level run output, plan-comparison reports, smoke-test batch summaries, the plan-job result payload, the `validate`/`prepare` command results, and the end-to-end `flow` and `sample-video` commands. The next milestone can build on that stable base.
+- Retrieval metadata and the rule-based analysis contract now flow through planning, run reports, top-level run output, plan-comparison reports, smoke-test batch summaries, the plan-job result payload, the `validate`/`prepare` command results, and the end-to-end `flow` and `sample-video` commands. Milestone 4 can build on that stable base.
 
 ## Resume Commands
 
