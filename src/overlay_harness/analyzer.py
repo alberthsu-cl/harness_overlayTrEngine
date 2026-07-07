@@ -56,8 +56,8 @@ METADATA_TRANSITION_FAMILY_TO_STYLE: dict[str, str] = {
     "tunewave": "glitch-tunewave",
     "distortion": "distortion",
     "glitch2": "distortion",
-    "generated-smooth": "generated-seamless",
-    "generated-glitch": "generated-glitch",
+    "generated-smooth": "generated-dissolve",
+    "generated-glitch": "generated-noise",
 }
 
 
@@ -161,14 +161,16 @@ def load_clip_metadata(file_path: Path) -> dict[str, Any]:
 
 def derive_analyzer_inputs_from_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
     transition_family = metadata.get("transition_family")
+    prefer_generated = bool(metadata.get("prefer_generated"))
     style_hint = METADATA_TRANSITION_FAMILY_TO_STYLE.get(transition_family)
+    if prefer_generated and transition_family == "smooth":
+        style_hint = "generated-dissolve"
     style_reason = None
     if style_hint is None:
         style_hint, style_reason = _resolve_style_from_metadata_heuristics(metadata)
     else:
         style_reason = f"clip metadata transition_family was '{transition_family}'"
 
-    prefer_generated = bool(metadata.get("prefer_generated"))
     return {
         "input_kind": metadata.get("input_kind") or "auto",
         "style_hint": style_hint,

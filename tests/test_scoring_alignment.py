@@ -1210,6 +1210,16 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(high_energy["style_hint"], "generated-noise")
         self.assertEqual(default_generated["style_hint"], "generated-rgb-split")
 
+    def test_metadata_smooth_family_uses_approved_generated_alias(self) -> None:
+        derived = derive_analyzer_inputs_from_metadata(
+            {
+                "transition_family": "smooth",
+                "prefer_generated": True,
+            }
+        )
+
+        self.assertEqual(derived["style_hint"], "generated-dissolve")
+
     def test_auto_plan_prefers_catalog_retrieval_for_generated_seamless(self) -> None:
         source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
         source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
