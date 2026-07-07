@@ -242,6 +242,8 @@ GENERATED_EFFECT_SUPPORTED_STYLES: tuple[str, ...] = GENERATED_EFFECT_STYLES + G
 GENERATED_EFFECT_PLACEHOLDER_MODES: tuple[str, ...] = tuple(
     dict.fromkeys(spec["mode"] for spec in GENERATED_EFFECT_GRAMMAR.values())
 )
+LEGACY_GENERATED_SEAMLESS_STYLE: str = "generated-seamless"
+LEGACY_GENERATED_GLITCH_STYLE: str = "generated-glitch"
 
 
 AUTO_STYLE_TO_MODE: dict[str, str] = {
@@ -304,8 +306,8 @@ AUTO_STYLE_TO_MODE: dict[str, str] = {
         alias: GENERATED_EFFECT_GRAMMAR[canonical]["mode"]
         for alias, canonical in GENERATED_EFFECT_GRAMMAR_ALIASES.items()
     },
-    "generated-seamless": "generated-seamless-placeholder",
-    "generated-glitch": "generated-glitch-placeholder",
+    LEGACY_GENERATED_SEAMLESS_STYLE: "generated-seamless-placeholder",
+    LEGACY_GENERATED_GLITCH_STYLE: "generated-glitch-placeholder",
 }
 
 
@@ -316,7 +318,7 @@ AUTO_KIND_STYLE_TO_PRESET: dict[tuple[str, str], str] = {
     ("real", "glitch-04"): "real-smoke-glitch",
     ("real", "glitch-distortion"): "real-smoke-glitch",
     ("real", "slide-07"): "real-smoke-seamless",
-    ("real", "generated-glitch"): "real-smoke-generated-glitch",
+    ("real", LEGACY_GENERATED_GLITCH_STYLE): "real-smoke-generated-glitch",
     ("fixture", "seamless"): "fixture-smoke-seamless",
     ("fixture", "smooth"): "fixture-smoke-seamless",
 }
