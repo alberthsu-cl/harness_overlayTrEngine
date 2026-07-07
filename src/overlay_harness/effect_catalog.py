@@ -10,6 +10,19 @@ EFFECT_CATALOG_VERSION = 1
 DEFAULT_EFFECT_CATALOG_RELATIVE_PATH = Path("harness/configs/effect_catalog.json")
 DEFAULT_EFFECT_CATALOG_SOURCE_RELATIVE_PATH = Path("harness/configs/effect_catalog_sources.json")
 
+GENERATED_SEAMLESS_STYLE_HINTS: tuple[str, ...] = (
+    "generated-wipe",
+    "generated-dissolve",
+    "generated-mask",
+    "generated-feathering",
+)
+
+GENERATED_GLITCH_STYLE_HINTS: tuple[str, ...] = (
+    "generated-uv-shift",
+    "generated-rgb-split",
+    "generated-noise",
+)
+
 
 _EFFECT_BLUEPRINTS: tuple[dict[str, Any], ...] = (
     {
@@ -18,7 +31,7 @@ _EFFECT_BLUEPRINTS: tuple[dict[str, Any], ...] = (
         "effect_source": "builtin",
         "family": "seamless",
         "fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
-        "style_hints": ("seamless", "smooth", "generated-wipe", "generated-dissolve", "generated-mask", "generated-feathering"),
+        "style_hints": ("seamless", "smooth", *GENERATED_SEAMLESS_STYLE_HINTS),
         "retrieval_priority": 0,
         "source_documents": (
             "harness/examples/effect_specs/builtin_seamless_sliding.json",
@@ -35,7 +48,7 @@ _EFFECT_BLUEPRINTS: tuple[dict[str, Any], ...] = (
         "effect_source": "builtin",
         "family": "glitch",
         "fx_id": "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4",
-        "style_hints": ("glitch", "generated-uv-shift", "generated-rgb-split", "generated-noise"),
+        "style_hints": ("glitch", *GENERATED_GLITCH_STYLE_HINTS),
         "retrieval_priority": 0,
         "source_documents": (
             "harness/examples/render_job.effect_spec.sample.json",
@@ -359,7 +372,7 @@ _EFFECT_BLUEPRINTS: tuple[dict[str, Any], ...] = (
         "family": "seamless",
         "fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
         "fallback_fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
-        "style_hints": ("generated-wipe", "generated-dissolve", "generated-mask", "generated-feathering"),
+        "style_hints": GENERATED_SEAMLESS_STYLE_HINTS,
         "retrieval_priority": 10,
         "source_documents": (
             "harness/examples/effect_specs/generated_SeamlessSliding_placeholder.json",
@@ -375,7 +388,7 @@ _EFFECT_BLUEPRINTS: tuple[dict[str, Any], ...] = (
         "family": "glitch",
         "fx_id": "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4",
         "fallback_fx_id": "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4",
-        "style_hints": ("generated-uv-shift", "generated-rgb-split", "generated-noise"),
+        "style_hints": GENERATED_GLITCH_STYLE_HINTS,
         "retrieval_priority": 10,
         "source_documents": (
             "harness/examples/effect_specs/generated_glitch_placeholder.json",
