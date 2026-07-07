@@ -324,10 +324,10 @@ def _resolve_style_hint(
 
     if prefer_generated:
         if pair_signals["combined_visual_energy"] == "high":
-            return "generated-glitch", "generated output was preferred and local frame signals indicate high visual energy"
+            return "generated-noise", "generated output was preferred and local frame signals indicate high visual energy"
         if detected_input_kind == "fixture":
-            return "generated-seamless", "generated output was preferred and fixture inputs are better served by a visible seamless placeholder"
-        return "generated-glitch", "generated output was preferred and real or custom inputs default to a glitch placeholder"
+            return "generated-dissolve", "generated output was preferred and fixture inputs are better served by a smooth generated baseline"
+        return "generated-rgb-split", "generated output was preferred and real or custom inputs default to a visible generated baseline"
 
     if pair_signals["combined_visual_energy"] == "high" or pair_signals["combined_motion_level"] == "high":
         return "glitch", "local frame signals indicate high motion or visual energy"
@@ -345,11 +345,11 @@ def _resolve_style_from_metadata_heuristics(metadata: dict[str, Any]) -> tuple[s
 
     if motion_level == "high" or visual_energy == "high":
         if prefer_generated:
-            return "generated-glitch", "metadata indicates high motion or visual energy and generated output was preferred"
+            return "generated-noise", "metadata indicates high motion or visual energy and generated output was preferred"
         return "glitch", "metadata indicates high motion or visual energy"
 
     if prefer_generated:
-        return "generated-seamless", "metadata did not signal a glitch case and generated output was preferred"
+        return "generated-rgb-split", "metadata did not signal a glitch case and generated output was preferred"
 
     return "seamless", "metadata did not signal a glitch case, so the analyzer chose the smooth baseline"
 

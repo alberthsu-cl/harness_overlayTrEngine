@@ -35,6 +35,7 @@ from overlay_harness.effect_catalog import build_effect_catalog_audit
 from overlay_harness.effect_catalog import load_effect_catalog
 from overlay_harness.effect_catalog import select_effect_candidate
 from overlay_harness.analyzer import analyze_transition
+from overlay_harness.analyzer import derive_analyzer_inputs_from_metadata
 from overlay_harness.evaluator import score_frame_sequences
 from overlay_harness.models import EffectSpec, InputSpec, RenderJob, RenderSettings
 from overlay_harness.planner import build_recommended_plan
@@ -1153,6 +1154,25 @@ class ScoringAlignmentTests(unittest.TestCase):
         )
 
         self.assertEqual(hint["style_hint"], "generated-wipe")
+
+    def test_metadata_generated_preference_uses_approved_aliases(self) -> None:
+        high_energy = derive_analyzer_inputs_from_metadata(
+            {
+                "motion_level": "high",
+                "visual_energy": "high",
+                "prefer_generated": True,
+            }
+        )
+        default_generated = derive_analyzer_inputs_from_metadata(
+            {
+                "motion_level": "low",
+                "visual_energy": "low",
+                "prefer_generated": True,
+            }
+        )
+
+        self.assertEqual(high_energy["style_hint"], "generated-noise")
+        self.assertEqual(default_generated["style_hint"], "generated-rgb-split")
 
     def test_auto_plan_prefers_catalog_retrieval_for_generated_seamless(self) -> None:
         source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
