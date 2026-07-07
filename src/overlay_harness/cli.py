@@ -686,6 +686,10 @@ def _execute_job_command(
         "validation_valid": True,
         "job_path": str(job_path),
         "workspace": str(workspace.root),
+        "inputs_dir": str(workspace.inputs_dir),
+        "render_dir": str(workspace.render_dir),
+        "reports_dir": str(workspace.reports_dir),
+        "artifacts_dir": str(workspace.artifacts_dir),
         "report": str(report_path),
         "status": _resolve_run_report_status(invocation.status, similarity_report),
         "summary": _resolve_run_report_summary(invocation.message, similarity_report),
@@ -1332,7 +1336,7 @@ def _handle_flow(args, repo_root: Path, harness_root: Path, config_dir: Path, de
             effect_spec_output=effect_spec_output,
             planning=planning,
         )
-        planning = job.planning
+        planning = getattr(job, "planning", planning)
 
         if effect_spec_output is not None and effect_spec_payload is not None:
             write_json(effect_spec_output, effect_spec_payload)

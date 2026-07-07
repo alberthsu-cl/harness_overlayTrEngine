@@ -659,6 +659,7 @@ class ScoringAlignmentTests(unittest.TestCase):
             "job_path": str(output_root / "transition_flow_stub" / "planned.render_job.json"),
             "workspace": str(output_root / "transition_flow_stub" / "workspace"),
             "report": str(output_root / "transition_flow_stub" / "workspace" / "reports" / "run_report.json"),
+            "demo_video_file": str(output_root / "transition_flow_stub" / "workspace" / "artifacts" / "rendered.mp4"),
             "status": "succeeded",
             "summary": "renderer completed successfully",
             "evaluation": {
@@ -728,6 +729,9 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["planning"]["retrieval_summary"]["effect_id"], "builtin-glitch")
         self.assertEqual(payload["data"]["run"]["status"], "succeeded")
         self.assertEqual(payload["data"]["reference_transition"]["frame_count"], 30)
+        self.assertEqual(payload["data"]["artifacts"]["run_report"], str(run_result["report"]))
+        self.assertEqual(payload["data"]["artifacts"]["demo_video_file"], str(run_result["demo_video_file"]))
+        self.assertEqual(payload["data"]["run"]["demo_video_file"], str(run_result["demo_video_file"]))
 
     def test_run_command_records_demo_video_artifact(self) -> None:
         job = self._build_job(reference_transition=self.root / "reference", frame_count=3)
