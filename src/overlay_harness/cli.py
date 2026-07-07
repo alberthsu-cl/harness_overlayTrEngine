@@ -1093,6 +1093,7 @@ def _build_run_evaluation_summary(
     score_status = None
     score_alignment_mode = None
     score_frame_count = None
+    score_error = None
     retrieval_status = None
     retrieval_effect_id = None
     retrieval_mode = None
@@ -1124,6 +1125,7 @@ def _build_run_evaluation_summary(
         score_payload = similarity_report.get("score")
         if isinstance(score_payload, dict):
             score_frame_count = score_payload.get("frame_count")
+        score_error = similarity_report.get("error")
 
     return {
         "render": {
@@ -1138,6 +1140,7 @@ def _build_run_evaluation_summary(
             "alignment_mode": score_alignment_mode,
             "frame_count": score_frame_count,
             "report_file": str(similarity_report_file) if similarity_report_file is not None else None,
+            "error": score_error,
         },
         "planning": {
             "retrieval_status": retrieval_status,

@@ -206,6 +206,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(summary["score"]["alignment_mode"], "prepared_reference_manifest")
         self.assertEqual(summary["score"]["frame_count"], 3)
         self.assertEqual(summary["score"]["report_file"], str(self.root / "similarity_score.json"))
+        self.assertIsNone(summary["score"]["error"])
         self.assertEqual(summary["planning"]["retrieval_status"], "retrieved")
         self.assertEqual(summary["planning"]["retrieval_effect_id"], "builtin-glitch")
         self.assertEqual(summary["planning"]["retrieval_mode"], "builtin-glitch")
@@ -229,6 +230,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertIsNone(summary["score"]["alignment_mode"])
         self.assertIsNone(summary["score"]["frame_count"])
         self.assertIsNone(summary["score"]["report_file"])
+        self.assertIsNone(summary["score"]["error"])
 
     def test_run_evaluation_summary_includes_fallback_reason(self) -> None:
         class Invocation:
@@ -668,6 +670,8 @@ class ScoringAlignmentTests(unittest.TestCase):
             "evaluation": {
                 "score": {
                     "report_file": str(output_root / "transition_flow_stub" / "workspace" / "reports" / "similarity_score.json"),
+                    "status": "succeeded",
+                    "error": None,
                 },
                 "planning": {
                     "retrieval_status": "retrieved",
@@ -680,7 +684,8 @@ class ScoringAlignmentTests(unittest.TestCase):
                     "retrieval_match_kind": "alias",
                     "retrieval_matched_style_hint": "glitch",
                     "retrieval_candidate_count": 1,
-                }
+                },
+                "overall_status": "succeeded_with_score",
             },
         }
 
@@ -762,6 +767,9 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["transition_window"]["frame_count"], 30)
         self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["transition_progression"]["window_span_frames"], 30)
         self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["transition_progression"]["window_start_progress"], 0.0)
+        self.assertEqual(payload["data"]["run"]["evaluation"]["overall_status"], "succeeded_with_score")
+        self.assertEqual(payload["data"]["run"]["evaluation"]["score"]["status"], "succeeded")
+        self.assertIsNone(payload["data"]["run"]["evaluation"]["score"]["error"])
         self.assertEqual(payload["data"]["workspace_paths"]["flow_root"], str(output_root / report_files[0].parent.name))
         self.assertEqual(
             payload["data"]["workspace_paths"]["similarity_report_file"],
@@ -900,6 +908,179 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["facts"]["transition_progression"]["window_span_frames"], 30)
         self.assertEqual(payload["facts"]["transition_progression"]["window_end_progress"], 1.0)
         self.assertEqual(payload["planning_recommendation"]["analysis_engine"], "deterministic_rules_v1")
+
+    def _flow_command_persists_end_to_end_evaluation_summary(self) -> None:
+        output_root = self.root / "flow_evaluation_output"
+        output_root.mkdir(parents=True, exist_ok=True)
+
+        args = SimpleNamespace(
+            transition_video="harness/sample_glitch.mp4",
+            source_a="harness/examples/inputs/source_a_real",
+            source_b="harness/examples/inputs/source_b_real",
+            output_root=str(output_root),
+            style_hint=None,
+            intent="generated glitch transition",
+            prefer_generated=False,
+            input_kind="auto",
+            job_name="flow_eval_job",
+            width=1920,
+            height=1080,
+            fps=30,
+            frame_count=30,
+            analysis_width=64,
+            analysis_height=36,
+            ffmpeg=None,
+            renderer=None,
+            effect_spec_output=None,
+        )
+        reference_result = SimpleNamespace(
+            output_dir=output_root / "transition_flow_stub" / "reference_transition",
+            manifest_file=output_root / "transition_flow_stub" / "reference_transition" / "reference_transition_manifest.json",
+            frame_count=30,
+            message="prepared",
+            detected_start_frame=0,
+            detected_end_frame=29,
+            detected_frame_count=30,
+        )
+        planning = {
+            "auto": True,
+            "style": "generated-glitch",
+            "input_kind": "real",
+            "preset": "real-smoke-glitch",
+            "mode": "builtin-glitch",
+            "job_name": "flow_eval_job",
+            "retrieval": {
+                "status": "retrieved",
+                "effect_id": "builtin-glitch",
+                "mode": "builtin-glitch",
+                "fallback_used": False,
+                "fallback_mode": "builtin-glitch",
+                "fallback_preset": "real-smoke-glitch",
+                "fallback_reason": None,
+                "match_kind": "alias",
+                "matched_style_hint": "glitch",
+                "candidate_count": 1,
+            },
+        }
+        job = SimpleNamespace(
+            job_name="flow_eval_job",
+            effect=SimpleNamespace(fx_id="builtin-glitch"),
+            render=SimpleNamespace(frame_count=30, fps=30),
+            planning=planning,
+            to_dict=lambda: {
+                "job_name": "flow_eval_job",
+                "planning": planning,
+                "render": {"frame_count": 30, "fps": 30},
+            },
+        )
+        run_result = {
+            "exit_code": 0,
+            "workspace": str(output_root / "transition_flow_stub" / "workspace"),
+            "report": str(output_root / "transition_flow_stub" / "workspace" / "reports" / "run_report.json"),
+            "request_file": str(output_root / "transition_flow_stub" / "workspace" / "render" / "render_request.json"),
+            "renderer_result_file": str(output_root / "transition_flow_stub" / "workspace" / "render" / "renderer_result.json"),
+            "status": "succeeded",
+            "summary": "renderer completed successfully",
+            "demo_video_file": str(output_root / "transition_flow_stub" / "workspace" / "artifacts" / "rendered.mp4"),
+            "evaluation": {
+                "score": {
+                    "report_file": str(output_root / "transition_flow_stub" / "workspace" / "reports" / "similarity_score.json"),
+                    "status": "succeeded",
+                    "alignment_mode": "prepared_reference_manifest",
+                    "frame_count": 30,
+                    "error": None,
+                },
+                "planning": {
+                    "retrieval_status": "retrieved",
+                    "retrieval_effect_id": "builtin-glitch",
+                    "retrieval_mode": "builtin-glitch",
+                    "retrieval_fallback_used": False,
+                    "retrieval_fallback_mode": "builtin-glitch",
+                    "retrieval_fallback_preset": "real-smoke-glitch",
+                    "retrieval_fallback_reason": None,
+                    "retrieval_match_kind": "alias",
+                    "retrieval_matched_style_hint": "glitch",
+                    "retrieval_candidate_count": 1,
+                },
+            },
+        }
+
+        with (
+            patch("overlay_harness.cli.prepare_reference_transition", return_value=reference_result),
+            patch(
+                "overlay_harness.cli.analyze_transition",
+                return_value={
+                    "style_hint": "generated-glitch",
+                    "input_kind": "real",
+                    "reference_transition": str(reference_result.output_dir),
+                    "job_name": "flow_eval_job",
+                    "notes": "analyzer selected generated-glitch because intent mentioned glitch",
+                    "analysis": {"style_reason": "intent mentioned glitch"},
+                },
+            ),
+            patch(
+                "overlay_harness.cli.build_transition_analysis_artifact",
+                return_value={
+                    "artifact_type": "transition_analysis",
+                    "artifact_version": 2,
+                    "sources": {
+                        "source_a": "harness/examples/inputs/source_a_real",
+                        "source_b": "harness/examples/inputs/source_b_real",
+                        "reference_transition": str(reference_result.output_dir),
+                    },
+                    "facts": {
+                        "resolved": {
+                            "style_hint": "generated-glitch",
+                            "input_kind": "real",
+                            "job_name": "flow_eval_job",
+                        },
+                        "analyzer_inputs": {"flow": True},
+                        "analysis_mode": "deterministic_rules",
+                        "transition_summary": {"combined_motion_level": "high"},
+                        "transition_window": {
+                            "frame_count": 30,
+                            "detected_start_frame": 0,
+                            "detected_end_frame": 29,
+                            "detected_frame_count": 30,
+                            "message": "prepared",
+                        },
+                        "transition_progression": {
+                            "window_span_frames": 30,
+                            "window_midpoint_frame": 14,
+                            "window_coverage_ratio": 1.0,
+                            "window_start_progress": 0.0,
+                            "window_end_progress": 1.0,
+                            "window_message": "prepared",
+                        },
+                    },
+                    "planning_recommendation": {
+                        **planning,
+                        "analysis_engine": "deterministic_rules_v1",
+                    },
+                },
+            ),
+            patch("overlay_harness.cli.resolve_planned_frame_count", return_value=(30, "reference_transition_manifest")),
+            patch("overlay_harness.cli.build_planned_job", return_value=(job, {"effect": "spec"})),
+            patch("overlay_harness.cli.validate_job", return_value=SimpleNamespace(is_valid=True, issues=[])),
+            patch("overlay_harness.cli._execute_job_command", return_value=run_result),
+            patch("builtins.print") as print_mock,
+        ):
+            exit_code = _handle_flow(args, HARNESS_ROOT.parent, HARNESS_ROOT, HARNESS_ROOT / "configs", None)
+
+        self.assertEqual(exit_code, 0)
+        report_files = list(output_root.glob("transition_flow_*/flow_report.json"))
+        self.assertEqual(len(report_files), 1)
+        with report_files[0].open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+
+        self.assertEqual(payload["data"]["run"]["status"], "succeeded")
+        self.assertEqual(payload["data"]["run"]["evaluation"]["overall_status"], "succeeded_with_score")
+        self.assertEqual(payload["data"]["run"]["evaluation"]["score"]["status"], "succeeded")
+        self.assertIsNone(payload["data"]["run"]["evaluation"]["score"]["error"])
+        stdout_payload = json.loads(print_mock.call_args.args[0])
+        self.assertEqual(stdout_payload["status"], "succeeded")
+        self.assertEqual(stdout_payload["analysis_artifact"]["planning_recommendation"]["analysis_engine"], "deterministic_rules_v1")
+        self.assertEqual(stdout_payload["workspace_paths"]["similarity_report_file"], str(run_result["evaluation"]["score"]["report_file"]))
 
     def test_run_command_records_demo_video_artifact(self) -> None:
         job = self._build_job(reference_transition=self.root / "reference", frame_count=3)
