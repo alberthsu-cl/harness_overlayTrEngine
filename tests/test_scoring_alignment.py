@@ -799,6 +799,7 @@ class ScoringAlignmentTests(unittest.TestCase):
                             "style_reason": "intent mentioned glitch",
                         },
                         "analyzer_inputs": {"sample_video": True},
+                        "analysis_mode": "deterministic_rules",
                     },
                     "planning_recommendation": {"mode": "generated-glitch-placeholder", "analysis_engine": "deterministic_rules_v1"},
                 },
@@ -815,6 +816,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["artifact_type"], "transition_analysis")
         self.assertEqual(payload["facts"]["resolved"]["style_hint"], "generated-noise")
         self.assertTrue(payload["facts"]["analyzer_inputs"]["sample_video"])
+        self.assertEqual(payload["facts"]["analysis_mode"], "deterministic_rules")
         self.assertEqual(payload["planning_recommendation"]["analysis_engine"], "deterministic_rules_v1")
 
     def test_run_command_records_demo_video_artifact(self) -> None:

@@ -132,6 +132,7 @@ def build_transition_analysis_artifact(
         },
         "facts": {
             "analyzer_inputs": analyzer_inputs,
+            "analysis_mode": analyzer_inputs.get("analysis_mode", "deterministic_rules"),
             "resolved": {
                 "style_hint": hint.get("style_hint"),
                 "input_kind": hint.get("input_kind"),
