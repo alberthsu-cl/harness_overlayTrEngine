@@ -661,6 +661,8 @@ class ScoringAlignmentTests(unittest.TestCase):
             "workspace": str(output_root / "transition_flow_stub" / "workspace"),
             "report": str(output_root / "transition_flow_stub" / "workspace" / "reports" / "run_report.json"),
             "demo_video_file": str(output_root / "transition_flow_stub" / "workspace" / "artifacts" / "rendered.mp4"),
+            "request_file": str(output_root / "transition_flow_stub" / "workspace" / "render" / "render_request.json"),
+            "renderer_result_file": str(output_root / "transition_flow_stub" / "workspace" / "render" / "renderer_result.json"),
             "status": "succeeded",
             "summary": "renderer completed successfully",
             "evaluation": {
@@ -765,6 +767,14 @@ class ScoringAlignmentTests(unittest.TestCase):
             payload["data"]["workspace_paths"]["similarity_report_file"],
             str(output_root / "transition_flow_stub" / "workspace" / "reports" / "similarity_score.json"),
         )
+        self.assertEqual(
+            payload["data"]["workspace_paths"]["render_request_file"],
+            str(output_root / "transition_flow_stub" / "workspace" / "render" / "render_request.json"),
+        )
+        self.assertEqual(
+            payload["data"]["workspace_paths"]["renderer_result_file"],
+            str(output_root / "transition_flow_stub" / "workspace" / "render" / "renderer_result.json"),
+        )
         self.assertEqual(payload["data"]["workspace_paths"]["demo_video_file"], str(run_result["demo_video_file"]))
         self.assertEqual(payload["data"]["artifacts"]["run_report"], str(run_result["report"]))
         self.assertEqual(payload["data"]["artifacts"]["demo_video_file"], str(run_result["demo_video_file"]))
@@ -775,6 +785,14 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(
             stdout_payload["workspace_paths"]["similarity_report_file"],
             str(output_root / "transition_flow_stub" / "workspace" / "reports" / "similarity_score.json"),
+        )
+        self.assertEqual(
+            stdout_payload["workspace_paths"]["render_request_file"],
+            str(output_root / "transition_flow_stub" / "workspace" / "render" / "render_request.json"),
+        )
+        self.assertEqual(
+            stdout_payload["workspace_paths"]["renderer_result_file"],
+            str(output_root / "transition_flow_stub" / "workspace" / "render" / "renderer_result.json"),
         )
         self.assertEqual(stdout_payload["workspace_paths"]["demo_video_file"], str(run_result["demo_video_file"]))
 

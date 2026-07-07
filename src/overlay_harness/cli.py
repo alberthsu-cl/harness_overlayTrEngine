@@ -1560,6 +1560,8 @@ def _handle_flow(args, repo_root: Path, harness_root: Path, config_dir: Path, de
                     "similarity_report_file": run_result.get("evaluation", {}).get("score", {}).get("report_file")
                     if isinstance(run_result, dict)
                     else None,
+                    "render_request_file": run_result.get("request_file") if isinstance(run_result, dict) else None,
+                    "renderer_result_file": run_result.get("renderer_result_file") if isinstance(run_result, dict) else None,
                     "run_report": run_result.get("report") if isinstance(run_result, dict) else None,
                     "demo_video_file": run_result.get("demo_video_file") if isinstance(run_result, dict) else None,
                 },
@@ -1735,6 +1737,8 @@ def _handle_sample_video(
                     "sample_root": str(sample_root),
                     "job_file": str(sample_job_output),
                     "report_file": str(sample_report_output),
+                    "render_request_file": run_result.get("request_file") if isinstance(run_result, dict) else None,
+                    "renderer_result_file": run_result.get("renderer_result_file") if isinstance(run_result, dict) else None,
                     "run_report": run_result.get("report") if isinstance(run_result, dict) else None,
                     "demo_video_file": run_result.get("demo_video_file") if isinstance(run_result, dict) else None,
                 },
@@ -1778,6 +1782,8 @@ def _handle_sample_video(
                     "sample_root": str(sample_root),
                     "job_file": str(sample_job_output),
                     "report_file": str(sample_report_output),
+                    "render_request_file": run_result.get("request_file") if isinstance(run_result, dict) else None,
+                    "renderer_result_file": run_result.get("renderer_result_file") if isinstance(run_result, dict) else None,
                     "run_report": run_result.get("report") if isinstance(run_result, dict) else None,
                     "demo_video_file": run_result.get("demo_video_file") if isinstance(run_result, dict) else None,
                 },
@@ -2213,6 +2219,8 @@ def _build_flow_report(
                 "similarity_report_file": run_result.get("evaluation", {}).get("score", {}).get("report_file")
                 if isinstance(run_result, dict)
                 else None,
+                "render_request_file": run_result.get("request_file") if isinstance(run_result, dict) else None,
+                "renderer_result_file": run_result.get("renderer_result_file") if isinstance(run_result, dict) else None,
                 "run_report": run_result.get("report") if isinstance(run_result, dict) else None,
                 "demo_video_file": run_result.get("demo_video_file") if isinstance(run_result, dict) else None,
             },
@@ -2232,6 +2240,8 @@ def _build_flow_report(
                 "similarity_report_file": run_result.get("evaluation", {}).get("score", {}).get("report_file")
                 if isinstance(run_result, dict)
                 else None,
+                "render_request_file": run_result.get("request_file") if isinstance(run_result, dict) else None,
+                "renderer_result_file": run_result.get("renderer_result_file") if isinstance(run_result, dict) else None,
                 "run_report": run_result.get("report") if isinstance(run_result, dict) else None,
                 "demo_video_file": run_result.get("demo_video_file") if isinstance(run_result, dict) else None,
             },
