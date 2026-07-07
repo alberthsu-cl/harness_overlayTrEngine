@@ -1717,6 +1717,13 @@ def _handle_sample_video(
             summary="sample video rendered" if isinstance(run_result, dict) and run_result.get("exit_code") == 0 else "sample video failed",
             data={
                 "sample_root": str(sample_root),
+                "workspace_paths": {
+                    "sample_root": str(sample_root),
+                    "job_file": str(sample_job_output),
+                    "report_file": str(sample_report_output),
+                    "run_report": run_result.get("report") if isinstance(run_result, dict) else None,
+                    "demo_video_file": run_result.get("demo_video_file") if isinstance(run_result, dict) else None,
+                },
                 "output_video": str(output_video),
                 "selected_fx_id": selected_fx_id,
                 "job_file": str(sample_job_output),
@@ -1733,6 +1740,11 @@ def _handle_sample_video(
             summary=f"sample video failed: {flow_error}",
             data={
                 "sample_root": str(sample_root),
+                "workspace_paths": {
+                    "sample_root": str(sample_root),
+                    "job_file": str(sample_job_output),
+                    "report_file": str(sample_report_output),
+                },
                 "output_video": str(output_video),
                 "selected_fx_id": selected_fx_id,
                 "job_file": str(sample_job_output),
@@ -2169,6 +2181,17 @@ def _build_flow_report(
         report_type="flow_report",
         data={
             "flow_root": str(flow_root),
+            "workspace_paths": {
+                "flow_root": str(flow_root),
+                "reference_transition_dir": str(reference_result.output_dir) if reference_result is not None else None,
+                "reference_transition_manifest": str(reference_result.manifest_file) if reference_result is not None else None,
+                "hint_file": str(hint_output),
+                "analysis_file": str(analysis_output),
+                "job_file": str(job_output) if job_output is not None else None,
+                "effect_spec_file": str(effect_spec_output) if effect_spec_output is not None else None,
+                "run_report": run_result.get("report") if isinstance(run_result, dict) else None,
+                "demo_video_file": run_result.get("demo_video_file") if isinstance(run_result, dict) else None,
+            },
             "inputs": {
                 "transition_video": str(transition_video),
                 "source_a": str(source_a),

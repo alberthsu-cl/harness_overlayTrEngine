@@ -756,6 +756,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["transition_window"]["frame_count"], 30)
         self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["transition_progression"]["window_span_frames"], 30)
         self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["transition_progression"]["window_start_progress"], 0.0)
+        self.assertEqual(payload["data"]["workspace_paths"]["flow_root"], str(output_root / report_files[0].parent.name))
+        self.assertEqual(payload["data"]["workspace_paths"]["demo_video_file"], str(run_result["demo_video_file"]))
         self.assertEqual(payload["data"]["artifacts"]["run_report"], str(run_result["report"]))
         self.assertEqual(payload["data"]["artifacts"]["demo_video_file"], str(run_result["demo_video_file"]))
         self.assertEqual(payload["data"]["run"]["demo_video_file"], str(run_result["demo_video_file"]))
@@ -991,6 +993,8 @@ class ScoringAlignmentTests(unittest.TestCase):
             payload = json.load(handle)
 
         self.assertEqual(payload["status"], "succeeded")
+        self.assertEqual(payload["data"]["workspace_paths"]["sample_root"], str(payload["data"]["sample_root"]))
+        self.assertEqual(payload["data"]["workspace_paths"]["demo_video_file"], str(sample_demo_source))
         self.assertEqual(payload["data"]["selected_fx_id"], "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC")
         self.assertEqual(payload["data"]["output_video"], str(output_video))
         self.assertEqual(output_video.read_bytes(), sample_demo_source.read_bytes())
@@ -1050,6 +1054,7 @@ class ScoringAlignmentTests(unittest.TestCase):
 
         self.assertEqual(payload["status"], "succeeded")
         self.assertEqual(payload["data"]["planning"]["mode"], "builtin-glitch")
+        self.assertEqual(payload["data"]["workspace_paths"]["sample_root"], str(payload["data"]["sample_root"]))
         self.assertEqual(payload["data"]["selected_fx_id"], "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4")
         self.assertEqual(output_video.read_bytes(), sample_demo_source.read_bytes())
 
