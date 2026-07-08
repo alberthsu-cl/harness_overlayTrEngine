@@ -281,6 +281,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertIsNone(summary["score"]["frame_count"])
         self.assertIsNone(summary["score"]["report_file"])
         self.assertIsNone(summary["score"]["error"])
+        self.assertIsNone(summary["score"]["threshold_status"])
+        self.assertIsNone(summary["score"]["threshold_checks"])
 
     def test_run_evaluation_summary_includes_fallback_reason(self) -> None:
         class Invocation:
@@ -307,6 +309,37 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(summary["planning"]["retrieval_fallback_mode"], "generated-glitch-placeholder")
         self.assertIsNone(summary["planning"]["retrieval_fallback_preset"])
         self.assertEqual(summary["planning"]["retrieval_fallback_reason"], "effect catalog is unavailable")
+
+    def test_run_evaluation_summary_includes_score_threshold_breakdown(self) -> None:
+        class Invocation:
+            status = "succeeded"
+            exit_code = 0
+            produced_frame_count = 3
+            expected_frame_count = 3
+            message = "renderer completed successfully"
+
+        similarity_report = {
+            "status": "failed",
+            "error": "threshold check failed",
+            "alignment": {"mode": "prepared_reference_manifest"},
+            "score": {"frame_count": 3, "ssim": 0.81},
+            "threshold_evaluation": {
+                "status": "failed",
+                "checks": {
+                    "mse": {"status": "fail"},
+                    "mae": {"status": "fail"},
+                    "psnr_db": {"status": "fail"},
+                    "ssim": {"status": "fail"},
+                },
+            },
+        }
+
+        summary = _build_run_evaluation_summary(Invocation(), similarity_report, Path("similarity_score.json"), None)
+
+        self.assertEqual(summary["score"]["status"], "failed")
+        self.assertEqual(summary["score"]["threshold_status"], "failed")
+        self.assertEqual(summary["score"]["threshold_checks"]["ssim"]["status"], "fail")
+        self.assertEqual(summary["score"]["ssim"], 0.81)
 
     def test_run_report_is_versioned(self) -> None:
         report = HarnessReport(

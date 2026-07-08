@@ -1168,6 +1168,8 @@ def _build_run_evaluation_summary(
     score_alignment_mode = None
     score_frame_count = None
     score_error = None
+    score_threshold_status = None
+    score_threshold_checks = None
     retrieval_status = None
     retrieval_effect_id = None
     retrieval_mode = None
@@ -1200,6 +1202,10 @@ def _build_run_evaluation_summary(
         if isinstance(score_payload, dict):
             score_frame_count = score_payload.get("frame_count")
         score_error = similarity_report.get("error")
+        threshold_evaluation = similarity_report.get("threshold_evaluation")
+        if isinstance(threshold_evaluation, dict):
+            score_threshold_status = threshold_evaluation.get("status")
+            score_threshold_checks = threshold_evaluation.get("checks")
 
     return {
         "render": {
@@ -1216,6 +1222,8 @@ def _build_run_evaluation_summary(
             "report_file": str(similarity_report_file) if similarity_report_file is not None else None,
             "error": score_error,
             "ssim": similarity_report.get("score", {}).get("ssim") if isinstance(similarity_report, dict) else None,
+            "threshold_status": score_threshold_status,
+            "threshold_checks": score_threshold_checks,
         },
         "planning": {
             "retrieval_status": retrieval_status,

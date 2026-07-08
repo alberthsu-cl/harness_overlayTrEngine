@@ -8,17 +8,17 @@ Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retr
 
 ## Last Completed
 
-- Added deterministic transition progression fields to the analysis artifact.
-- Kept `flow` and `analyze-sample-video` output aligned with the richer analysis artifact.
-- Verified the focused flow and sample-video analysis tests pass.
+- Added SSIM plus threshold evaluation to similarity scoring.
+- Added a transition-video analysis fact block to the transition artifact.
+- Kept the focused flow and sample-video analysis tests aligned with the richer artifact.
 
 ## Next Implementation Step
 
-Start the next Milestone 4 slice with a short checklist before changing behavior.
+Continue Milestone 4 with this short checklist.
 
-1. Pick the next deterministic transition-analysis gap.
-2. List the affected modules and artifacts.
-3. Add or update focused tests before the implementation.
+1. Surface score threshold details in the run report summary.
+2. Keep transition-video analysis identity explicit in the top-level flow/sample reports.
+3. Verify the focused tests for flow, sample-video, and score reporting.
 4. Commit the slice and keep this worklog trimmed to recent items only.
 
 ## Why This Is Next
