@@ -34,7 +34,10 @@ class TransitionAnalysisProvider(Protocol):
         """Return a transition hint that matches the current analyzer contract."""
 
 
-def resolve_transition_analysis_provider(request: dict[str, Any] | None) -> dict[str, Any]:
+def resolve_transition_analysis_provider(
+    request: dict[str, Any] | None,
+    configuration: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     requested_kind = _normalize_provider_value(
         request.get("kind") if isinstance(request, dict) else None,
         ANALYSIS_PROVIDER_KIND,
@@ -47,6 +50,9 @@ def resolve_transition_analysis_provider(request: dict[str, Any] | None) -> dict
         request.get("mode") if isinstance(request, dict) else None,
         "deterministic",
     )
+
+    config_loaded = isinstance(configuration, dict)
+    config_path = configuration.get("config_path") if config_loaded else None
 
     if requested_kind == ANALYSIS_PROVIDER_KIND:
         return {
@@ -62,6 +68,10 @@ def resolve_transition_analysis_provider(request: dict[str, Any] | None) -> dict
             },
             "status": "resolved",
             "reason": "deterministic analyzer is built into the harness",
+            "configuration": {
+                "loaded": config_loaded,
+                "config_path": config_path,
+            },
         }
 
     return {
@@ -76,7 +86,15 @@ def resolve_transition_analysis_provider(request: dict[str, Any] | None) -> dict
             "mode": "deterministic",
         },
         "status": "fallback_to_deterministic",
-        "reason": "model-backed provider loading is not implemented yet",
+        "reason": (
+            "analysis provider configuration is loaded but model-backed provider invocation is not yet implemented"
+            if config_loaded
+            else "analysis provider configuration is missing"
+        ),
+        "configuration": {
+            "loaded": config_loaded,
+            "config_path": config_path,
+        },
     }
 
 
@@ -224,7 +242,8 @@ def build_transition_analysis_artifact(
         "name": analyzer_inputs.get("analysis_provider_name") or ANALYSIS_PROVIDER_NAME,
         "mode": analyzer_inputs.get("analysis_provider_mode") or "deterministic",
     }
-    provider_resolution = resolve_transition_analysis_provider(provider_request)
+    provider_configuration = analyzer_inputs.get("analysis_provider_configuration")
+    provider_resolution = resolve_transition_analysis_provider(provider_request, provider_configuration)
     recommended_plan = build_recommended_plan(
         repo_root=repo_root,
         source_a=source_a,
@@ -244,6 +263,7 @@ def build_transition_analysis_artifact(
             "analysis_mode": analyzer_inputs.get("analysis_mode", "deterministic_rules"),
             "analysis_provider_request": provider_request,
             "analysis_provider_resolution": provider_resolution,
+            "analysis_provider_configuration": provider_configuration,
             "analysis_provider": resolved_provider
             if isinstance(resolved_provider, dict)
             else _build_transition_analysis_provider(

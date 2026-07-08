@@ -1,0 +1,16 @@
+{
+  "config_type": "analysis_provider_config",
+  "config_version": 1,
+  "default_provider": {
+    "kind": "deterministic_rules",
+    "name": "deterministic_rules_v1",
+    "mode": "deterministic"
+  },
+  "model_backed_provider": {
+    "enabled": false,
+    "kind": "model_backed",
+    "name": "openai-transition-model",
+    "mode": "vision",
+    "source": "env:HARNESS_ANALYSIS_PROVIDER_CONFIG"
+  }
+}

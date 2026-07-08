@@ -8,27 +8,24 @@ Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retr
 
 ## Last Completed
 
+- Added a checked-in analysis provider config source and wired the transition analysis path to load it.
+- Recorded provider request, resolution, and loaded config metadata in the analysis artifact.
 - Added provider request versus resolution metadata to the transition analysis artifact.
 - Documented the deterministic fallback for requested `model_backed` analysis providers.
-- Exposed requested provider metadata on `analyze-transition` and `flow` while keeping the deterministic analyzer as the default implementation.
-- Recorded requested vs resolved analysis provider metadata in the transition analysis artifact.
-- Defined the transition analysis provider interface and recorded provider metadata in the analysis artifact.
-- Added score threshold details to the run evaluation summary.
-- Split top-level flow and sample-video reports into explicit analysis/sample context blocks.
-- Documented the new report fields in the README.
+- Exposed requested provider metadata on `analyze-transition` and `flow`.
 
 ## Next Implementation Step
 
-Start the Milestone 5 handoff with a short checklist before changing behavior.
+Define the first real model-backed provider implementation and its runtime contract.
 
-1. Decide the first real model-backed provider implementation and its loading contract.
-2. Identify the provider loading hook and configuration source.
+1. Decide the first real model-backed provider implementation and its execution contract.
+2. Decide how the provider config should be supplied at runtime.
 3. Add focused tests before implementation.
 4. Keep deterministic fallback behavior available until the model path is stable.
 
 ## Why This Is Next
 
-- Retrieval metadata and the rule-based analysis contract now flow through planning, run reports, top-level run output, plan-comparison reports, smoke-test batch summaries, the plan-job result payload, the `validate`/`prepare` command results, and the end-to-end `flow` and `sample-video` commands. Milestone 4 can build on that stable base.
+- Retrieval metadata and the rule-based analysis contract now flow through planning, run reports, top-level run output, plan-comparison reports, smoke-test batch summaries, the plan-job result payload, the `validate`/`prepare` command results, and the end-to-end `flow` command. Milestone 4 can build on that stable base.
 
 ## Resume Commands
 

@@ -9,7 +9,7 @@ from pathlib import Path
 import sys
 from uuid import uuid4
 
-from .config import load_allowed_effects, load_eval_thresholds
+from .config import load_allowed_effects, load_analysis_provider_config, load_eval_thresholds
 from .effect_catalog import build_effect_catalog
 from .effect_catalog import build_effect_catalog_audit
 from .effect_catalog import load_effect_catalog
@@ -1315,6 +1315,7 @@ def _handle_analyze_transition(args, repo_root: Path) -> int:
     comparison_output = (
         _resolve_path_argument(args.comparison_output, repo_root) if args.comparison_output else None
     )
+    analysis_provider_config = load_analysis_provider_config(repo_root / "harness" / "configs")
     metadata_inputs: dict | None = None
 
     if args.clip_metadata_file:
@@ -1342,6 +1343,7 @@ def _handle_analyze_transition(args, repo_root: Path) -> int:
             "analysis_provider_kind": args.analysis_provider_kind,
             "analysis_provider_name": args.analysis_provider_name or (metadata_inputs.get("analysis_provider_name") if metadata_inputs else None),
             "analysis_provider_mode": args.analysis_provider_mode,
+            "analysis_provider_configuration": analysis_provider_config,
             "reference_transition": _format_path_for_output(reference_transition, repo_root),
             "job_name": args.job_name or (metadata_inputs.get("job_name") if metadata_inputs else None),
             "clip_metadata_file": args.clip_metadata_file,
@@ -1428,7 +1430,6 @@ def _handle_analyze_sample_video(args, repo_root: Path) -> int:
     source_a = _resolve_path_argument(args.source_a, repo_root)
     source_b = _resolve_path_argument(args.source_b, repo_root)
     transition_video = _resolve_path_argument(args.transition_video, repo_root)
-
     try:
         reference_result = prepare_reference_transition(
             source_video=transition_video,
@@ -1548,6 +1549,7 @@ def _handle_flow(args, repo_root: Path, harness_root: Path, config_dir: Path, de
     source_a = _resolve_path_argument(args.source_a, repo_root)
     source_b = _resolve_path_argument(args.source_b, repo_root)
     transition_video = _resolve_path_argument(args.transition_video, repo_root)
+    analysis_provider_config = load_analysis_provider_config(config_dir)
     renderer = _resolve_renderer_argument(args.renderer, default_renderer)
 
     reference_result = None
@@ -1593,6 +1595,7 @@ def _handle_flow(args, repo_root: Path, harness_root: Path, config_dir: Path, de
             "analysis_provider_kind": args.analysis_provider_kind,
             "analysis_provider_name": args.analysis_provider_name,
             "analysis_provider_mode": args.analysis_provider_mode,
+            "analysis_provider_configuration": analysis_provider_config,
             "analysis_mode": "deterministic_rules",
             "analysis_source": "transition_video",
             "analysis_engine": ANALYSIS_ENGINE,

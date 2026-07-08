@@ -36,6 +36,7 @@ from overlay_harness.effect_catalog import build_effect_catalog
 from overlay_harness.effect_catalog import build_effect_catalog_audit
 from overlay_harness.effect_catalog import load_effect_catalog
 from overlay_harness.effect_catalog import select_effect_candidate
+from overlay_harness.config import load_analysis_provider_config
 from overlay_harness.analyzer import analyze_transition
 from overlay_harness.analyzer import build_transition_analysis_artifact
 from overlay_harness.analyzer import derive_analyzer_inputs_from_metadata
@@ -1061,8 +1062,17 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["facts"]["analysis_provider_request"]["name"], "openai-transition-model")
         self.assertEqual(payload["facts"]["analysis_provider_request"]["mode"], "vision")
         self.assertEqual(payload["facts"]["analysis_provider_resolution"]["status"], "fallback_to_deterministic")
+        self.assertEqual(payload["facts"]["analysis_provider_resolution"]["configuration"]["loaded"], True)
         self.assertEqual(payload["facts"]["analysis_provider"]["kind"], "deterministic_rules")
         self.assertEqual(payload["facts"]["analysis_provider"]["name"], "deterministic_rules_v1")
+
+    def test_analysis_provider_config_is_loaded(self) -> None:
+        config = load_analysis_provider_config(HARNESS_ROOT / "configs")
+
+        self.assertIsNotNone(config)
+        self.assertEqual(config["config_type"], "analysis_provider_config")
+        self.assertEqual(config["default_provider"]["kind"], "deterministic_rules")
+        self.assertEqual(config["model_backed_provider"]["kind"], "model_backed")
 
     def _flow_command_persists_end_to_end_evaluation_summary(self) -> None:
         output_root = self.root / "flow_evaluation_output"
@@ -1739,12 +1749,17 @@ class ScoringAlignmentTests(unittest.TestCase):
                 "analysis_provider_name": "openai-transition-model",
                 "analysis_provider_mode": "vision",
                 "analysis_mode": "deterministic_rules",
+                "analysis_provider_configuration": {
+                    "config_path": str(HARNESS_ROOT / "configs" / "analysis_provider.json"),
+                    "config_version": 1,
+                },
             },
             hint=hint,
         )
 
         self.assertEqual(artifact["facts"]["analysis_provider_request"]["kind"], "model_backed")
         self.assertEqual(artifact["facts"]["analysis_provider_resolution"]["status"], "fallback_to_deterministic")
+        self.assertEqual(artifact["facts"]["analysis_provider_resolution"]["configuration"]["loaded"], True)
         self.assertEqual(artifact["facts"]["analysis_provider_resolution"]["resolved"]["kind"], "deterministic_rules")
         self.assertEqual(artifact["facts"]["analysis_provider_resolution"]["resolved"]["name"], "deterministic_rules_v1")
 

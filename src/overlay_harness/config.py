@@ -16,3 +16,14 @@ def load_allowed_effects(config_dir: Path) -> dict[str, Any]:
 
 def load_eval_thresholds(config_dir: Path) -> dict[str, Any]:
     return load_config(config_dir / "eval_thresholds.json")
+
+
+def load_analysis_provider_config(config_dir: Path) -> dict[str, Any] | None:
+    config_path = config_dir / "analysis_provider.json"
+    if not config_path.exists():
+        return None
+    config = load_config(config_path)
+    if not isinstance(config, dict):
+        raise ValueError("analysis_provider.json must contain a JSON object")
+    config["config_path"] = str(config_path)
+    return config
