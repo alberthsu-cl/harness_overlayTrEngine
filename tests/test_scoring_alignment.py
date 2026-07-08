@@ -720,6 +720,27 @@ class ScoringAlignmentTests(unittest.TestCase):
                         },
                         "analyzer_inputs": {"flow": True},
                         "analysis_mode": "deterministic_rules",
+                        "transition_video_analysis": {
+                            "source": "transition_video",
+                            "analysis_engine": "deterministic_rules_v1",
+                            "reference_transition": str(reference_result.output_dir),
+                            "transition_video": "harness/sample_glitch.mp4",
+                            "transition_window": {
+                                "frame_count": 30,
+                                "detected_start_frame": 0,
+                                "detected_end_frame": 29,
+                                "detected_frame_count": 30,
+                                "message": "prepared",
+                            },
+                            "transition_progression": {
+                                "window_span_frames": 30,
+                                "window_midpoint_frame": 14,
+                                "window_coverage_ratio": 1.0,
+                                "window_start_progress": 0.0,
+                                "window_end_progress": 1.0,
+                                "window_message": "prepared",
+                            },
+                        },
                         "transition_summary": {"combined_motion_level": "high"},
                         "transition_window": {
                             "frame_count": 30,
@@ -767,6 +788,12 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["transition_window"]["frame_count"], 30)
         self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["transition_progression"]["window_span_frames"], 30)
         self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["transition_progression"]["window_start_progress"], 0.0)
+        self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["transition_video_analysis"]["source"], "transition_video")
+        self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["transition_video_analysis"]["analysis_engine"], "deterministic_rules_v1")
+        self.assertEqual(
+            payload["data"]["analysis_artifact"]["facts"]["transition_video_analysis"]["transition_video"],
+            "harness/sample_glitch.mp4",
+        )
         self.assertEqual(payload["data"]["analysis_artifact"]["planning_recommendation"]["producer"], "transition_video_analysis")
         self.assertEqual(payload["data"]["analysis_artifact"]["planning_recommendation"]["analysis_engine"], "deterministic_rules_v1")
         self.assertEqual(payload["data"]["analysis_artifact"]["planning_recommendation"]["transition_planning_hint"]["analysis_source"], "transition_video")

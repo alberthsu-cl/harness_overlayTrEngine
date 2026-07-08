@@ -133,6 +133,14 @@ def build_transition_analysis_artifact(
         "facts": {
             "analyzer_inputs": analyzer_inputs,
             "analysis_mode": analyzer_inputs.get("analysis_mode", "deterministic_rules"),
+            "transition_video_analysis": {
+                "source": analyzer_inputs.get("analysis_source", "source_a_source_b"),
+                "analysis_engine": analyzer_inputs.get("analysis_engine", ANALYSIS_ENGINE),
+                "reference_transition": analyzer_inputs.get("reference_transition"),
+                "transition_video": analyzer_inputs.get("transition_video"),
+                "transition_window": analyzer_inputs.get("transition_window"),
+                "transition_progression": _build_transition_progression(analyzer_inputs.get("transition_window")),
+            },
             "transition_summary": _build_transition_summary(signals),
             "transition_window": analyzer_inputs.get("transition_window"),
             "transition_progression": _build_transition_progression(analyzer_inputs.get("transition_window")),
