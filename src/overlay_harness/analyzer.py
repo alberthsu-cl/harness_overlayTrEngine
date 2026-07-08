@@ -4,7 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from typing import Any
+from typing import Any, Protocol
 
 from .planner import GENERATED_EFFECT_SUPPORTED_STYLES, auto_styles, build_recommended_plan, infer_input_kind
 
@@ -12,6 +12,26 @@ from .planner import GENERATED_EFFECT_SUPPORTED_STYLES, auto_styles, build_recom
 STYLE_HINTS = set(auto_styles())
 ANALYSIS_ARTIFACT_VERSION = 2
 ANALYSIS_ENGINE = "deterministic_rules_v1"
+ANALYSIS_PROVIDER_KIND = "deterministic_rules"
+ANALYSIS_PROVIDER_NAME = ANALYSIS_ENGINE
+
+
+class TransitionAnalysisProvider(Protocol):
+    def analyze_transition(
+        self,
+        *,
+        repo_root: Path,
+        source_a: Path,
+        source_b: Path,
+        input_kind: str,
+        style_hint: str | None,
+        intent: str | None,
+        prefer_generated: bool,
+        reference_transition: Path | None,
+        job_name: str | None,
+        analyzer_inputs: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Return a transition hint that matches the current analyzer contract."""
 
 
 METADATA_TRANSITION_FAMILY_TO_STYLE: dict[str, str] = {
@@ -72,7 +92,38 @@ def analyze_transition(
     prefer_generated: bool,
     reference_transition: Path | None,
     job_name: str | None,
+    provider: TransitionAnalysisProvider | None = None,
 ) -> dict:
+    if provider is not None:
+        hint = provider.analyze_transition(
+            repo_root=repo_root,
+            source_a=source_a,
+            source_b=source_b,
+            input_kind=input_kind,
+            style_hint=style_hint,
+            intent=intent,
+            prefer_generated=prefer_generated,
+            reference_transition=reference_transition,
+            job_name=job_name,
+            analyzer_inputs={
+                "input_kind": input_kind,
+                "style_hint": style_hint,
+                "intent": intent,
+                "prefer_generated": prefer_generated,
+                "reference_transition": _format_optional_path(reference_transition, repo_root),
+                "job_name": job_name,
+            },
+        )
+        returned_provider = hint.get("analysis_provider")
+        provider_name = "custom_provider"
+        if isinstance(returned_provider, dict) and isinstance(returned_provider.get("name"), str):
+            provider_name = returned_provider["name"]
+        return _attach_transition_analysis_provider(
+            hint=hint,
+            provider_kind="model_backed",
+            provider_name=provider_name,
+        )
+
     detected_input_kind = input_kind
     if detected_input_kind == "auto":
         detected_input_kind = infer_input_kind(repo_root, source_a, source_b)
@@ -94,6 +145,11 @@ def analyze_transition(
         notes += f" Intent: {intent}"
 
     return {
+        "analysis_provider": _build_transition_analysis_provider(
+            provider_kind=ANALYSIS_PROVIDER_KIND,
+            provider_name=ANALYSIS_PROVIDER_NAME,
+            provider_mode="deterministic",
+        ),
         "style_hint": resolved_style_hint,
         "input_kind": detected_input_kind,
         "reference_transition": _format_optional_path(reference_transition, repo_root),
@@ -133,6 +189,11 @@ def build_transition_analysis_artifact(
         "facts": {
             "analyzer_inputs": analyzer_inputs,
             "analysis_mode": analyzer_inputs.get("analysis_mode", "deterministic_rules"),
+            "analysis_provider": _build_transition_analysis_provider(
+                provider_kind=analyzer_inputs.get("analysis_provider_kind") or ANALYSIS_PROVIDER_KIND,
+                provider_name=analyzer_inputs.get("analysis_provider_name") or ANALYSIS_PROVIDER_NAME,
+                provider_mode=analyzer_inputs.get("analysis_provider_mode") or "deterministic",
+            ),
             "transition_video_analysis": {
                 "source": analyzer_inputs.get("analysis_source", "source_a_source_b"),
                 "analysis_engine": analyzer_inputs.get("analysis_engine", ANALYSIS_ENGINE),
@@ -166,6 +227,32 @@ def build_transition_analysis_artifact(
             "hint": hint,
         },
     }
+
+
+def _build_transition_analysis_provider(
+    provider_kind: str,
+    provider_name: str,
+    provider_mode: str,
+) -> dict[str, str]:
+    return {
+        "kind": provider_kind,
+        "name": provider_name,
+        "mode": provider_mode,
+    }
+
+
+def _attach_transition_analysis_provider(
+    hint: dict[str, Any],
+    provider_kind: str,
+    provider_name: str,
+) -> dict[str, Any]:
+    result = dict(hint)
+    result["analysis_provider"] = _build_transition_analysis_provider(
+        provider_kind=provider_kind,
+        provider_name=provider_name,
+        provider_mode="custom",
+    )
+    return result
 
 
 def load_clip_metadata(file_path: Path) -> dict[str, Any]:

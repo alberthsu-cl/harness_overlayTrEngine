@@ -8,6 +8,7 @@ Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retr
 
 ## Last Completed
 
+- Defined the transition analysis provider interface and recorded provider metadata in the analysis artifact.
 - Added score threshold details to the run evaluation summary.
 - Split top-level flow and sample-video reports into explicit analysis/sample context blocks.
 - Documented the new report fields in the README.
@@ -16,11 +17,10 @@ Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retr
 
 Start the Milestone 5 handoff with a short checklist before changing behavior.
 
-1. Define the model-backed transition analysis contract and provider interface.
-2. Decide which command first accepts the model-backed path, if any.
-3. Identify the affected modules and report fields.
-4. Add focused tests before implementation.
-5. Keep deterministic fallback behavior available until the model path is stable.
+1. Decide which command first accepts the model-backed path, if any.
+2. Identify the affected modules and report fields.
+3. Add focused tests before implementation.
+4. Keep deterministic fallback behavior available until the model path is stable.
 
 ## Why This Is Next
 

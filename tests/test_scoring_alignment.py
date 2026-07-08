@@ -1639,6 +1639,40 @@ class ScoringAlignmentTests(unittest.TestCase):
         )
 
         self.assertEqual(hint["style_hint"], "generated-rgb-split")
+        self.assertEqual(hint["analysis_provider"]["kind"], "deterministic_rules")
+        self.assertEqual(hint["analysis_provider"]["name"], "deterministic_rules_v1")
+
+    def test_analyzer_uses_custom_provider_when_supplied(self) -> None:
+        source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
+        source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
+
+        class CustomProvider:
+            def analyze_transition(self, **kwargs):
+                return {
+                    "style_hint": "generated-noise",
+                    "input_kind": kwargs["input_kind"],
+                    "reference_transition": None,
+                    "job_name": kwargs["job_name"],
+                    "notes": "custom provider used",
+                    "analysis": {"style_reason": "custom provider used"},
+                }
+
+        hint = analyze_transition(
+            repo_root=HARNESS_ROOT.parent,
+            source_a=source_a,
+            source_b=source_b,
+            input_kind="auto",
+            style_hint=None,
+            intent="generated noise transition",
+            prefer_generated=False,
+            reference_transition=None,
+            job_name="custom_provider_job",
+            provider=CustomProvider(),
+        )
+
+        self.assertEqual(hint["style_hint"], "generated-noise")
+        self.assertEqual(hint["analysis_provider"]["kind"], "model_backed")
+        self.assertEqual(hint["analysis_provider"]["name"], "custom_provider")
 
     def test_analyzer_uses_approved_alias_for_generated_glitch_intent(self) -> None:
         source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
