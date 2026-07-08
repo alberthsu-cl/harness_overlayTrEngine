@@ -214,6 +214,52 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(summary["planning"]["retrieval_matched_style_hint"], "glitch")
         self.assertEqual(summary["planning"]["retrieval_candidate_count"], 1)
 
+    def test_similarity_report_threshold_evaluation_passes_for_low_error(self) -> None:
+        candidate_dir = self.root / "candidate"
+        reference_dir = self.root / "reference"
+        self._write_bmp_sequence(candidate_dir, [(0, 0, 0), (0, 0, 0), (0, 0, 0)])
+        self._write_bmp_sequence(reference_dir, [(0, 0, 0), (0, 0, 0), (0, 0, 0)])
+        self._write_reference_manifest(reference_dir, frame_count=3)
+
+        report = _build_similarity_report(
+            repo_root=HARNESS_ROOT.parent,
+            candidate=candidate_dir,
+            reference=reference_dir,
+            width=self.width,
+            height=self.height,
+            frame_count=3,
+            output=self.root / "similarity_report_pass.json",
+        )
+
+        self.assertEqual(report["status"], "succeeded")
+        self.assertEqual(report["threshold_evaluation"]["status"], "passed")
+        self.assertEqual(report["threshold_evaluation"]["checks"]["mse"]["status"], "pass")
+        self.assertEqual(report["threshold_evaluation"]["checks"]["mae"]["status"], "pass")
+        self.assertEqual(report["threshold_evaluation"]["checks"]["psnr_db"]["status"], "pass")
+
+    def test_similarity_report_threshold_evaluation_fails_for_high_error(self) -> None:
+        candidate_dir = self.root / "candidate"
+        reference_dir = self.root / "reference"
+        self._write_bmp_sequence(candidate_dir, [(255, 255, 255), (255, 255, 255), (255, 255, 255)])
+        self._write_bmp_sequence(reference_dir, [(0, 0, 0), (0, 0, 0), (0, 0, 0)])
+        self._write_reference_manifest(reference_dir, frame_count=3)
+
+        report = _build_similarity_report(
+            repo_root=HARNESS_ROOT.parent,
+            candidate=candidate_dir,
+            reference=reference_dir,
+            width=self.width,
+            height=self.height,
+            frame_count=3,
+            output=self.root / "similarity_report_fail.json",
+        )
+
+        self.assertEqual(report["status"], "failed")
+        self.assertEqual(report["threshold_evaluation"]["status"], "failed")
+        self.assertEqual(report["threshold_evaluation"]["checks"]["mse"]["status"], "fail")
+        self.assertEqual(report["threshold_evaluation"]["checks"]["mae"]["status"], "fail")
+        self.assertEqual(report["threshold_evaluation"]["checks"]["psnr_db"]["status"], "fail")
+
     def test_run_evaluation_summary_handles_missing_score(self) -> None:
         class Invocation:
             status = "blocked"

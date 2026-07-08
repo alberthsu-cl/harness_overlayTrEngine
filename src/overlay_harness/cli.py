@@ -1009,6 +1009,7 @@ def _build_similarity_report(
     ffmpeg_path: str | None = None,
 ) -> dict[str, object]:
     reference_manifest = load_reference_transition_manifest(reference)
+    eval_thresholds = load_eval_thresholds(repo_root / "harness" / "configs")
     expected_frame_count = frame_count
     if reference_manifest is not None:
         manifest_frame_count = reference_manifest.get("frame_count")
@@ -1031,12 +1032,14 @@ def _build_similarity_report(
         ffmpeg_path=ffmpeg_path,
         require_exact_frame_count=reference_manifest is not None,
     )
+    threshold_report = _build_similarity_threshold_report(score.to_dict(), eval_thresholds)
     similarity_report = {
         "report_type": "similarity_score",
         "report_version": 1,
         "candidate": _format_path_for_output(candidate, repo_root),
         "reference": _format_path_for_output(reference, repo_root),
         "status": "succeeded",
+        "thresholds": eval_thresholds,
         "alignment": _build_similarity_alignment(
             repo_root=repo_root,
             reference=reference,
@@ -1045,9 +1048,72 @@ def _build_similarity_report(
             reference_manifest=reference_manifest,
         ),
         "score": score.to_dict(),
+        "threshold_evaluation": threshold_report,
     }
+    if threshold_report["status"] == "failed":
+        similarity_report["status"] = "failed"
+        similarity_report["error"] = threshold_report["message"]
     write_json(output, similarity_report)
     return similarity_report
+
+
+def _build_similarity_threshold_report(score: dict[str, object], eval_thresholds: dict[str, object]) -> dict[str, object]:
+    metrics = eval_thresholds.get("metrics") if isinstance(eval_thresholds, dict) else None
+    if not isinstance(metrics, dict):
+        return {
+            "status": "blocked",
+            "message": "eval_thresholds.json is missing metrics",
+            "checks": {},
+        }
+
+    checks: dict[str, dict[str, object]] = {}
+    failed = False
+    for metric_name, metric_value in (
+        ("mse", score.get("mse")),
+        ("mae", score.get("mae")),
+        ("psnr_db", score.get("psnr_db")),
+    ):
+        threshold = metrics.get(metric_name)
+        if not isinstance(threshold, dict):
+            continue
+        warn = threshold.get("warn")
+        fail = threshold.get("fail")
+        if metric_value is None:
+            state = "pass" if metric_name == "psnr_db" else "missing"
+        elif metric_name == "psnr_db":
+            state = "pass"
+            if isinstance(fail, (int, float)) and metric_value < fail:
+                state = "fail"
+            elif isinstance(warn, (int, float)) and metric_value < warn:
+                state = "warn"
+        else:
+            state = "pass"
+            if isinstance(fail, (int, float)) and metric_value > fail:
+                state = "fail"
+            elif isinstance(warn, (int, float)) and metric_value > warn:
+                state = "warn"
+
+        if state == "fail":
+            failed = True
+        checks[metric_name] = {
+            "value": metric_value,
+            "warn": warn,
+            "fail": fail,
+            "status": state,
+        }
+
+    if failed:
+        return {
+            "status": "failed",
+            "message": "one or more similarity metrics exceeded the fail threshold",
+            "checks": checks,
+        }
+
+    return {
+        "status": "passed",
+        "message": "all checked similarity metrics were within threshold",
+        "checks": checks,
+    }
 
 
 def _build_similarity_alignment(
