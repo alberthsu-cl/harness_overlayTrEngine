@@ -246,7 +246,7 @@ py -3 harness/src/main.py analyze-transition --source-a harness/examples/inputs/
 This command writes the same `transition_hint.json` contract consumed by `plan-job --hint-file`, and it also writes a richer analysis artifact that `plan-job --analysis-file` can consume directly.
 
 That richer artifact now includes a versioned `planning_recommendation` block with the analyzer's suggested preset, mode, style, resolved input kind, retrieval summary, and embedded hint snapshot.
-You can also record a requested provider kind with `--analysis-provider-kind deterministic_rules|model_backed`; the current harness keeps the deterministic implementation but stores the provider request in the analysis artifact so a future model-backed provider can slot into the same contract.
+You can also record a requested provider kind with `--analysis-provider-kind deterministic_rules|model_backed`; the current harness keeps the deterministic implementation but stores both the request and the resolved fallback in the analysis artifact so a future model-backed provider can slot into the same contract.
 
 Use `plan-job` to create a valid render job from prepared A/B inputs without hand-editing JSON:
 

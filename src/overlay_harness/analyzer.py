@@ -34,6 +34,52 @@ class TransitionAnalysisProvider(Protocol):
         """Return a transition hint that matches the current analyzer contract."""
 
 
+def resolve_transition_analysis_provider(request: dict[str, Any] | None) -> dict[str, Any]:
+    requested_kind = _normalize_provider_value(
+        request.get("kind") if isinstance(request, dict) else None,
+        ANALYSIS_PROVIDER_KIND,
+    )
+    requested_name = _normalize_provider_value(
+        request.get("name") if isinstance(request, dict) else None,
+        ANALYSIS_PROVIDER_NAME,
+    )
+    requested_mode = _normalize_provider_value(
+        request.get("mode") if isinstance(request, dict) else None,
+        "deterministic",
+    )
+
+    if requested_kind == ANALYSIS_PROVIDER_KIND:
+        return {
+            "requested": {
+                "kind": requested_kind,
+                "name": requested_name,
+                "mode": requested_mode,
+            },
+            "resolved": {
+                "kind": ANALYSIS_PROVIDER_KIND,
+                "name": ANALYSIS_PROVIDER_NAME,
+                "mode": "deterministic",
+            },
+            "status": "resolved",
+            "reason": "deterministic analyzer is built into the harness",
+        }
+
+    return {
+        "requested": {
+            "kind": requested_kind,
+            "name": requested_name,
+            "mode": requested_mode,
+        },
+        "resolved": {
+            "kind": ANALYSIS_PROVIDER_KIND,
+            "name": ANALYSIS_PROVIDER_NAME,
+            "mode": "deterministic",
+        },
+        "status": "fallback_to_deterministic",
+        "reason": "model-backed provider loading is not implemented yet",
+    }
+
+
 METADATA_TRANSITION_FAMILY_TO_STYLE: dict[str, str] = {
     "smooth": "seamless",
     "seamless": "seamless",
@@ -178,6 +224,7 @@ def build_transition_analysis_artifact(
         "name": analyzer_inputs.get("analysis_provider_name") or ANALYSIS_PROVIDER_NAME,
         "mode": analyzer_inputs.get("analysis_provider_mode") or "deterministic",
     }
+    provider_resolution = resolve_transition_analysis_provider(provider_request)
     recommended_plan = build_recommended_plan(
         repo_root=repo_root,
         source_a=source_a,
@@ -196,12 +243,13 @@ def build_transition_analysis_artifact(
             "analyzer_inputs": analyzer_inputs,
             "analysis_mode": analyzer_inputs.get("analysis_mode", "deterministic_rules"),
             "analysis_provider_request": provider_request,
+            "analysis_provider_resolution": provider_resolution,
             "analysis_provider": resolved_provider
             if isinstance(resolved_provider, dict)
             else _build_transition_analysis_provider(
-                provider_kind=provider_request["kind"],
-                provider_name=provider_request["name"],
-                provider_mode=provider_request["mode"],
+                provider_kind=provider_resolution["resolved"]["kind"],
+                provider_name=provider_resolution["resolved"]["name"],
+                provider_mode=provider_resolution["resolved"]["mode"],
             ),
             "transition_video_analysis": {
                 "source": analyzer_inputs.get("analysis_source", "source_a_source_b"),
@@ -262,6 +310,10 @@ def _attach_transition_analysis_provider(
         provider_mode="custom",
     )
     return result
+
+
+def _normalize_provider_value(value: Any, fallback: str) -> str:
+    return value if isinstance(value, str) and value else fallback
 
 
 def load_clip_metadata(file_path: Path) -> dict[str, Any]:

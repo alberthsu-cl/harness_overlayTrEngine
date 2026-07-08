@@ -37,6 +37,7 @@ from overlay_harness.effect_catalog import build_effect_catalog_audit
 from overlay_harness.effect_catalog import load_effect_catalog
 from overlay_harness.effect_catalog import select_effect_candidate
 from overlay_harness.analyzer import analyze_transition
+from overlay_harness.analyzer import build_transition_analysis_artifact
 from overlay_harness.analyzer import derive_analyzer_inputs_from_metadata
 from overlay_harness.evaluator import score_frame_sequences
 from overlay_harness.models import EffectSpec, InputSpec, RenderJob, RenderSettings
@@ -1059,6 +1060,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["facts"]["analysis_provider_request"]["kind"], "model_backed")
         self.assertEqual(payload["facts"]["analysis_provider_request"]["name"], "openai-transition-model")
         self.assertEqual(payload["facts"]["analysis_provider_request"]["mode"], "vision")
+        self.assertEqual(payload["facts"]["analysis_provider_resolution"]["status"], "fallback_to_deterministic")
         self.assertEqual(payload["facts"]["analysis_provider"]["kind"], "deterministic_rules")
         self.assertEqual(payload["facts"]["analysis_provider"]["name"], "deterministic_rules_v1")
 
@@ -1712,6 +1714,39 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(hint["style_hint"], "generated-noise")
         self.assertEqual(hint["analysis_provider"]["kind"], "model_backed")
         self.assertEqual(hint["analysis_provider"]["name"], "custom_provider")
+
+    def test_analyzer_model_backed_request_resolves_to_deterministic_fallback(self) -> None:
+        source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
+        source_b = HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"
+
+        hint = analyze_transition(
+            repo_root=HARNESS_ROOT.parent,
+            source_a=source_a,
+            source_b=source_b,
+            input_kind="auto",
+            style_hint=None,
+            intent="generated glitch transition",
+            prefer_generated=False,
+            reference_transition=None,
+            job_name="model_backed_request",
+        )
+        artifact = build_transition_analysis_artifact(
+            repo_root=HARNESS_ROOT.parent,
+            source_a=source_a,
+            source_b=source_b,
+            analyzer_inputs={
+                "analysis_provider_kind": "model_backed",
+                "analysis_provider_name": "openai-transition-model",
+                "analysis_provider_mode": "vision",
+                "analysis_mode": "deterministic_rules",
+            },
+            hint=hint,
+        )
+
+        self.assertEqual(artifact["facts"]["analysis_provider_request"]["kind"], "model_backed")
+        self.assertEqual(artifact["facts"]["analysis_provider_resolution"]["status"], "fallback_to_deterministic")
+        self.assertEqual(artifact["facts"]["analysis_provider_resolution"]["resolved"]["kind"], "deterministic_rules")
+        self.assertEqual(artifact["facts"]["analysis_provider_resolution"]["resolved"]["name"], "deterministic_rules_v1")
 
     def test_analyzer_uses_approved_alias_for_generated_glitch_intent(self) -> None:
         source_a = HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"
