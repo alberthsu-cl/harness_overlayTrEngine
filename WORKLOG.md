@@ -4,7 +4,7 @@ This file is the persistent session handoff for the `harness/` project. Keep it 
 
 ## Current Objective
 
-Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retrieval coverage is complete. Milestone 3 rule-based single-pass flow is stable. Milestone 4 is focused on the video-backed transition analysis/report path.
+Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retrieval coverage is complete. Milestone 3 rule-based single-pass flow is stable. Milestone 4 is closed as the video-backed transition analysis/report path.
 
 ## Last Completed
 
@@ -14,7 +14,13 @@ Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retr
 
 ## Next Implementation Step
 
-Review whether any Milestone 4 gaps remain after the report cleanup, then either close out the milestone or start the Milestone 5 handoff.
+Start the Milestone 5 handoff with a short checklist before changing behavior.
+
+1. Define the Milestone 5 objective in one sentence.
+2. List the first model-backed analysis or scoring gap to tackle.
+3. Identify the affected modules and report fields.
+4. Add focused tests before implementation.
+5. Commit the slice and keep this worklog trimmed to recent items only.
 
 ## Why This Is Next
 
@@ -44,4 +50,4 @@ Get-Content harness/src/overlay_harness/cli.py
 - Prefer scanning checked-in source and project metadata over any runtime-only discovery.
 - Keep this slice inside `harness/` unless the user explicitly asks to modify `overlaytrengine`.
 - If future work needs FX naming conventions, registration changes, or generated source locations, ask before guessing as required by `AGENTS.md`.
-- Model-backed analysis is deferred until the rule-based single-pass flow is finished and stable.
+- Model-backed analysis is now the next milestone after the rule-based single-pass flow.
