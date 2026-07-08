@@ -1340,8 +1340,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["selected_fx_id"], "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC")
         self.assertEqual(payload["data"]["output_video"], str(output_video))
         self.assertEqual(payload["data"]["sample_context"]["input_source"], "prepared_sources")
-        self.assertEqual(payload["data"]["sample_context"]["source_a"], str(source_a))
-        self.assertEqual(payload["data"]["sample_context"]["source_b"], str(source_b))
+        self.assertEqual(payload["data"]["sample_context"]["source_a"], source_a.relative_to(HARNESS_ROOT.parent).as_posix())
+        self.assertEqual(payload["data"]["sample_context"]["source_b"], source_b.relative_to(HARNESS_ROOT.parent).as_posix())
         self.assertEqual(payload["data"]["sample_context"]["selected_fx_id"], "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC")
         self.assertEqual(output_video.read_bytes(), sample_demo_source.read_bytes())
         self.assertIn("sample_workspace", payload["data"]["sample_root"])
@@ -1351,8 +1351,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertIn("render_request_file", stdout_payload["workspace_paths"])
         self.assertEqual(stdout_payload["workspace_paths"]["renderer_result_file"], str(run_result["renderer_result_file"]))
         self.assertEqual(stdout_payload["sample_context"]["input_source"], "prepared_sources")
-        self.assertEqual(stdout_payload["sample_context"]["source_a"], str(source_a))
-        self.assertEqual(stdout_payload["sample_context"]["source_b"], str(source_b))
+        self.assertEqual(stdout_payload["sample_context"]["source_a"], source_a.relative_to(HARNESS_ROOT.parent).as_posix())
+        self.assertEqual(stdout_payload["sample_context"]["source_b"], source_b.relative_to(HARNESS_ROOT.parent).as_posix())
 
     def test_sample_video_command_with_force_mode_uses_forced_planner_mode(self) -> None:
         source_a = self.root / "source_a"
@@ -1975,8 +1975,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h", builtin_blur["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h", builtin_blur_upgrow["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h", builtin_blur_shakezoom["source_documents"])
-        self.assertTrue({"generated-wipe", "generated-dissolve", "generated-mask", "generated-feathering"}.issubset(set(generated_seamless["style_hints"])))
-        self.assertTrue({"generated-uv-shift", "generated-rgb-split", "generated-noise"}.issubset(set(generated_glitch["style_hints"])))
+        self.assertEqual(generated_seamless["style_hints"], ["generated-seamless"])
+        self.assertEqual(generated_glitch["style_hints"], ["generated-glitch"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h", builtin_blur_diagblur["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h", builtin_blur_hexbokeh["source_documents"])
         self.assertIn("overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h", builtin_blur_diamondbokeh["source_documents"])
