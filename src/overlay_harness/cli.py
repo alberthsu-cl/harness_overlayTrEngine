@@ -16,6 +16,7 @@ from .effect_catalog import load_effect_catalog
 from .effect_catalog import select_effect_candidate
 from .evaluator import score_frame_sequences
 from .models import load_render_job
+from .analyzer import ANALYSIS_ENGINE
 from .analyzer import analyze_transition
 from .analyzer import build_transition_analysis_artifact, derive_analyzer_inputs_from_metadata, load_clip_metadata
 from .planner import (
@@ -1479,10 +1480,35 @@ def _handle_flow(args, repo_root: Path, harness_root: Path, config_dir: Path, de
             analyzer_inputs=analyzer_inputs,
             hint=hint,
         )
+        transition_planning_hint = _build_transition_planning_hint(
+            transition_video=transition_video,
+            reference_output=reference_output,
+            args=args,
+            repo_root=repo_root,
+        )
+        transition_planning = None
+        try:
+            transition_planning = build_recommended_plan(
+                repo_root=repo_root,
+                source_a=source_a,
+                source_b=source_b,
+                hint_data=transition_planning_hint,
+            )
+        except Exception as exc:
+            transition_planning = None
+
+        if not isinstance(transition_planning, dict):
+            transition_planning = analysis_artifact.get("planning_recommendation")
+        if not isinstance(transition_planning, dict):
+            raise ValueError("transition analysis artifact did not include a planning recommendation")
+        analysis_artifact["planning_recommendation"] = {
+            **transition_planning,
+            "producer": "transition_video_analysis",
+            "analysis_engine": ANALYSIS_ENGINE,
+            "transition_planning_hint": transition_planning_hint,
+        }
         write_json(analysis_output, analysis_artifact)
         planning = analysis_artifact.get("planning_recommendation")
-        if not isinstance(planning, dict):
-            raise ValueError("transition analysis artifact did not include a planning recommendation")
 
         if effect_spec_output is None and str(planning.get("mode") or "").startswith("generated-"):
             effect_spec_output = flow_root / "planned.effect_spec.json"
@@ -1840,6 +1866,66 @@ def _format_path_for_output(path: Path | None, repo_root: Path) -> str | None:
         return resolved.relative_to(repo_root).as_posix()
     except ValueError:
         return str(resolved)
+
+
+def _build_transition_planning_hint(
+    transition_video: Path,
+    reference_output: Path,
+    args,
+    repo_root: Path,
+) -> dict[str, object | None]:
+    inferred_style = _infer_transition_style_from_video_name(transition_video)
+    if inferred_style is None and getattr(args, "style_hint", None):
+        inferred_style = args.style_hint
+    if inferred_style is None and getattr(args, "intent", None):
+        inferred_style = _infer_style_from_intent(str(args.intent))
+
+    return {
+        "style_hint": inferred_style or "generated-glitch",
+        "input_kind": getattr(args, "input_kind", None) or "auto",
+        "job_name": getattr(args, "job_name", None),
+        "reference_transition": _format_path_for_output(reference_output, repo_root),
+        "analysis_source": "transition_video",
+        "transition_video": _format_path_for_output(transition_video, repo_root),
+    }
+
+
+def _infer_transition_style_from_video_name(transition_video: Path) -> str | None:
+    name = transition_video.name.lower()
+    if "glitch" in name:
+        return "generated-glitch"
+    if any(token in name for token in ("seamless", "smooth", "slide")):
+        return "generated-seamless"
+    if "wipe" in name:
+        return "generated-wipe"
+    if "dissolve" in name:
+        return "generated-dissolve"
+    if "mask" in name:
+        return "generated-mask"
+    if "rgb" in name:
+        return "generated-rgb-split"
+    if "noise" in name:
+        return "generated-noise"
+    return None
+
+
+def _infer_style_from_intent(intent: str) -> str | None:
+    normalized = intent.lower()
+    if "glitch" in normalized:
+        return "generated-glitch"
+    if any(token in normalized for token in ("seamless", "smooth", "slide")):
+        return "generated-seamless"
+    if "wipe" in normalized:
+        return "generated-wipe"
+    if "dissolve" in normalized:
+        return "generated-dissolve"
+    if "mask" in normalized:
+        return "generated-mask"
+    if "rgb" in normalized:
+        return "generated-rgb-split"
+    if "noise" in normalized:
+        return "generated-noise"
+    return None
 
 
 def _handle_plan_job(args, repo_root: Path, config_dir: Path) -> int:
