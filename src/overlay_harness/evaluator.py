@@ -19,6 +19,7 @@ class FrameScore:
     mse: float
     mae: float
     psnr_db: float | None
+    ssim: float | None
 
 
 @dataclass(slots=True)
@@ -31,6 +32,7 @@ class SimilarityScore:
     mse: float
     mae: float
     psnr_db: float | None
+    ssim: float | None
     frames: list[FrameScore]
 
     def to_dict(self) -> dict[str, Any]:
@@ -103,6 +105,7 @@ def score_frame_sequences(
                 mse=frame_score["mse"],
                 mae=frame_score["mae"],
                 psnr_db=frame_score["psnr_db"],
+                ssim=frame_score["ssim"],
             )
         )
         sample_count = width * height * 3
@@ -112,6 +115,7 @@ def score_frame_sequences(
 
     mse = total_squared_error / total_sample_count
     mae = total_absolute_error / total_sample_count
+    ssim = sum(frame.ssim for frame in frames if frame.ssim is not None) / len(frames) if frames else None
     return SimilarityScore(
         frame_count=pair_count,
         candidate_frame_count=candidate_frame_count,
@@ -121,6 +125,7 @@ def score_frame_sequences(
         mse=mse,
         mae=mae,
         psnr_db=calculate_psnr(mse),
+        ssim=ssim,
         frames=frames,
     )
 
@@ -223,20 +228,44 @@ def score_rgb_buffers(candidate_rgb: bytes, reference_rgb: bytes, width: int, he
 
     squared_error = 0
     absolute_error = 0
+    candidate_luma_sum = 0.0
+    reference_luma_sum = 0.0
+    candidate_luma_sq_sum = 0.0
+    reference_luma_sq_sum = 0.0
+    product_sum = 0.0
+    pixel_count = width * height
     for candidate_value, reference_value in zip(candidate_rgb, reference_rgb):
         delta = candidate_value - reference_value
         squared_error += delta * delta
         absolute_error += abs(delta)
 
+    for index in range(0, len(candidate_rgb), 3):
+        candidate_luma = _rgb_to_luma(candidate_rgb[index], candidate_rgb[index + 1], candidate_rgb[index + 2])
+        reference_luma = _rgb_to_luma(reference_rgb[index], reference_rgb[index + 1], reference_rgb[index + 2])
+        candidate_luma_sum += candidate_luma
+        reference_luma_sum += reference_luma
+        candidate_luma_sq_sum += candidate_luma * candidate_luma
+        reference_luma_sq_sum += reference_luma * reference_luma
+        product_sum += candidate_luma * reference_luma
+
     sample_count = width * height * 3
     mse = squared_error / sample_count
     mae = absolute_error / sample_count
+    ssim = calculate_ssim(
+        candidate_luma_sum,
+        reference_luma_sum,
+        candidate_luma_sq_sum,
+        reference_luma_sq_sum,
+        product_sum,
+        pixel_count,
+    )
     return {
         "squared_error": squared_error,
         "absolute_error": absolute_error,
         "mse": mse,
         "mae": mae,
         "psnr_db": calculate_psnr(mse),
+        "ssim": ssim,
     }
 
 
@@ -244,3 +273,33 @@ def calculate_psnr(mse: float) -> float | None:
     if mse == 0:
         return None
     return 20 * log10(255.0) - 10 * log10(mse)
+
+
+def _rgb_to_luma(red: int, green: int, blue: int) -> float:
+    return 0.299 * red + 0.587 * green + 0.114 * blue
+
+
+def calculate_ssim(
+    candidate_luma_sum: float,
+    reference_luma_sum: float,
+    candidate_luma_sq_sum: float,
+    reference_luma_sq_sum: float,
+    product_sum: float,
+    pixel_count: int,
+) -> float | None:
+    if pixel_count <= 0:
+        return None
+
+    mu_x = candidate_luma_sum / pixel_count
+    mu_y = reference_luma_sum / pixel_count
+    sigma_x_sq = (candidate_luma_sq_sum / pixel_count) - (mu_x * mu_x)
+    sigma_y_sq = (reference_luma_sq_sum / pixel_count) - (mu_y * mu_y)
+    sigma_xy = (product_sum / pixel_count) - (mu_x * mu_y)
+
+    c1 = (0.01 * 255.0) ** 2
+    c2 = (0.03 * 255.0) ** 2
+    denominator = (mu_x * mu_x + mu_y * mu_y + c1) * (sigma_x_sq + sigma_y_sq + c2)
+    if denominator == 0:
+        return None
+    numerator = (2 * mu_x * mu_y + c1) * (2 * sigma_xy + c2)
+    return numerator / denominator

@@ -1072,6 +1072,7 @@ def _build_similarity_threshold_report(score: dict[str, object], eval_thresholds
         ("mse", score.get("mse")),
         ("mae", score.get("mae")),
         ("psnr_db", score.get("psnr_db")),
+        ("ssim", score.get("ssim")),
     ):
         threshold = metrics.get(metric_name)
         if not isinstance(threshold, dict):
@@ -1081,6 +1082,12 @@ def _build_similarity_threshold_report(score: dict[str, object], eval_thresholds
         if metric_value is None:
             state = "pass" if metric_name == "psnr_db" else "missing"
         elif metric_name == "psnr_db":
+            state = "pass"
+            if isinstance(fail, (int, float)) and metric_value < fail:
+                state = "fail"
+            elif isinstance(warn, (int, float)) and metric_value < warn:
+                state = "warn"
+        elif metric_name == "ssim":
             state = "pass"
             if isinstance(fail, (int, float)) and metric_value < fail:
                 state = "fail"
@@ -1208,6 +1215,7 @@ def _build_run_evaluation_summary(
             "frame_count": score_frame_count,
             "report_file": str(similarity_report_file) if similarity_report_file is not None else None,
             "error": score_error,
+            "ssim": similarity_report.get("score", {}).get("ssim") if isinstance(similarity_report, dict) else None,
         },
         "planning": {
             "retrieval_status": retrieval_status,

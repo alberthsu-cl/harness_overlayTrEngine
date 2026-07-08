@@ -207,6 +207,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(summary["score"]["frame_count"], 3)
         self.assertEqual(summary["score"]["report_file"], str(self.root / "similarity_score.json"))
         self.assertIsNone(summary["score"]["error"])
+        self.assertIsNone(summary["score"]["ssim"])
         self.assertEqual(summary["planning"]["retrieval_status"], "retrieved")
         self.assertEqual(summary["planning"]["retrieval_effect_id"], "builtin-glitch")
         self.assertEqual(summary["planning"]["retrieval_mode"], "builtin-glitch")
@@ -236,6 +237,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(report["threshold_evaluation"]["checks"]["mse"]["status"], "pass")
         self.assertEqual(report["threshold_evaluation"]["checks"]["mae"]["status"], "pass")
         self.assertEqual(report["threshold_evaluation"]["checks"]["psnr_db"]["status"], "pass")
+        self.assertEqual(report["threshold_evaluation"]["checks"]["ssim"]["status"], "pass")
+        self.assertIn("ssim", report["score"])
 
     def test_similarity_report_threshold_evaluation_fails_for_high_error(self) -> None:
         candidate_dir = self.root / "candidate"
@@ -259,6 +262,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(report["threshold_evaluation"]["checks"]["mse"]["status"], "fail")
         self.assertEqual(report["threshold_evaluation"]["checks"]["mae"]["status"], "fail")
         self.assertEqual(report["threshold_evaluation"]["checks"]["psnr_db"]["status"], "fail")
+        self.assertEqual(report["threshold_evaluation"]["checks"]["ssim"]["status"], "fail")
 
     def test_run_evaluation_summary_handles_missing_score(self) -> None:
         class Invocation:
