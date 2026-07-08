@@ -125,6 +125,7 @@ py -3 harness/src/main.py flow --transition-video harness/sample_glitch.mp4 --so
 ```
 
 That command prepares a normalized reference transition from the video, plans the job from the prepared A/B inputs, runs the render, scores the result, and writes `flow_report.json` under a timestamped subdirectory of `harness/work/flow_example/`.
+The flow report also includes `analysis_context` so it is obvious that the planner was driven by the transition video, plus the nested `analysis_artifact` and `run.evaluation` summaries.
 
 If you want to generate a synthetic sample MP4 from rendered frames, use `sample-video`:
 
@@ -136,6 +137,7 @@ py -3 harness/src/main.py sample-video --source-a harness/examples/inputs/source
 
 When `--fx-id` is provided, the command renders that exact effect and copies the encoded MP4 to `--output-video`. If you omit `--fx-id`, `--style glitch` nudges the A/B-driven planner toward a glitch result, and `--force-mode builtin-glitch` bypasses planner selection and renders that builtin mode directly.
 By default the intermediate sample workspace is created under `harness/work/tests/`; pass `--output-root` to place it elsewhere.
+The sample-video report includes a `sample_context` block with the prepared inputs, selected effect ID, and copied output MP4 path.
 
 ### Real Sample Flow
 
@@ -451,6 +453,7 @@ When `inputs.reference_transition` is present in a render job, `run` now attempt
 - `data.planning` echoes the planner metadata attached to the job, including retrieval details when available
 - `data.evaluation.render` describes the render outcome
 - `data.evaluation.score` describes the score outcome
+- `data.evaluation.score.threshold_status` and `data.evaluation.score.threshold_checks` summarize the pass/fail threshold evaluation
 - `data.evaluation.planning` summarizes the retrieval decision used for the run, when present
 - `data.evaluation.overall_status` summarizes the combined result
 - `status` becomes `failed` when scoring fails after a successful render

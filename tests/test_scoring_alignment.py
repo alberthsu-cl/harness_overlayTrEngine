@@ -877,6 +877,9 @@ class ScoringAlignmentTests(unittest.TestCase):
             payload["data"]["analysis_artifact"]["facts"]["transition_video_analysis"]["transition_video"],
             "harness/sample_glitch.mp4",
         )
+        self.assertEqual(payload["data"]["analysis_context"]["analysis_source"], "transition_video")
+        self.assertEqual(payload["data"]["analysis_context"]["analysis_engine"], "deterministic_rules_v1")
+        self.assertEqual(payload["data"]["analysis_context"]["transition_video"], "harness/examples/inputs/source_a_real")
         self.assertEqual(payload["data"]["analysis_artifact"]["planning_recommendation"]["producer"], "transition_video_analysis")
         self.assertEqual(payload["data"]["analysis_artifact"]["planning_recommendation"]["analysis_engine"], "deterministic_rules_v1")
         self.assertEqual(payload["data"]["analysis_artifact"]["planning_recommendation"]["transition_planning_hint"]["analysis_source"], "transition_video")
@@ -1336,6 +1339,10 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["workspace_paths"]["renderer_result_file"], str(run_result["renderer_result_file"]))
         self.assertEqual(payload["data"]["selected_fx_id"], "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC")
         self.assertEqual(payload["data"]["output_video"], str(output_video))
+        self.assertEqual(payload["data"]["sample_context"]["input_source"], "prepared_sources")
+        self.assertEqual(payload["data"]["sample_context"]["source_a"], str(source_a))
+        self.assertEqual(payload["data"]["sample_context"]["source_b"], str(source_b))
+        self.assertEqual(payload["data"]["sample_context"]["selected_fx_id"], "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC")
         self.assertEqual(output_video.read_bytes(), sample_demo_source.read_bytes())
         self.assertIn("sample_workspace", payload["data"]["sample_root"])
         stdout_payload = json.loads(print_mock.call_args.args[0])
@@ -1343,6 +1350,9 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(stdout_payload["workspace_paths"]["demo_video_file"], str(sample_demo_source))
         self.assertIn("render_request_file", stdout_payload["workspace_paths"])
         self.assertEqual(stdout_payload["workspace_paths"]["renderer_result_file"], str(run_result["renderer_result_file"]))
+        self.assertEqual(stdout_payload["sample_context"]["input_source"], "prepared_sources")
+        self.assertEqual(stdout_payload["sample_context"]["source_a"], str(source_a))
+        self.assertEqual(stdout_payload["sample_context"]["source_b"], str(source_b))
 
     def test_sample_video_command_with_force_mode_uses_forced_planner_mode(self) -> None:
         source_a = self.root / "source_a"

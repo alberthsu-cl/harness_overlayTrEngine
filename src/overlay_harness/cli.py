@@ -1642,6 +1642,7 @@ def _handle_flow(args, repo_root: Path, harness_root: Path, config_dir: Path, de
         flow_error = str(exc)
 
     report_data = _build_flow_report(
+        repo_root=repo_root,
         flow_root=flow_root,
         transition_video=transition_video,
         source_a=source_a,
@@ -1849,6 +1850,13 @@ def _handle_sample_video(
             summary="sample video rendered" if isinstance(run_result, dict) and run_result.get("exit_code") == 0 else "sample video failed",
             data={
                 "sample_root": str(sample_root),
+                "sample_context": _build_sample_video_context(
+                    source_a=source_a,
+                    source_b=source_b,
+                    selected_fx_id=selected_fx_id,
+                    output_video=output_video,
+                    repo_root=repo_root,
+                ),
                 "workspace_paths": {
                     "sample_root": str(sample_root),
                     "job_file": str(sample_job_output),
@@ -1864,6 +1872,13 @@ def _handle_sample_video(
                 "run_result": run_result,
                 "planning": planning,
                 "analysis": sample_hint,
+                "sample_context": _build_sample_video_context(
+                    source_a=source_a,
+                    source_b=source_b,
+                    selected_fx_id=selected_fx_id,
+                    output_video=output_video,
+                    repo_root=repo_root,
+                ),
             },
         )
         report.write(sample_report_output)
@@ -1884,6 +1899,13 @@ def _handle_sample_video(
                 "job_file": str(sample_job_output),
                 "planning": planning,
                 "analysis": sample_hint,
+                "sample_context": _build_sample_video_context(
+                    source_a=source_a,
+                    source_b=source_b,
+                    selected_fx_id=selected_fx_id,
+                    output_video=output_video,
+                    repo_root=repo_root,
+                ),
                 "flow_error": flow_error,
             },
         )
@@ -1905,6 +1927,13 @@ def _handle_sample_video(
                 },
                 "output_video": str(output_video),
                 "selected_fx_id": selected_fx_id,
+                "sample_context": _build_sample_video_context(
+                    source_a=source_a,
+                    source_b=source_b,
+                    selected_fx_id=selected_fx_id,
+                    output_video=output_video,
+                    repo_root=repo_root,
+                ),
                 "status": report.status,
                 "summary": report.summary,
             },
@@ -1974,6 +2003,35 @@ def _build_transition_planning_hint(
         "reference_transition": _format_path_for_output(reference_output, repo_root),
         "analysis_source": "transition_video",
         "transition_video": _format_path_for_output(transition_video, repo_root),
+    }
+
+
+def _build_transition_analysis_context(
+    transition_video: Path,
+    reference_transition: Path | None,
+    repo_root: Path,
+) -> dict[str, object | None]:
+    return {
+        "analysis_source": "transition_video",
+        "analysis_engine": ANALYSIS_ENGINE,
+        "transition_video": _format_path_for_output(transition_video, repo_root),
+        "reference_transition": _format_path_for_output(reference_transition, repo_root) if reference_transition is not None else None,
+    }
+
+
+def _build_sample_video_context(
+    source_a: Path,
+    source_b: Path,
+    selected_fx_id: str | None,
+    output_video: Path,
+    repo_root: Path,
+) -> dict[str, object | None]:
+    return {
+        "input_source": "prepared_sources",
+        "source_a": _format_path_for_output(source_a, repo_root),
+        "source_b": _format_path_for_output(source_b, repo_root),
+        "selected_fx_id": selected_fx_id,
+        "output_video": _format_path_for_output(output_video, repo_root),
     }
 
 
@@ -2346,6 +2404,7 @@ def _summarize_retrieval_fields(plan_data: dict | None) -> dict[str, object | No
 
 
 def _build_flow_report(
+    repo_root: Path,
     flow_root: Path,
     transition_video: Path,
     source_a: Path,
@@ -2384,6 +2443,11 @@ def _build_flow_report(
         report_type="flow_report",
         data={
             "flow_root": str(flow_root),
+            "analysis_context": _build_transition_analysis_context(
+                transition_video=transition_video,
+                reference_transition=reference_result.output_dir if reference_result is not None else None,
+                repo_root=repo_root,
+            ),
             "workspace_paths": {
                 "flow_root": str(flow_root),
                 "reference_transition_dir": str(reference_result.output_dir) if reference_result is not None else None,

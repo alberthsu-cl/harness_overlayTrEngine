@@ -8,18 +8,13 @@ Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retr
 
 ## Last Completed
 
-- Added SSIM plus threshold evaluation to similarity scoring.
-- Added a transition-video analysis fact block to the transition artifact.
-- Kept the focused flow and sample-video analysis tests aligned with the richer artifact.
+- Added score threshold details to the run evaluation summary.
+- Split top-level flow and sample-video reports into explicit analysis/sample context blocks.
+- Documented the new report fields in the README.
 
 ## Next Implementation Step
 
-Continue Milestone 4 with this short checklist.
-
-1. Surface score threshold details in the run report summary.
-2. Keep transition-video analysis identity explicit in the top-level flow/sample reports.
-3. Verify the focused tests for flow, sample-video, and score reporting.
-4. Commit the slice and keep this worklog trimmed to recent items only.
+Review whether any Milestone 4 gaps remain after the report cleanup, then either close out the milestone or start the Milestone 5 handoff.
 
 ## Why This Is Next
 
