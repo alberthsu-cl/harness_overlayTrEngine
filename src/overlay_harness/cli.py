@@ -256,6 +256,24 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Bias the analyzer toward generated-placeholder styles when intent is ambiguous",
     )
     analyze_transition_cmd.add_argument(
+        "--analysis-provider-kind",
+        required=False,
+        default="deterministic_rules",
+        choices=("deterministic_rules", "model_backed"),
+        help="Requested analysis provider kind to record in the transition analysis artifact",
+    )
+    analyze_transition_cmd.add_argument(
+        "--analysis-provider-name",
+        required=False,
+        help="Optional provider name to record in the transition analysis artifact",
+    )
+    analyze_transition_cmd.add_argument(
+        "--analysis-provider-mode",
+        required=False,
+        default="deterministic",
+        help="Requested provider mode to record in the transition analysis artifact",
+    )
+    analyze_transition_cmd.add_argument(
         "--input-kind",
         required=False,
         default="auto",
@@ -301,6 +319,24 @@ def _build_parser() -> argparse.ArgumentParser:
         "--prefer-generated",
         action="store_true",
         help="Bias the analyzer toward generated-placeholder styles when intent is ambiguous",
+    )
+    flow_cmd.add_argument(
+        "--analysis-provider-kind",
+        required=False,
+        default="deterministic_rules",
+        choices=("deterministic_rules", "model_backed"),
+        help="Requested analysis provider kind to record in the transition analysis artifact",
+    )
+    flow_cmd.add_argument(
+        "--analysis-provider-name",
+        required=False,
+        help="Optional provider name to record in the transition analysis artifact",
+    )
+    flow_cmd.add_argument(
+        "--analysis-provider-mode",
+        required=False,
+        default="deterministic",
+        help="Requested provider mode to record in the transition analysis artifact",
     )
     flow_cmd.add_argument(
         "--input-kind",
@@ -1303,6 +1339,9 @@ def _handle_analyze_transition(args, repo_root: Path) -> int:
             "style_hint": args.style_hint or (metadata_inputs.get("style_hint") if metadata_inputs else None),
             "intent": args.intent,
             "prefer_generated": args.prefer_generated or bool(metadata_inputs and metadata_inputs.get("prefer_generated")),
+            "analysis_provider_kind": args.analysis_provider_kind,
+            "analysis_provider_name": args.analysis_provider_name or (metadata_inputs.get("analysis_provider_name") if metadata_inputs else None),
+            "analysis_provider_mode": args.analysis_provider_mode,
             "reference_transition": _format_path_for_output(reference_transition, repo_root),
             "job_name": args.job_name or (metadata_inputs.get("job_name") if metadata_inputs else None),
             "clip_metadata_file": args.clip_metadata_file,
@@ -1551,6 +1590,9 @@ def _handle_flow(args, repo_root: Path, harness_root: Path, config_dir: Path, de
             "style_hint": args.style_hint,
             "intent": args.intent,
             "prefer_generated": args.prefer_generated,
+            "analysis_provider_kind": args.analysis_provider_kind,
+            "analysis_provider_name": args.analysis_provider_name,
+            "analysis_provider_mode": args.analysis_provider_mode,
             "analysis_mode": "deterministic_rules",
             "analysis_source": "transition_video",
             "analysis_engine": ANALYSIS_ENGINE,

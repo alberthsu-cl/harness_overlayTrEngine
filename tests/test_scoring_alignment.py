@@ -17,6 +17,7 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from overlay_harness.cli import _build_similarity_report
+from overlay_harness.cli import _handle_analyze_transition
 from overlay_harness.cli import _build_plan_comparison_report
 from overlay_harness.cli import _build_run_evaluation_summary
 from overlay_harness.cli import _handle_audit_effects
@@ -698,6 +699,9 @@ class ScoringAlignmentTests(unittest.TestCase):
             analysis_width=64,
             analysis_height=36,
             ffmpeg=None,
+            analysis_provider_kind="deterministic_rules",
+            analysis_provider_name=None,
+            analysis_provider_mode="deterministic",
             effect_spec_output=None,
         )
 
@@ -1026,6 +1030,38 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["facts"]["transition_progression"]["window_end_progress"], 1.0)
         self.assertEqual(payload["planning_recommendation"]["analysis_engine"], "deterministic_rules_v1")
 
+    def test_analyze_transition_command_records_requested_provider_metadata(self) -> None:
+        output_root = self.root / "analysis_provider_output"
+        output_root.mkdir(parents=True, exist_ok=True)
+
+        args = SimpleNamespace(
+            source_a="harness/examples/inputs/source_a_real",
+            source_b="harness/examples/inputs/source_b_real",
+            hint_output=str(output_root / "transition_hint.json"),
+            analysis_output=str(output_root / "transition_analysis.json"),
+            comparison_output=None,
+            clip_metadata_file=None,
+            style_hint=None,
+            intent="generated glitch transition",
+            prefer_generated=False,
+            analysis_provider_kind="model_backed",
+            analysis_provider_name="openai-transition-model",
+            analysis_provider_mode="vision",
+            input_kind="auto",
+            reference_transition=None,
+            job_name="analysis_provider_job",
+        )
+
+        _handle_analyze_transition(args, HARNESS_ROOT.parent)
+        with (output_root / "transition_analysis.json").open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+
+        self.assertEqual(payload["facts"]["analysis_provider_request"]["kind"], "model_backed")
+        self.assertEqual(payload["facts"]["analysis_provider_request"]["name"], "openai-transition-model")
+        self.assertEqual(payload["facts"]["analysis_provider_request"]["mode"], "vision")
+        self.assertEqual(payload["facts"]["analysis_provider"]["kind"], "deterministic_rules")
+        self.assertEqual(payload["facts"]["analysis_provider"]["name"], "deterministic_rules_v1")
+
     def _flow_command_persists_end_to_end_evaluation_summary(self) -> None:
         output_root = self.root / "flow_evaluation_output"
         output_root.mkdir(parents=True, exist_ok=True)
@@ -1047,6 +1083,9 @@ class ScoringAlignmentTests(unittest.TestCase):
             analysis_width=64,
             analysis_height=36,
             ffmpeg=None,
+            analysis_provider_kind="deterministic_rules",
+            analysis_provider_name=None,
+            analysis_provider_mode="deterministic",
             renderer=None,
             effect_spec_output=None,
         )

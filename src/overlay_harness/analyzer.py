@@ -172,6 +172,12 @@ def build_transition_analysis_artifact(
     hint: dict[str, Any],
 ) -> dict[str, Any]:
     signals = hint.get("analysis", {}).get("signals", {})
+    resolved_provider = hint.get("analysis_provider")
+    provider_request = {
+        "kind": analyzer_inputs.get("analysis_provider_kind") or ANALYSIS_PROVIDER_KIND,
+        "name": analyzer_inputs.get("analysis_provider_name") or ANALYSIS_PROVIDER_NAME,
+        "mode": analyzer_inputs.get("analysis_provider_mode") or "deterministic",
+    }
     recommended_plan = build_recommended_plan(
         repo_root=repo_root,
         source_a=source_a,
@@ -189,10 +195,13 @@ def build_transition_analysis_artifact(
         "facts": {
             "analyzer_inputs": analyzer_inputs,
             "analysis_mode": analyzer_inputs.get("analysis_mode", "deterministic_rules"),
-            "analysis_provider": _build_transition_analysis_provider(
-                provider_kind=analyzer_inputs.get("analysis_provider_kind") or ANALYSIS_PROVIDER_KIND,
-                provider_name=analyzer_inputs.get("analysis_provider_name") or ANALYSIS_PROVIDER_NAME,
-                provider_mode=analyzer_inputs.get("analysis_provider_mode") or "deterministic",
+            "analysis_provider_request": provider_request,
+            "analysis_provider": resolved_provider
+            if isinstance(resolved_provider, dict)
+            else _build_transition_analysis_provider(
+                provider_kind=provider_request["kind"],
+                provider_name=provider_request["name"],
+                provider_mode=provider_request["mode"],
             ),
             "transition_video_analysis": {
                 "source": analyzer_inputs.get("analysis_source", "source_a_source_b"),
