@@ -2,16 +2,16 @@
   "version": 1,
   "metrics": {
     "mse": {
-      "warn": 0.08,
-      "fail": 0.15
+      "warn": 24.0,
+      "fail": 48.0
     },
-    "ssim": {
-      "warn": 0.85,
-      "fail": 0.75
+    "mae": {
+      "warn": 4.0,
+      "fail": 8.0
     },
-    "edge_difference": {
-      "warn": 0.12,
-      "fail": 0.2
+    "psnr_db": {
+      "warn": 30.0,
+      "fail": 24.0
     }
   }
 }
