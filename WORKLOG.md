@@ -4,7 +4,7 @@ This file is the persistent session handoff for the `harness/` project. Keep it 
 
 ## Current Objective
 
-Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retrieval coverage is complete. Milestone 3 rule-based single-pass flow is stable. Milestone 4 is closed as the video-backed transition analysis/report path.
+Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retrieval coverage is complete. Milestone 3 rule-based single-pass flow is stable. Milestone 4 is closed as the video-backed transition analysis/report path. Milestone 5 adds optional model-backed transition analysis while keeping the deterministic fallback and current report contracts stable.
 
 ## Last Completed
 
@@ -16,11 +16,11 @@ Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retr
 
 Start the Milestone 5 handoff with a short checklist before changing behavior.
 
-1. Define the Milestone 5 objective in one sentence.
-2. List the first model-backed analysis or scoring gap to tackle.
+1. Define the model-backed transition analysis contract and provider interface.
+2. Decide which command first accepts the model-backed path, if any.
 3. Identify the affected modules and report fields.
 4. Add focused tests before implementation.
-5. Commit the slice and keep this worklog trimmed to recent items only.
+5. Keep deterministic fallback behavior available until the model path is stable.
 
 ## Why This Is Next
 
