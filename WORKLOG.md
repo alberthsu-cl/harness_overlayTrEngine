@@ -18,6 +18,7 @@ Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retr
 - Added a provider runtime contract block to the transition analysis artifact.
 - Added a deterministic default adapter class for the analysis provider entry point.
 - Added a model-backed adapter skeleton selected from enabled provider config.
+- Surfaced the provider runtime block in the top-level flow report too.
 
 ## Next Implementation Step
 

@@ -1327,6 +1327,31 @@ class ScoringAlignmentTests(unittest.TestCase):
                         },
                         "analyzer_inputs": {"flow": True},
                         "analysis_mode": "deterministic_rules",
+                        "analysis_provider_runtime": {
+                            "requested": {"kind": "deterministic_rules", "mode": "deterministic"},
+                            "selected": {
+                                "kind": "deterministic_rules",
+                                "name": "deterministic_rules_v1",
+                                "mode": "deterministic",
+                            },
+                            "adapter": {
+                                "kind": "deterministic_rules",
+                                "name": "deterministic_rules_v1",
+                                "mode": "deterministic",
+                                "status": "deterministic_adapter",
+                            },
+                            "configuration": {
+                                "loaded": True,
+                                "model_backed_enabled": False,
+                            },
+                            "execution": {
+                                "entry_point": "overlay_harness.analyzer.analyze_transition",
+                                "implementation_status": "ready",
+                                "execution_mode": "builtin_deterministic",
+                                "input_contract": {},
+                                "output_contract": {},
+                            },
+                        },
                         "transition_summary": {"combined_motion_level": "high"},
                         "transition_window": {
                             "frame_count": 30,
@@ -1368,6 +1393,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["run"]["evaluation"]["overall_status"], "succeeded_with_score")
         self.assertEqual(payload["data"]["run"]["evaluation"]["score"]["status"], "succeeded")
         self.assertIsNone(payload["data"]["run"]["evaluation"]["score"]["error"])
+        self.assertEqual(payload["data"]["analysis_provider_runtime"]["execution"]["execution_mode"], "builtin_deterministic")
         stdout_payload = json.loads(print_mock.call_args.args[0])
         self.assertEqual(stdout_payload["status"], "succeeded")
         self.assertEqual(stdout_payload["analysis_artifact"]["planning_recommendation"]["analysis_engine"], "deterministic_rules_v1")

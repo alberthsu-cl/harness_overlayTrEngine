@@ -2563,6 +2563,11 @@ def _build_flow_report(
                 "issues": validation_issues,
             },
             "analysis_artifact": analysis_artifact,
+            "analysis_provider_runtime": (
+                analysis_artifact.get("facts", {}).get("analysis_provider_runtime")
+                if isinstance(analysis_artifact, dict)
+                else None
+            ),
             "run": {
                 "status": run_status,
                 "summary": run_summary,
