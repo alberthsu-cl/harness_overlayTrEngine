@@ -1198,6 +1198,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(stdout_payload["analysis_provider_configuration_model_backed_provider_kind"], "model_backed")
         self.assertEqual(stdout_payload["analysis_provider_configuration_model_backed_provider_name"], "openai-transition-model")
         self.assertEqual(stdout_payload["analysis_provider_configuration_model_backed_provider_mode"], "vision")
+        self.assertFalse(stdout_payload["analysis_provider_configuration_model_backed_provider_enabled"])
+        self.assertEqual(stdout_payload["analysis_provider_configuration_model_backed_provider_source"], "env:HARNESS_ANALYSIS_PROVIDER_CONFIG")
         self.assertEqual(stdout_payload["analysis_provider_adapter"]["kind"], "deterministic_rules")
         self.assertEqual(stdout_payload["analysis_provider_adapter"]["status"], "deterministic_adapter")
         self.assertEqual(stdout_payload["analysis_provider_runtime"]["execution"]["execution_mode"], "deterministic_fallback")
@@ -1907,6 +1909,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["analysis_provider_configuration_model_backed_provider_kind"], "model_backed")
         self.assertEqual(payload["data"]["analysis_provider_configuration_model_backed_provider_name"], "openai-transition-model")
         self.assertEqual(payload["data"]["analysis_provider_configuration_model_backed_provider_mode"], "vision")
+        self.assertFalse(payload["data"]["analysis_provider_configuration_model_backed_provider_enabled"])
+        self.assertEqual(payload["data"]["analysis_provider_configuration_model_backed_provider_source"], "env:HARNESS_ANALYSIS_PROVIDER_CONFIG")
         self.assertEqual(payload["data"]["analysis_provider_execution"]["execution_mode"], "builtin_deterministic")
         self.assertEqual(payload["data"]["analysis_provider_resolution_status"], "resolved")
         self.assertEqual(payload["data"]["analysis_provider_resolution_reason"], "deterministic analyzer is built into the harness")
@@ -2113,6 +2117,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertIsNone(stdout_payload["analysis_provider_configuration_model_backed_provider_kind"])
         self.assertIsNone(stdout_payload["analysis_provider_configuration_model_backed_provider_name"])
         self.assertIsNone(stdout_payload["analysis_provider_configuration_model_backed_provider_mode"])
+        self.assertIsNone(stdout_payload["analysis_provider_configuration_model_backed_provider_enabled"])
+        self.assertIsNone(stdout_payload["analysis_provider_configuration_model_backed_provider_source"])
 
     def test_sample_video_command_with_force_mode_uses_forced_planner_mode(self) -> None:
         source_a = self.root / "source_a"
