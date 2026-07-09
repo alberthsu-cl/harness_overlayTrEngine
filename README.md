@@ -262,6 +262,7 @@ The top-level `flow_report.json` now surfaces that same contract block directly 
 The `flow` command's printed summary JSON mirrors the same contract block so the CLI output and saved report stay aligned.
 The `flow` report and printed summary also surface the provider request, resolution, and loaded configuration directly for easier debugging.
 The `analyze-transition` command prints the same provider request, resolution, configuration, and model contract summary after it writes the artifact files.
+The `sample-video` report now also exposes the resolved analysis provider identity so the demo output shows which analyzer produced the sample plan.
 
 Use `plan-job` to create a valid render job from prepared A/B inputs without hand-editing JSON:
 

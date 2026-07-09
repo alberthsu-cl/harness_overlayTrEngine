@@ -1756,6 +1756,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["sample_context"]["source_a"], source_a.relative_to(HARNESS_ROOT.parent).as_posix())
         self.assertEqual(payload["data"]["sample_context"]["source_b"], source_b.relative_to(HARNESS_ROOT.parent).as_posix())
         self.assertEqual(payload["data"]["sample_context"]["selected_fx_id"], "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC")
+        self.assertIsNone(payload["data"]["analysis_provider"])
         self.assertEqual(output_video.read_bytes(), sample_demo_source.read_bytes())
         self.assertIn("sample_workspace", payload["data"]["sample_root"])
         stdout_payload = json.loads(print_mock.call_args.args[0])
@@ -1766,6 +1767,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(stdout_payload["sample_context"]["input_source"], "prepared_sources")
         self.assertEqual(stdout_payload["sample_context"]["source_a"], source_a.relative_to(HARNESS_ROOT.parent).as_posix())
         self.assertEqual(stdout_payload["sample_context"]["source_b"], source_b.relative_to(HARNESS_ROOT.parent).as_posix())
+        self.assertIsNone(stdout_payload["analysis_provider"])
 
     def test_sample_video_command_with_force_mode_uses_forced_planner_mode(self) -> None:
         source_a = self.root / "source_a"

@@ -1967,6 +1967,7 @@ def _handle_sample_video(
                 "run_result": run_result,
                 "planning": planning,
                 "analysis": sample_hint,
+                "analysis_provider": sample_hint.get("analysis_provider") if isinstance(sample_hint, dict) else None,
                 "sample_context": _build_sample_video_context(
                     source_a=source_a,
                     source_b=source_b,
@@ -1994,6 +1995,7 @@ def _handle_sample_video(
                 "job_file": str(sample_job_output),
                 "planning": planning,
                 "analysis": sample_hint,
+                "analysis_provider": sample_hint.get("analysis_provider") if isinstance(sample_hint, dict) else None,
                 "sample_context": _build_sample_video_context(
                     source_a=source_a,
                     source_b=source_b,
@@ -2029,6 +2031,7 @@ def _handle_sample_video(
                     output_video=output_video,
                     repo_root=repo_root,
                 ),
+                "analysis_provider": sample_hint.get("analysis_provider") if isinstance(sample_hint, dict) else None,
                 "status": report.status,
                 "summary": report.summary,
             },
