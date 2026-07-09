@@ -29,6 +29,7 @@ Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retr
 - Surfaced the model execution contract block in the top-level flow report.
 - Mirrored the model execution contract block into the printed flow summary JSON.
 - Surfaced provider request, resolution, and configuration directly in the flow report and summary JSON.
+- Printed the same provider request, resolution, configuration, and model contract summary from `analyze-transition`.
 
 ## Next Implementation Step
 

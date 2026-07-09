@@ -1058,9 +1058,11 @@ class ScoringAlignmentTests(unittest.TestCase):
             job_name="analysis_provider_job",
         )
 
-        _handle_analyze_transition(args, HARNESS_ROOT.parent)
+        with patch("builtins.print") as print_mock:
+            _handle_analyze_transition(args, HARNESS_ROOT.parent)
         with (output_root / "transition_analysis.json").open("r", encoding="utf-8") as handle:
             payload = json.load(handle)
+        stdout_payload = json.loads(print_mock.call_args.args[0])
 
         self.assertEqual(payload["facts"]["analysis_provider_request"]["kind"], "model_backed")
         self.assertEqual(payload["facts"]["analysis_provider_request"]["name"], "openai-transition-model")
@@ -1073,6 +1075,10 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["facts"]["analysis_provider_runtime"]["execution"]["implementation_status"], "fallback_only")
         self.assertEqual(payload["facts"]["analysis_provider"]["kind"], "deterministic_rules")
         self.assertEqual(payload["facts"]["analysis_provider"]["name"], "deterministic_rules_v1")
+        self.assertEqual(stdout_payload["analysis_provider_request"]["kind"], "model_backed")
+        self.assertEqual(stdout_payload["analysis_provider_resolution"]["status"], "fallback_to_deterministic")
+        self.assertEqual(stdout_payload["analysis_provider_configuration"]["loaded"], True)
+        self.assertEqual(stdout_payload["analysis_model_execution_contract"]["contract_type"], "transition_analysis_model_execution")
 
     def test_analysis_provider_config_is_loaded(self) -> None:
         config = load_analysis_provider_config(HARNESS_ROOT / "configs")

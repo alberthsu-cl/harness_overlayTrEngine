@@ -1422,6 +1422,40 @@ def _handle_analyze_transition(args, repo_root: Path) -> int:
         print(f"analyze-transition failed: {exc}")
         return 1
 
+    print(
+        json.dumps(
+            {
+                "hint_output": str(hint_output),
+                "analysis_output": str(analysis_output),
+                "analysis_artifact": analysis_artifact,
+                "analysis_provider_request": analysis_artifact.get("facts", {}).get("analysis_provider_request")
+                if isinstance(analysis_artifact, dict)
+                else None,
+                "analysis_provider_resolution": analysis_artifact.get("facts", {}).get("analysis_provider_resolution")
+                if isinstance(analysis_artifact, dict)
+                else None,
+                "analysis_provider_configuration": analysis_artifact.get("facts", {})
+                .get("analysis_provider_resolution", {})
+                .get("configuration")
+                if isinstance(analysis_artifact, dict)
+                else None,
+                "analysis_model_execution_contract": analysis_artifact.get("facts", {})
+                .get("analysis_provider_runtime", {})
+                .get("execution", {})
+                .get("model_execution_contract")
+                if isinstance(analysis_artifact, dict)
+                else None,
+                "comparison_output": str(comparison_output) if comparison_output is not None else None,
+                "style_hint": hint.get("style_hint"),
+                "input_kind": hint.get("input_kind"),
+                "job_name": hint.get("job_name"),
+                "notes": hint.get("notes"),
+            },
+            indent=2,
+        )
+    )
+    return 0
+
 
 def _handle_analyze_sample_video(args, repo_root: Path) -> int:
     output_root = _resolve_path_argument(args.output_root, repo_root)
@@ -2578,7 +2612,7 @@ def _build_flow_report(
                 else None
             ),
             "analysis_provider_configuration": (
-                analysis_artifact.get("facts", {}).get("analysis_provider_configuration")
+                analysis_artifact.get("facts", {}).get("analysis_provider_resolution", {}).get("configuration")
                 if isinstance(analysis_artifact, dict)
                 else None
             ),
