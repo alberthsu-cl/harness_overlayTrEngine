@@ -14,6 +14,7 @@ Milestone 7 will cover the retry and validation loop that makes generation robus
 
 ## Last Completed
 
+- Surfaced the provider configuration path in command payloads and run reports.
 - Surfaced the provider execution contract metadata in command payloads and run reports.
 - Surfaced the provider resolution requested/resolved/configuration blocks in command payloads and run reports.
 - Surfaced the provider execution request/result contract blocks in command payloads and run reports.
