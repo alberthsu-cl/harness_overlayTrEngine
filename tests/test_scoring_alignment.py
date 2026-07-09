@@ -1281,6 +1281,18 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(artifact["facts"]["analysis_provider_runtime"]["execution"]["implementation_status"], "pending_model_execution")
         self.assertEqual(artifact["facts"]["analysis_provider_runtime"]["execution"]["execution_mode"], "deterministic_fallback_pending_model_execution")
         self.assertEqual(artifact["facts"]["analysis_provider_runtime"]["execution"]["contract_version"], 1)
+        self.assertEqual(
+            artifact["facts"]["analysis_provider_runtime"]["execution"]["model_execution_contract"]["contract_type"],
+            "transition_analysis_model_execution",
+        )
+        self.assertEqual(
+            artifact["facts"]["analysis_provider_runtime"]["execution"]["model_execution_contract"]["contract_version"],
+            1,
+        )
+        self.assertEqual(
+            artifact["facts"]["analysis_provider_runtime"]["execution"]["model_execution_contract"]["result_contract"]["hint"],
+            "dict[str, Any]",
+        )
 
     def test_model_backed_provider_uses_custom_executor_boundary(self) -> None:
         class CustomExecutor:

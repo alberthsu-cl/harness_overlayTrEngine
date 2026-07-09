@@ -257,6 +257,7 @@ When the model-backed skeleton is selected, it also emits a `model_execution` re
 The boundary is split into a model executor object, which currently defaults to `DeterministicTransitionModelExecutor` and can be replaced later without changing the surrounding provider contract.
 The executor boundary validates both the request and the normalized result so malformed future model integrations fail fast instead of drifting through the artifact chain.
 The contract is versioned as `transition_analysis_model_execution` v1.
+The runtime artifact also records a structured `model_execution_contract` block so the future live model path can reuse the same request/result shape without guessing at the schema.
 
 Use `plan-job` to create a valid render job from prepared A/B inputs without hand-editing JSON:
 
