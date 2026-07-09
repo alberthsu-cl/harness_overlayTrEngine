@@ -891,9 +891,23 @@ class ScoringAlignmentTests(unittest.TestCase):
                             "reason": "model-backed provider configuration is loaded but provider execution is not yet implemented",
                             "configuration": {
                                 "loaded": True,
+                                "config_path": str(HARNESS_ROOT / "configs" / "analysis_provider.json"),
                                 "config_type": "analysis_provider_config",
+                                "config_version": 1,
                                 "config_source": "repo:configs/analysis_provider.json",
                                 "model_backed_enabled": False,
+                                "default_provider": {
+                                    "kind": "deterministic_rules",
+                                    "name": "deterministic_rules_v1",
+                                    "mode": "deterministic",
+                                },
+                                "model_backed_provider": {
+                                    "enabled": False,
+                                    "kind": "model_backed",
+                                    "name": "openai-transition-model",
+                                    "mode": "vision",
+                                    "source": "env:HARNESS_ANALYSIS_PROVIDER_CONFIG",
+                                },
                             },
                         },
                         "transition_video_analysis": {
@@ -1031,6 +1045,13 @@ class ScoringAlignmentTests(unittest.TestCase):
         )
         self.assertEqual(stdout_payload["workspace_paths"]["demo_video_file"], str(run_result["demo_video_file"]))
         self.assertEqual(stdout_payload["analysis_provider_configuration_type"], "analysis_provider_config")
+        self.assertTrue(stdout_payload["analysis_provider_configuration_loaded"])
+        self.assertEqual(stdout_payload["analysis_provider_configuration_path"], str(HARNESS_ROOT / "configs" / "analysis_provider.json"))
+        self.assertEqual(stdout_payload["analysis_provider_configuration_version"], 1)
+        self.assertEqual(stdout_payload["analysis_provider_configuration_source"], "repo:configs/analysis_provider.json")
+        self.assertFalse(stdout_payload["analysis_provider_configuration_model_backed_enabled"])
+        self.assertEqual(stdout_payload["analysis_provider_configuration_default_provider"]["kind"], "deterministic_rules")
+        self.assertEqual(stdout_payload["analysis_provider_configuration_model_backed_provider"]["kind"], "model_backed")
         self.assertEqual(stdout_payload["analysis_provider_adapter"]["kind"], "deterministic_rules")
         self.assertEqual(stdout_payload["analysis_provider_resolution_status"], "fallback_to_deterministic")
         self.assertEqual(stdout_payload["analysis_provider_resolution_reason"], "model-backed provider configuration is loaded but provider execution is not yet implemented")
