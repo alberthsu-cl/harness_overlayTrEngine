@@ -248,6 +248,7 @@ This command writes the same `transition_hint.json` contract consumed by `plan-j
 That richer artifact now includes a versioned `planning_recommendation` block with the analyzer's suggested preset, mode, style, resolved input kind, retrieval summary, and embedded hint snapshot.
 You can also record a requested provider kind with `--analysis-provider-kind deterministic_rules|model_backed`; the current harness keeps the deterministic implementation but stores both the request and the resolved fallback in the analysis artifact so a future model-backed provider can slot into the same contract.
 The default config source for that provider contract lives at [configs/analysis_provider.json](configs/analysis_provider.json), and you can override it by setting `HARNESS_ANALYSIS_PROVIDER_CONFIG` to another JSON file path.
+The richer analysis artifact also includes an `analysis_provider_runtime` block that records the provider request, selected runtime path, and input/output contract expected by the analyzer entry point.
 
 Use `plan-job` to create a valid render job from prepared A/B inputs without hand-editing JSON:
 

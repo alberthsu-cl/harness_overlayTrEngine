@@ -253,6 +253,11 @@ def build_transition_analysis_artifact(
     }
     provider_configuration = analyzer_inputs.get("analysis_provider_configuration")
     provider_resolution = resolve_transition_analysis_provider(provider_request, provider_configuration)
+    provider_runtime = build_transition_analysis_provider_runtime(
+        request=provider_request,
+        configuration=provider_configuration,
+        resolution=provider_resolution,
+    )
     recommended_plan = build_recommended_plan(
         repo_root=repo_root,
         source_a=source_a,
@@ -273,6 +278,7 @@ def build_transition_analysis_artifact(
             "analysis_provider_request": provider_request,
             "analysis_provider_resolution": provider_resolution,
             "analysis_provider_configuration": provider_configuration,
+            "analysis_provider_runtime": provider_runtime,
             "analysis_provider": resolved_provider
             if isinstance(resolved_provider, dict)
             else _build_transition_analysis_provider(
@@ -311,6 +317,76 @@ def build_transition_analysis_artifact(
             "job_name": hint.get("job_name"),
             "retrieval": recommended_plan.get("retrieval"),
             "hint": hint,
+        },
+    }
+
+
+def build_transition_analysis_provider_runtime(
+    request: dict[str, Any] | None,
+    configuration: dict[str, Any] | None,
+    resolution: dict[str, Any],
+) -> dict[str, Any]:
+    requested = resolution.get("requested") if isinstance(resolution, dict) else {}
+    resolved = resolution.get("resolved") if isinstance(resolution, dict) else {}
+    config_state = resolution.get("configuration") if isinstance(resolution, dict) else {}
+
+    requested_kind = requested.get("kind") if isinstance(requested, dict) else ANALYSIS_PROVIDER_KIND
+    requested_mode = requested.get("mode") if isinstance(requested, dict) else "deterministic"
+    selected_kind = resolved.get("kind") if isinstance(resolved, dict) else ANALYSIS_PROVIDER_KIND
+    selected_name = resolved.get("name") if isinstance(resolved, dict) else ANALYSIS_PROVIDER_NAME
+    selected_mode = resolved.get("mode") if isinstance(resolved, dict) else "deterministic"
+
+    config_loaded = bool(config_state.get("loaded")) if isinstance(config_state, dict) else isinstance(configuration, dict)
+    model_backed_enabled = bool(config_state.get("model_backed_enabled")) if isinstance(config_state, dict) else False
+
+    if requested_kind == ANALYSIS_PROVIDER_KIND:
+        execution_mode = "builtin_deterministic"
+        implementation_status = "ready"
+    elif model_backed_enabled:
+        execution_mode = "deterministic_fallback_pending_model_execution"
+        implementation_status = "pending_model_execution"
+    else:
+        execution_mode = "deterministic_fallback"
+        implementation_status = "fallback_only"
+
+    return {
+        "requested": {
+            "kind": requested_kind,
+            "mode": requested_mode,
+        },
+        "selected": {
+            "kind": selected_kind,
+            "name": selected_name,
+            "mode": selected_mode,
+        },
+        "configuration": {
+            "loaded": config_loaded,
+            "model_backed_enabled": model_backed_enabled,
+        },
+        "execution": {
+            "entry_point": "overlay_harness.analyzer.analyze_transition",
+            "implementation_status": implementation_status,
+            "execution_mode": execution_mode,
+            "input_contract": {
+                "repo_root": "Path",
+                "source_a": "prepared source A frame directory",
+                "source_b": "prepared source B frame directory",
+                "input_kind": "str",
+                "style_hint": "str | None",
+                "intent": "str | None",
+                "prefer_generated": "bool",
+                "reference_transition": "Path | None",
+                "job_name": "str | None",
+            },
+            "output_contract": {
+                "analysis_provider": "dict[str, str]",
+                "style_hint": "str",
+                "input_kind": "str",
+                "reference_transition": "str | None",
+                "job_name": "str | None",
+                "notes": "str",
+                "analysis": "dict[str, Any]",
+            },
         },
     }
 

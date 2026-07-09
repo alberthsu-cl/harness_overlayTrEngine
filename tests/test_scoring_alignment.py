@@ -1066,6 +1066,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["facts"]["analysis_provider_resolution"]["configuration"]["loaded"], True)
         self.assertEqual(payload["facts"]["analysis_provider_resolution"]["configuration"]["config_source"], "repo:configs/analysis_provider.json")
         self.assertEqual(payload["facts"]["analysis_provider_resolution"]["configuration"]["model_backed_enabled"], False)
+        self.assertEqual(payload["facts"]["analysis_provider_runtime"]["execution"]["execution_mode"], "deterministic_fallback")
+        self.assertEqual(payload["facts"]["analysis_provider_runtime"]["execution"]["implementation_status"], "fallback_only")
         self.assertEqual(payload["facts"]["analysis_provider"]["kind"], "deterministic_rules")
         self.assertEqual(payload["facts"]["analysis_provider"]["name"], "deterministic_rules_v1")
 
@@ -1829,6 +1831,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(artifact["facts"]["analysis_provider_resolution"]["configuration"]["loaded"], True)
         self.assertEqual(artifact["facts"]["analysis_provider_resolution"]["configuration"]["config_source"], "repo:configs/analysis_provider.json")
         self.assertEqual(artifact["facts"]["analysis_provider_resolution"]["configuration"]["model_backed_enabled"], False)
+        self.assertEqual(artifact["facts"]["analysis_provider_runtime"]["execution"]["execution_mode"], "deterministic_fallback")
+        self.assertEqual(artifact["facts"]["analysis_provider_runtime"]["execution"]["implementation_status"], "fallback_only")
         self.assertEqual(artifact["facts"]["analysis_provider_resolution"]["resolved"]["kind"], "deterministic_rules")
         self.assertEqual(artifact["facts"]["analysis_provider_resolution"]["resolved"]["name"], "deterministic_rules_v1")
 
