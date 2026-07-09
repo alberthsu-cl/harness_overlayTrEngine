@@ -1020,6 +1020,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         )
         self.assertEqual(stdout_payload["workspace_paths"]["demo_video_file"], str(run_result["demo_video_file"]))
         self.assertEqual(stdout_payload["analysis_provider_configuration_type"], "analysis_provider_config")
+        self.assertEqual(stdout_payload["analysis_provider_runtime"]["configuration"]["loaded"], True)
+        self.assertEqual(stdout_payload["analysis_provider_execution"]["execution_mode"], "deterministic_fallback")
         self.assertEqual(stdout_payload["transition_progression"]["window_span_frames"], 30)
 
     def test_analyze_sample_video_command_writes_video_backed_analysis(self) -> None:
