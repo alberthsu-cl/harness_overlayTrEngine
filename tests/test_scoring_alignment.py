@@ -842,6 +842,7 @@ class ScoringAlignmentTests(unittest.TestCase):
                             },
                             "configuration": {
                                 "loaded": True,
+                                "config_type": "analysis_provider_config",
                                 "model_backed_enabled": False,
                             },
                             "delegation": {
@@ -879,6 +880,7 @@ class ScoringAlignmentTests(unittest.TestCase):
                             "reason": "model-backed provider configuration is loaded but provider execution is not yet implemented",
                             "configuration": {
                                 "loaded": True,
+                                "config_type": "analysis_provider_config",
                                 "config_source": "repo:configs/analysis_provider.json",
                                 "model_backed_enabled": False,
                             },
@@ -959,6 +961,7 @@ class ScoringAlignmentTests(unittest.TestCase):
             "harness/sample_glitch.mp4",
         )
         self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["analysis_provider_runtime"]["execution"]["execution_mode"], "deterministic_fallback")
+        self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["analysis_provider_runtime"]["configuration"]["config_type"], "analysis_provider_config")
         self.assertEqual(payload["data"]["analysis_context"]["analysis_source"], "transition_video")
         self.assertEqual(payload["data"]["analysis_context"]["analysis_engine"], "deterministic_rules_v1")
         self.assertEqual(payload["data"]["analysis_context"]["transition_video"], "harness/examples/inputs/source_a_real")
@@ -1016,6 +1019,7 @@ class ScoringAlignmentTests(unittest.TestCase):
             str(output_root / "transition_flow_stub" / "workspace" / "render" / "renderer_result.json"),
         )
         self.assertEqual(stdout_payload["workspace_paths"]["demo_video_file"], str(run_result["demo_video_file"]))
+        self.assertEqual(stdout_payload["analysis_provider_configuration_type"], "analysis_provider_config")
         self.assertEqual(stdout_payload["transition_progression"]["window_span_frames"], 30)
 
     def test_analyze_sample_video_command_writes_video_backed_analysis(self) -> None:
@@ -1187,6 +1191,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(stdout_payload["analysis_provider_resolution_reason"], "model-backed provider configuration is loaded but disabled")
         self.assertTrue(stdout_payload["analysis_provider_configuration_loaded"])
         self.assertEqual(stdout_payload["analysis_provider_configuration_path"], str(HARNESS_ROOT / "configs" / "analysis_provider.json"))
+        self.assertEqual(stdout_payload["analysis_provider_configuration_type"], "analysis_provider_config")
         self.assertEqual(stdout_payload["analysis_provider_configuration_version"], 1)
         self.assertEqual(stdout_payload["analysis_provider_configuration_source"], "repo:configs/analysis_provider.json")
         self.assertFalse(stdout_payload["analysis_provider_configuration_model_backed_enabled"])
@@ -1812,6 +1817,7 @@ class ScoringAlignmentTests(unittest.TestCase):
                             },
                             "configuration": {
                                 "loaded": True,
+                                "config_type": "analysis_provider_config",
                                 "model_backed_enabled": False,
                             },
                             "execution": {
