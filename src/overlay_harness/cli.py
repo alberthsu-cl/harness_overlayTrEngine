@@ -18,6 +18,7 @@ from .evaluator import score_frame_sequences
 from .models import load_render_job
 from .analyzer import ANALYSIS_ENGINE
 from .analyzer import analyze_transition
+from .analyzer import analyze_transition_video
 from .analyzer import build_transition_analysis_artifact, derive_analyzer_inputs_from_metadata, load_clip_metadata
 from .planner import (
     auto_input_kinds,
@@ -1470,16 +1471,16 @@ def _handle_analyze_sample_video(args, repo_root: Path) -> int:
             analysis_width=args.analysis_width,
             analysis_height=args.analysis_height,
         )
-        hint = analyze_transition(
+        hint = analyze_transition_video(
             repo_root=repo_root,
-            source_a=source_a,
-            source_b=source_b,
+            transition_video=transition_video,
             input_kind=args.input_kind,
             style_hint=args.style_hint,
             intent=args.intent,
             prefer_generated=args.prefer_generated,
             reference_transition=reference_output,
             job_name=args.job_name,
+            transition_window=_summarize_reference_transition_window(reference_result),
         )
         write_json(hint_output, hint)
         analyzer_inputs = {
@@ -1603,16 +1604,16 @@ def _handle_flow(args, repo_root: Path, harness_root: Path, config_dir: Path, de
             analysis_width=args.analysis_width,
             analysis_height=args.analysis_height,
         )
-        hint = analyze_transition(
+        hint = analyze_transition_video(
             repo_root=repo_root,
-            source_a=source_a,
-            source_b=source_b,
+            transition_video=transition_video,
             input_kind=args.input_kind,
             style_hint=args.style_hint,
             intent=args.intent,
             prefer_generated=args.prefer_generated,
             reference_transition=reference_output,
             job_name=args.job_name,
+            transition_window=_summarize_reference_transition_window(reference_result),
             provider_request={
                 "kind": args.analysis_provider_kind,
                 "name": args.analysis_provider_name,

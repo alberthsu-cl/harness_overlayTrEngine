@@ -42,6 +42,7 @@ from overlay_harness.analyzer import build_transition_analysis_provider_adapter
 from overlay_harness.analyzer import build_transition_model_executor
 from overlay_harness.analyzer import ModelBackedTransitionAnalysisProvider
 from overlay_harness.analyzer import analyze_transition
+from overlay_harness.analyzer import analyze_transition_video
 from overlay_harness.analyzer import build_transition_analysis_artifact
 from overlay_harness.analyzer import derive_analyzer_inputs_from_metadata
 from overlay_harness.evaluator import score_frame_sequences
@@ -785,14 +786,23 @@ class ScoringAlignmentTests(unittest.TestCase):
         with (
             patch("overlay_harness.cli.prepare_reference_transition", return_value=reference_result),
             patch(
-                "overlay_harness.cli.analyze_transition",
+                "overlay_harness.cli.analyze_transition_video",
                 return_value={
+                    "analysis_source": "transition_video",
+                    "transition_video": "harness/sample_glitch.mp4",
+                    "transition_window": {
+                        "frame_count": 30,
+                        "detected_start_frame": 0,
+                        "detected_end_frame": 29,
+                        "detected_frame_count": 30,
+                        "message": "prepared",
+                    },
                     "style_hint": "generated-glitch",
                     "input_kind": "real",
                     "reference_transition": str(reference_result.output_dir),
                     "job_name": "flow_job",
-                    "notes": "analyzer selected generated-glitch because intent mentioned glitch",
-                    "analysis": {"style_reason": "intent mentioned glitch"},
+                    "notes": "video analyzer selected generated-glitch because the transition video filename mentions glitch",
+                    "analysis": {"style_reason": "transition video filename mentions glitch"},
                 },
             ),
             patch(
@@ -806,6 +816,7 @@ class ScoringAlignmentTests(unittest.TestCase):
                         "reference_transition": str(reference_result.output_dir),
                     },
                     "facts": {
+                        "analysis_source": "transition_video",
                         "resolved": {
                             "style_hint": "generated-glitch",
                             "input_kind": "real",
@@ -877,6 +888,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["run"]["status"], "succeeded")
         self.assertEqual(payload["data"]["reference_transition"]["frame_count"], 30)
         self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["analysis_mode"], "deterministic_rules")
+        self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["analysis_source"], "transition_video")
         self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["transition_summary"]["combined_motion_level"], "high")
         self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["transition_window"]["frame_count"], 30)
         self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["transition_progression"]["window_span_frames"], 30)
@@ -968,14 +980,23 @@ class ScoringAlignmentTests(unittest.TestCase):
         with (
             patch("overlay_harness.cli.prepare_reference_transition", return_value=reference_result),
             patch(
-                "overlay_harness.cli.analyze_transition",
+                "overlay_harness.cli.analyze_transition_video",
                 return_value={
+                    "analysis_source": "transition_video",
+                    "transition_video": "harness/sample_glitch.mp4",
+                    "transition_window": {
+                        "frame_count": 30,
+                        "detected_start_frame": 0,
+                        "detected_end_frame": 29,
+                        "detected_frame_count": 30,
+                        "message": "prepared",
+                    },
                     "style_hint": "generated-noise",
                     "input_kind": "real",
                     "reference_transition": str(reference_result.output_dir),
                     "job_name": "sample_analysis_job",
-                    "notes": "analyzer selected generated-noise because intent mentioned glitch",
-                    "analysis": {"style_reason": "intent mentioned glitch"},
+                    "notes": "video analyzer selected generated-noise because the transition video filename mentions glitch",
+                    "analysis": {"style_reason": "transition video filename mentions glitch"},
                 },
             ),
             patch(
@@ -989,6 +1010,7 @@ class ScoringAlignmentTests(unittest.TestCase):
                         "reference_transition": str(reference_result.output_dir),
                     },
                     "facts": {
+                        "analysis_source": "transition_video",
                         "resolved": {
                             "style_hint": "generated-noise",
                             "input_kind": "real",
@@ -1030,6 +1052,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["facts"]["resolved"]["style_hint"], "generated-noise")
         self.assertTrue(payload["facts"]["analyzer_inputs"]["sample_video"])
         self.assertEqual(payload["facts"]["analysis_mode"], "deterministic_rules")
+        self.assertEqual(payload["facts"]["analysis_source"], "transition_video")
         self.assertEqual(payload["facts"]["transition_summary"]["combined_motion_level"], "high")
         self.assertEqual(payload["facts"]["transition_window"]["frame_count"], 30)
         self.assertEqual(payload["facts"]["transition_progression"]["window_span_frames"], 30)
@@ -1396,6 +1419,40 @@ class ScoringAlignmentTests(unittest.TestCase):
                     "job_name": "invalid_model_executor_job",
                 },
             )
+
+    def test_analyze_transition_video_records_requested_provider_metadata(self) -> None:
+        hint = analyze_transition_video(
+            repo_root=HARNESS_ROOT.parent,
+            transition_video=HARNESS_ROOT.parent / "harness/sample_glitch.mp4",
+            input_kind="auto",
+            style_hint=None,
+            intent="generated glitch transition",
+            prefer_generated=False,
+            reference_transition=None,
+            job_name="video_analysis_job",
+            transition_window={
+                "frame_count": 30,
+                "detected_start_frame": 0,
+                "detected_end_frame": 29,
+                "detected_frame_count": 30,
+                "message": "prepared",
+            },
+            provider_request={
+                "kind": "model_backed",
+                "name": "openai-transition-model",
+                "mode": "vision",
+            },
+            provider_configuration=load_analysis_provider_config(HARNESS_ROOT / "configs"),
+        )
+
+        self.assertEqual(hint["analysis_source"], "transition_video")
+        self.assertEqual(hint["transition_video"], "harness/sample_glitch.mp4")
+        self.assertEqual(hint["analysis_provider_request"]["kind"], "model_backed")
+        self.assertEqual(hint["analysis_provider_resolution"]["status"], "fallback_to_deterministic")
+        self.assertEqual(hint["analysis_provider_configuration"]["loaded"], True)
+        self.assertEqual(hint["analysis_provider_runtime"]["execution"]["execution_mode"], "deterministic_fallback")
+        self.assertEqual(hint["analysis_model_execution_contract"]["contract_type"], "transition_analysis_model_execution")
+        self.assertEqual(hint["analysis_provider"]["kind"], "deterministic_rules")
 
     def _flow_command_persists_end_to_end_evaluation_summary(self) -> None:
         output_root = self.root / "flow_evaluation_output"

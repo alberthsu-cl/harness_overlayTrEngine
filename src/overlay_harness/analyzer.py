@@ -35,6 +35,22 @@ class TransitionAnalysisProvider(Protocol):
     ) -> dict[str, Any]:
         """Return a transition hint that matches the current analyzer contract."""
 
+    def analyze_transition_video(
+        self,
+        *,
+        repo_root: Path,
+        transition_video: Path,
+        input_kind: str,
+        style_hint: str | None,
+        intent: str | None,
+        prefer_generated: bool,
+        reference_transition: Path | None,
+        job_name: str | None,
+        transition_window: dict[str, Any] | None,
+        analyzer_inputs: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Return a transition hint derived from a sample transition video."""
+
 
 class TransitionModelExecutor(Protocol):
     def execute_model_request(self, model_request: dict[str, Any]) -> dict[str, Any]:
@@ -95,24 +111,100 @@ class DeterministicTransitionAnalysisProvider:
             },
         }
 
+    def analyze_transition_video(
+        self,
+        *,
+        repo_root: Path,
+        transition_video: Path,
+        input_kind: str,
+        style_hint: str | None,
+        intent: str | None,
+        prefer_generated: bool,
+        reference_transition: Path | None,
+        job_name: str | None,
+        transition_window: dict[str, Any] | None,
+        analyzer_inputs: dict[str, Any],
+    ) -> dict[str, Any]:
+        resolved_input_kind = input_kind
+        if resolved_input_kind == "auto":
+            resolved_input_kind = analyzer_inputs.get("input_kind") if isinstance(analyzer_inputs, dict) else "auto"
+            if not isinstance(resolved_input_kind, str) or not resolved_input_kind:
+                resolved_input_kind = "auto"
+
+        resolved_style_hint, reason = _resolve_video_style_hint(
+            transition_video=transition_video,
+            style_hint=style_hint,
+            intent=intent,
+            prefer_generated=prefer_generated,
+            transition_window=transition_window,
+        )
+
+        notes = f"Video analyzer selected '{resolved_style_hint}' because {reason}."
+        if intent:
+            notes += f" Intent: {intent}"
+
+        return {
+            "analysis_provider": _build_transition_analysis_provider(
+                provider_kind=ANALYSIS_PROVIDER_KIND,
+                provider_name=ANALYSIS_PROVIDER_NAME,
+                provider_mode="video_analysis",
+            ),
+            "analysis_source": "transition_video",
+            "transition_video": _format_optional_path(transition_video, repo_root),
+            "transition_window": _build_transition_window_analysis(transition_window),
+            "style_hint": resolved_style_hint,
+            "input_kind": resolved_input_kind,
+            "reference_transition": _format_optional_path(reference_transition, repo_root),
+            "job_name": job_name,
+            "notes": notes,
+            "analysis": {
+                "intent": intent,
+                "prefer_generated": prefer_generated,
+                "style_reason": reason,
+                "signals": {
+                    "transition_video": _format_optional_path(transition_video, repo_root),
+                    "transition_window": _build_transition_window_analysis(transition_window),
+                },
+            },
+        }
+
 
 class DeterministicTransitionModelExecutor:
     def execute_model_request(self, model_request: dict[str, Any]) -> dict[str, Any]:
         deterministic_provider = DeterministicTransitionAnalysisProvider()
-        hint = deterministic_provider.analyze_transition(
-            repo_root=Path(model_request["inputs"]["repo_root"]),
-            source_a=Path(model_request["inputs"]["source_a"]),
-            source_b=Path(model_request["inputs"]["source_b"]),
-            input_kind=model_request["inputs"]["input_kind"],
-            style_hint=model_request["inputs"]["style_hint"],
-            intent=model_request["inputs"]["intent"],
-            prefer_generated=bool(model_request["inputs"]["prefer_generated"]),
-            reference_transition=Path(model_request["inputs"]["reference_transition"])
-            if model_request["inputs"]["reference_transition"]
-            else None,
-            job_name=model_request["inputs"]["job_name"],
-            analyzer_inputs=model_request["analyzer_inputs"],
-        )
+        inputs = model_request["inputs"]
+        transition_window = inputs.get("transition_window") if isinstance(inputs, dict) else None
+        analysis_source = inputs.get("analysis_source") if isinstance(inputs, dict) else None
+        if analysis_source == "transition_video":
+            hint = deterministic_provider.analyze_transition_video(
+                repo_root=Path(inputs["repo_root"]),
+                transition_video=Path(inputs["transition_video"]),
+                input_kind=inputs["input_kind"],
+                style_hint=inputs["style_hint"],
+                intent=inputs["intent"],
+                prefer_generated=bool(inputs["prefer_generated"]),
+                reference_transition=Path(inputs["reference_transition"])
+                if inputs["reference_transition"]
+                else None,
+                job_name=inputs["job_name"],
+                transition_window=transition_window if isinstance(transition_window, dict) else None,
+                analyzer_inputs=model_request["analyzer_inputs"],
+            )
+        else:
+            hint = deterministic_provider.analyze_transition(
+                repo_root=Path(inputs["repo_root"]),
+                source_a=Path(inputs["source_a"]),
+                source_b=Path(inputs["source_b"]),
+                input_kind=inputs["input_kind"],
+                style_hint=inputs["style_hint"],
+                intent=inputs["intent"],
+                prefer_generated=bool(inputs["prefer_generated"]),
+                reference_transition=Path(inputs["reference_transition"])
+                if inputs["reference_transition"]
+                else None,
+                job_name=inputs["job_name"],
+                analyzer_inputs=model_request["analyzer_inputs"],
+            )
         return {
             "contract_type": MODEL_EXECUTION_CONTRACT_TYPE,
             "contract_version": MODEL_EXECUTION_CONTRACT_VERSION,
@@ -151,12 +243,63 @@ class ModelBackedTransitionAnalysisProvider:
             repo_root=repo_root,
             source_a=source_a,
             source_b=source_b,
+            transition_video=None,
+            analysis_source="source_a_source_b",
             input_kind=input_kind,
             style_hint=style_hint,
             intent=intent,
             prefer_generated=prefer_generated,
             reference_transition=reference_transition,
             job_name=job_name,
+            transition_window=None,
+            analyzer_inputs=analyzer_inputs,
+        )
+        model_result = self.invoke_model_execution(model_request=model_request)
+        hint = model_result["hint"]
+        hint.setdefault("analysis", {})
+        hint["analysis"]["model_execution"] = {
+            "request": model_request,
+            "status": model_result["status"],
+            "execution_mode": model_result["execution_mode"],
+        }
+        hint["analysis"]["model_execution_request"] = model_request
+        hint["analysis"]["model_execution_status"] = model_result["status"]
+        hint["analysis"]["model_execution_mode"] = model_result["execution_mode"]
+        hint["analysis"]["model_execution_notes"] = model_result["notes"]
+        hint["analysis_provider"] = _build_transition_analysis_provider(
+            provider_kind="model_backed",
+            provider_name=self._resolved_name,
+            provider_mode=model_result["execution_mode"],
+        )
+        return hint
+
+    def analyze_transition_video(
+        self,
+        *,
+        repo_root: Path,
+        transition_video: Path,
+        input_kind: str,
+        style_hint: str | None,
+        intent: str | None,
+        prefer_generated: bool,
+        reference_transition: Path | None,
+        job_name: str | None,
+        transition_window: dict[str, Any] | None,
+        analyzer_inputs: dict[str, Any],
+    ) -> dict[str, Any]:
+        model_request = self.build_model_execution_request(
+            repo_root=repo_root,
+            source_a=None,
+            source_b=None,
+            transition_video=transition_video,
+            analysis_source="transition_video",
+            input_kind=input_kind,
+            style_hint=style_hint,
+            intent=intent,
+            prefer_generated=prefer_generated,
+            reference_transition=reference_transition,
+            job_name=job_name,
+            transition_window=transition_window,
             analyzer_inputs=analyzer_inputs,
         )
         model_result = self.invoke_model_execution(model_request=model_request)
@@ -182,16 +325,64 @@ class ModelBackedTransitionAnalysisProvider:
         self,
         *,
         repo_root: Path,
-        source_a: Path,
-        source_b: Path,
+        source_a: Path | None,
+        source_b: Path | None,
+        transition_video: Path | None,
+        analysis_source: str,
         input_kind: str,
         style_hint: str | None,
         intent: str | None,
         prefer_generated: bool,
         reference_transition: Path | None,
         job_name: str | None,
+        transition_window: dict[str, Any] | None,
         analyzer_inputs: dict[str, Any],
     ) -> dict[str, Any]:
+        inputs: dict[str, Any] = {
+            "repo_root": str(repo_root),
+            "analysis_source": analysis_source,
+            "input_kind": input_kind,
+            "style_hint": style_hint,
+            "intent": intent,
+            "prefer_generated": prefer_generated,
+            "reference_transition": _format_optional_path(reference_transition, repo_root),
+            "job_name": job_name,
+        }
+        if source_a is not None:
+            inputs["source_a"] = str(source_a)
+        if source_b is not None:
+            inputs["source_b"] = str(source_b)
+        if transition_video is not None:
+            inputs["transition_video"] = _format_optional_path(transition_video, repo_root)
+        if transition_window is not None:
+            inputs["transition_window"] = transition_window
+
+        execution_contract = {
+            "contract_type": MODEL_EXECUTION_CONTRACT_TYPE,
+            "contract_version": MODEL_EXECUTION_CONTRACT_VERSION,
+            "expected_status": "delegated_to_deterministic_fallback",
+            "result_contract": {
+                "style_hint": "str",
+                "input_kind": "str",
+                "reference_transition": "str | None",
+                "job_name": "str | None",
+                "notes": "str",
+                "analysis": "dict[str, Any]",
+            },
+        }
+        if analysis_source == "transition_video":
+            execution_contract["input_contract"] = {
+                "analysis_source": "transition_video",
+                "transition_video": "Path",
+                "transition_window": "dict[str, Any] | None",
+            }
+        else:
+            execution_contract["input_contract"] = {
+                "analysis_source": "source_a_source_b",
+                "source_a": "Path",
+                "source_b": "Path",
+            }
+
         return {
             "contract_type": MODEL_EXECUTION_CONTRACT_TYPE,
             "contract_version": MODEL_EXECUTION_CONTRACT_VERSION,
@@ -200,31 +391,9 @@ class ModelBackedTransitionAnalysisProvider:
                 "name": self._resolved_name,
                 "mode": "vision",
             },
-            "inputs": {
-                "repo_root": str(repo_root),
-                "source_a": str(source_a),
-                "source_b": str(source_b),
-                "input_kind": input_kind,
-                "style_hint": style_hint,
-                "intent": intent,
-                "prefer_generated": prefer_generated,
-                "reference_transition": _format_optional_path(reference_transition, repo_root),
-                "job_name": job_name,
-            },
+            "inputs": inputs,
             "analyzer_inputs": analyzer_inputs,
-            "execution": {
-                "contract_type": MODEL_EXECUTION_CONTRACT_TYPE,
-                "contract_version": MODEL_EXECUTION_CONTRACT_VERSION,
-                "expected_status": "delegated_to_deterministic_fallback",
-                "result_contract": {
-                    "style_hint": "str",
-                    "input_kind": "str",
-                    "reference_transition": "str | None",
-                    "job_name": "str | None",
-                    "notes": "str",
-                    "analysis": "dict[str, Any]",
-                },
-            },
+            "execution": execution_contract,
         }
 
     def invoke_model_execution(self, *, model_request: dict[str, Any]) -> dict[str, Any]:
@@ -251,9 +420,18 @@ def _validate_model_execution_request(model_request: dict[str, Any]) -> None:
         value = provider.get(field_name)
         if not isinstance(value, str) or not value:
             raise ValueError(f"model execution request provider.{field_name} must be a non-empty string")
-    for field_name in ("repo_root", "source_a", "source_b", "input_kind", "prefer_generated", "job_name"):
+    for field_name in ("repo_root", "analysis_source", "input_kind", "prefer_generated", "job_name"):
         if field_name not in inputs:
             raise ValueError(f"model execution request inputs.{field_name} is required")
+    analysis_source = inputs.get("analysis_source")
+    if analysis_source == "transition_video":
+        for field_name in ("transition_video",):
+            if field_name not in inputs:
+                raise ValueError(f"model execution request inputs.{field_name} is required for transition video analysis")
+    else:
+        for field_name in ("source_a", "source_b"):
+            if field_name not in inputs:
+                raise ValueError(f"model execution request inputs.{field_name} is required for source analysis")
     if "result_contract" not in execution:
         raise ValueError("model execution request execution.result_contract is required")
 
@@ -508,6 +686,100 @@ def analyze_transition(
     return hint
 
 
+def analyze_transition_video(
+    repo_root: Path,
+    transition_video: Path,
+    input_kind: str,
+    style_hint: str | None,
+    intent: str | None,
+    prefer_generated: bool,
+    reference_transition: Path | None,
+    job_name: str | None,
+    transition_window: dict[str, Any] | None,
+    provider_request: dict[str, Any] | None = None,
+    provider_configuration: dict[str, Any] | None = None,
+    provider: TransitionAnalysisProvider | None = None,
+) -> dict:
+    provider_request_data = provider_request or {
+        "kind": ANALYSIS_PROVIDER_KIND,
+        "name": ANALYSIS_PROVIDER_NAME,
+        "mode": "deterministic",
+    }
+    provider_resolution = resolve_transition_analysis_provider(provider_request_data, provider_configuration)
+    provider_runtime = build_transition_analysis_provider_runtime(
+        request=provider_request_data,
+        configuration=provider_configuration,
+        resolution=provider_resolution,
+    )
+    if provider is not None:
+        hint = provider.analyze_transition_video(
+            repo_root=repo_root,
+            transition_video=transition_video,
+            input_kind=input_kind,
+            style_hint=style_hint,
+            intent=intent,
+            prefer_generated=prefer_generated,
+            reference_transition=reference_transition,
+            job_name=job_name,
+            transition_window=transition_window,
+            analyzer_inputs={
+                "input_kind": input_kind,
+                "style_hint": style_hint,
+                "intent": intent,
+                "prefer_generated": prefer_generated,
+                "reference_transition": _format_optional_path(reference_transition, repo_root),
+                "job_name": job_name,
+                "analysis_source": "transition_video",
+                "transition_video": _format_optional_path(transition_video, repo_root),
+                "transition_window": transition_window,
+            },
+        )
+        returned_provider = hint.get("analysis_provider")
+        provider_name = "custom_provider"
+        if isinstance(returned_provider, dict) and isinstance(returned_provider.get("name"), str):
+            provider_name = returned_provider["name"]
+        hint = _attach_transition_analysis_provider(
+            hint=hint,
+            provider_kind="model_backed",
+            provider_name=provider_name,
+        )
+    else:
+        execution_provider = build_transition_analysis_provider_adapter(provider_request, provider_configuration)
+        if hasattr(execution_provider, "analyze_transition_video"):
+            hint = execution_provider.analyze_transition_video(
+                repo_root=repo_root,
+                transition_video=transition_video,
+                input_kind=input_kind,
+                style_hint=style_hint,
+                intent=intent,
+                prefer_generated=prefer_generated,
+                reference_transition=reference_transition,
+                job_name=job_name,
+                transition_window=transition_window,
+                analyzer_inputs={
+                    "input_kind": input_kind,
+                    "style_hint": style_hint,
+                    "intent": intent,
+                    "prefer_generated": prefer_generated,
+                    "reference_transition": _format_optional_path(reference_transition, repo_root),
+                    "job_name": job_name,
+                    "analysis_source": "transition_video",
+                    "transition_video": _format_optional_path(transition_video, repo_root),
+                    "transition_window": transition_window,
+                },
+            )
+        else:
+            raise ValueError("transition analysis provider does not support video analysis")
+    hint.setdefault("analysis", {})
+    hint["analysis_provider_request"] = provider_request_data
+    hint["analysis_provider_resolution"] = provider_resolution
+    hint["analysis_provider_configuration"] = provider_resolution["configuration"]
+    hint["analysis_provider_runtime"] = provider_runtime
+    hint["analysis_provider_adapter"] = provider_runtime["adapter"]
+    hint["analysis_model_execution_contract"] = provider_runtime["execution"]["model_execution_contract"]
+    return hint
+
+
 def build_transition_analysis_artifact(
     repo_root: Path,
     source_a: Path,
@@ -557,6 +829,7 @@ def build_transition_analysis_artifact(
                 provider_name=provider_resolution["resolved"]["name"],
                 provider_mode=provider_resolution["resolved"]["mode"],
             ),
+            "analysis_source": analyzer_inputs.get("analysis_source", "source_a_source_b"),
             "transition_video_analysis": {
                 "source": analyzer_inputs.get("analysis_source", "source_a_source_b"),
                 "analysis_engine": analyzer_inputs.get("analysis_engine", ANALYSIS_ENGINE),
@@ -941,6 +1214,111 @@ def _resolve_style_hint(
         return "seamless", "local frame signals indicate a static or low-motion pair that fits the smooth baseline"
 
     return "seamless", "no stronger signal was provided, so the analyzer chose the safest baseline transition"
+
+
+def _resolve_video_style_hint(
+    transition_video: Path,
+    style_hint: str | None,
+    intent: str | None,
+    prefer_generated: bool,
+    transition_window: dict[str, Any] | None,
+) -> tuple[str, str]:
+    if style_hint:
+        return style_hint, "an explicit style hint was provided"
+
+    normalized_intent = (intent or "").strip().lower()
+    if normalized_intent:
+        if any(token in normalized_intent for token in ("camcorder", "camera")):
+            return "camcorder", "the intent mentions a camcorder or camera transition"
+        if any(token in normalized_intent for token in ("particle", "sparkle", "spray")):
+            return "particle", "the intent mentions particle or sparkle motion"
+        if any(token in normalized_intent for token in ("frame overlay", "film roll", "overlay")):
+            return "frame-overlay", "the intent mentions a frame overlay or film-roll look"
+        if "generated" in normalized_intent and any(token in normalized_intent for token in ("wipe", "wipe transition")):
+            return "generated-wipe", "the intent mentions a generated wipe transition"
+        if "generated" in normalized_intent and any(
+            token in normalized_intent for token in ("dissolve", "dissolve transition")
+        ):
+            return "generated-dissolve", "the intent mentions a generated dissolve transition"
+        if "generated" in normalized_intent and any(token in normalized_intent for token in ("mask", "mask transition")):
+            return "generated-mask", "the intent mentions a generated mask transition"
+        if "generated" in normalized_intent and any(token in normalized_intent for token in ("uv shift", "uv-shift")):
+            return "generated-uv-shift", "the intent mentions a generated UV shift transition"
+        if "generated" in normalized_intent and any(token in normalized_intent for token in ("feathering", "feather")):
+            return "generated-feathering", "the intent mentions a generated feathering transition"
+        if "generated" in normalized_intent and any(token in normalized_intent for token in ("rgb split", "rgb-split")):
+            return "generated-rgb-split", "the intent mentions a generated RGB split transition"
+        if "generated" in normalized_intent and any(token in normalized_intent for token in ("noise", "noisy")):
+            return "generated-noise", "the intent mentions a generated noise transition"
+        if any(token in normalized_intent for token in ("wipe", "wipe transition")):
+            return "generated-wipe" if prefer_generated else "wipe", "the intent mentions a wipe transition"
+        if any(token in normalized_intent for token in ("dissolve", "dissolve transition")):
+            return "generated-dissolve" if prefer_generated else "dissolve", "the intent mentions a dissolve transition"
+        if any(token in normalized_intent for token in ("mask", "mask transition")):
+            return "generated-mask" if prefer_generated else "mask", "the intent mentions a mask transition"
+        if any(token in normalized_intent for token in ("uv shift", "uv-shift")):
+            return "generated-uv-shift" if prefer_generated else "uv-shift", "the intent mentions a UV shift transition"
+        if any(token in normalized_intent for token in ("feathering", "feather")):
+            return "generated-feathering" if prefer_generated else "feathering", "the intent mentions a feathering transition"
+        if any(token in normalized_intent for token in ("rgb split", "rgb-split")):
+            return "generated-rgb-split" if prefer_generated else "rgb-split", "the intent mentions an RGB split transition"
+        if any(token in normalized_intent for token in ("noise", "noisy")):
+            return "generated-noise" if prefer_generated else "noise", "the intent mentions a noise transition"
+        if any(token in normalized_intent for token in ("glitch", "distortion", "warp")):
+            return "generated-noise" if prefer_generated else "glitch", "the intent mentions a glitch or distortion transition"
+        if any(token in normalized_intent for token in ("smooth", "seamless", "slide", "sliding")):
+            return "generated-dissolve" if prefer_generated else "seamless", "the intent mentions a smooth or sliding transition"
+
+    name = transition_video.name.lower()
+    if "glitch" in name:
+        return "generated-noise" if prefer_generated else "glitch", "the transition video filename mentions glitch"
+    if any(token in name for token in ("seamless", "smooth", "slide")):
+        return "generated-dissolve" if prefer_generated else "seamless", "the transition video filename mentions a smooth or sliding transition"
+    if "wipe" in name:
+        return "generated-wipe" if prefer_generated else "wipe", "the transition video filename mentions wipe"
+    if "dissolve" in name:
+        return "generated-dissolve" if prefer_generated else "dissolve", "the transition video filename mentions dissolve"
+    if "mask" in name:
+        return "generated-mask" if prefer_generated else "mask", "the transition video filename mentions mask"
+    if "rgb" in name:
+        return "generated-rgb-split" if prefer_generated else "rgb-split", "the transition video filename mentions rgb split"
+    if "noise" in name:
+        return "generated-noise" if prefer_generated else "noise", "the transition video filename mentions noise"
+
+    if isinstance(transition_window, dict):
+        detected_frame_count = transition_window.get("detected_frame_count")
+        frame_count = transition_window.get("frame_count")
+        if isinstance(detected_frame_count, int) and isinstance(frame_count, int) and frame_count > 0:
+            coverage_ratio = detected_frame_count / frame_count
+            if coverage_ratio >= 0.85:
+                return (
+                    "generated-dissolve" if prefer_generated else "seamless",
+                    "the transition window covers most frames and no stronger video signal was provided",
+                )
+
+    if prefer_generated:
+        return "generated-dissolve", "generated output was preferred and the video did not provide a stronger signal"
+
+    return "seamless", "the transition video did not provide a stronger signal, so the analyzer chose the smooth baseline"
+
+
+def _build_transition_window_analysis(transition_window: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(transition_window, dict):
+        return {
+            "frame_count": None,
+            "detected_start_frame": None,
+            "detected_end_frame": None,
+            "detected_frame_count": None,
+            "message": None,
+        }
+
+    return {
+        "frame_count": transition_window.get("frame_count"),
+        "detected_start_frame": transition_window.get("detected_start_frame"),
+        "detected_end_frame": transition_window.get("detected_end_frame"),
+        "detected_frame_count": transition_window.get("detected_frame_count"),
+        "message": transition_window.get("message"),
+    }
 
 
 def _resolve_style_from_metadata_heuristics(metadata: dict[str, Any]) -> tuple[str, str]:
