@@ -1180,6 +1180,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertTrue(stdout_payload["analysis_provider_configuration_loaded"])
         self.assertEqual(stdout_payload["analysis_provider_configuration_source"], "repo:configs/analysis_provider.json")
         self.assertFalse(stdout_payload["analysis_provider_configuration_model_backed_enabled"])
+        self.assertEqual(stdout_payload["analysis_provider_adapter"]["kind"], "deterministic_rules")
+        self.assertEqual(stdout_payload["analysis_provider_adapter"]["status"], "deterministic_adapter")
         self.assertEqual(stdout_payload["analysis_provider_configuration"]["loaded"], True)
         self.assertEqual(stdout_payload["analysis_model_execution_mode"], "deterministic_fallback")
         self.assertEqual(stdout_payload["analysis_model_execution_contract"]["contract_type"], "transition_analysis_model_execution")
@@ -1865,6 +1867,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertIsNone(payload["data"]["analysis_provider_configuration_source"])
         self.assertIsNone(payload["data"]["analysis_provider_configuration_model_backed_enabled"])
         self.assertEqual(payload["data"]["analysis_provider_configuration"], None)
+        self.assertEqual(payload["data"]["analysis_provider_adapter"]["status"], "deterministic_adapter")
         self.assertEqual(payload["data"]["analysis_provider_runtime"]["execution"]["execution_mode"], "builtin_deterministic")
         self.assertEqual(payload["data"]["analysis_provider_adapter"]["status"], "deterministic_adapter")
         self.assertEqual(payload["data"]["analysis_provider_runtime"]["delegation"]["path"], "deterministic")
@@ -2039,6 +2042,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertIsNone(stdout_payload["analysis_provider_resolution"])
         self.assertIsNone(stdout_payload["analysis_provider_resolution_status"])
         self.assertIsNone(stdout_payload["analysis_provider_configuration_loaded"])
+        self.assertIsNone(stdout_payload["analysis_provider_adapter"])
 
     def test_sample_video_command_with_force_mode_uses_forced_planner_mode(self) -> None:
         source_a = self.root / "source_a"
