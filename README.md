@@ -260,6 +260,7 @@ The contract is versioned as `transition_analysis_model_execution` v1.
 The runtime artifact also records a structured `model_execution_contract` block so the future live model path can reuse the same request/result shape without guessing at the schema.
 The top-level `flow_report.json` now surfaces that same contract block directly so a downstream tool does not have to reach into nested analysis facts to inspect the future model boundary.
 The `flow` command's printed summary JSON mirrors the same contract block so the CLI output and saved report stay aligned.
+The `flow` report and printed summary also surface the provider request, resolution, and loaded configuration directly for easier debugging.
 
 Use `plan-job` to create a valid render job from prepared A/B inputs without hand-editing JSON:
 

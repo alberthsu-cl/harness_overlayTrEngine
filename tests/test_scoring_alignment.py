@@ -1593,6 +1593,9 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertIsNone(payload["data"]["run"]["evaluation"]["score"]["error"])
         self.assertEqual(payload["data"]["analysis_model_execution_contract"]["contract_type"], "transition_analysis_model_execution")
         self.assertEqual(payload["data"]["analysis_model_execution_contract"]["contract_version"], 1)
+        self.assertEqual(payload["data"]["analysis_provider_request"]["kind"], "deterministic_rules")
+        self.assertEqual(payload["data"]["analysis_provider_resolution"]["resolved"]["kind"], "deterministic_rules")
+        self.assertEqual(payload["data"]["analysis_provider_configuration"], None)
         self.assertEqual(payload["data"]["analysis_provider_runtime"]["execution"]["execution_mode"], "builtin_deterministic")
         self.assertEqual(payload["data"]["analysis_provider_adapter"]["status"], "deterministic_adapter")
         self.assertEqual(payload["data"]["analysis_provider_runtime"]["delegation"]["path"], "deterministic")
@@ -1600,6 +1603,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(stdout_payload["status"], "succeeded")
         self.assertEqual(stdout_payload["analysis_artifact"]["planning_recommendation"]["analysis_engine"], "deterministic_rules_v1")
         self.assertEqual(stdout_payload["workspace_paths"]["similarity_report_file"], str(run_result["evaluation"]["score"]["report_file"]))
+        self.assertEqual(stdout_payload["analysis_provider_request"]["kind"], "deterministic_rules")
+        self.assertEqual(stdout_payload["analysis_provider_resolution"]["resolved"]["kind"], "deterministic_rules")
 
     def test_run_command_records_demo_video_artifact(self) -> None:
         job = self._build_job(reference_transition=self.root / "reference", frame_count=3)

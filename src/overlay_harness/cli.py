@@ -1740,6 +1740,9 @@ def _handle_flow(args, repo_root: Path, harness_root: Path, config_dir: Path, de
                     "demo_video_file": run_result.get("demo_video_file") if isinstance(run_result, dict) else None,
                 },
                 "analysis_artifact": analysis_artifact,
+                "analysis_provider_request": report_data.data.get("analysis_provider_request"),
+                "analysis_provider_resolution": report_data.data.get("analysis_provider_resolution"),
+                "analysis_provider_configuration": report_data.data.get("analysis_provider_configuration"),
                 "analysis_model_execution_contract": report_data.data.get("analysis_model_execution_contract"),
                 "status": report_data.status,
                 "summary": report_data.summary,
@@ -2564,6 +2567,21 @@ def _build_flow_report(
                 "issues": validation_issues,
             },
             "analysis_artifact": analysis_artifact,
+            "analysis_provider_request": (
+                analysis_artifact.get("facts", {}).get("analysis_provider_request")
+                if isinstance(analysis_artifact, dict)
+                else None
+            ),
+            "analysis_provider_resolution": (
+                analysis_artifact.get("facts", {}).get("analysis_provider_resolution")
+                if isinstance(analysis_artifact, dict)
+                else None
+            ),
+            "analysis_provider_configuration": (
+                analysis_artifact.get("facts", {}).get("analysis_provider_configuration")
+                if isinstance(analysis_artifact, dict)
+                else None
+            ),
             "analysis_provider_runtime": (
                 analysis_artifact.get("facts", {}).get("analysis_provider_runtime")
                 if isinstance(analysis_artifact, dict)
