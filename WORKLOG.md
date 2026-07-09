@@ -14,6 +14,7 @@ Milestone 7 will cover the retry and validation loop that makes generation robus
 
 ## Last Completed
 
+- Threaded the transition-video analysis source and window into the shared analysis-provider summary and top-level command outputs.
 - Added an explicit transition-video analysis path and routed `flow` and `analyze-sample-video` through it.
 - Recorded `analysis_source` in the transition analysis artifact so the report distinguishes video-backed analysis from source-pair analysis.
 - Added a checked-in analysis provider config source and wired the transition analysis path to load it.
@@ -45,12 +46,12 @@ Milestone 7 will cover the retry and validation loop that makes generation robus
 
 ## Next Implementation Step
 
-Thread the transition-video analysis contract through the remaining report summaries and add one focused direct test for the new helper boundary.
+Start the next Milestone 5 slice by making the video-analysis contract more explicit in the model-execution request/result boundary.
 
-1. Keep the transition-video analysis contract visible in the remaining flow and sample-video summaries.
-2. Add one direct unit test for the new video-analysis helper boundary.
-3. Leave the source-pair analyzer in place as the compatibility path for `analyze-transition`.
-4. Start the next Milestone 5 slice after the video-analysis contract is fully reflected in reports.
+1. Decide the next field or block to promote into the model execution contract.
+2. Keep the source-pair analyzer in place as the compatibility path for `analyze-transition`.
+3. Add focused tests for the next contract field before changing behavior.
+4. Leave deterministic fallback available until the model-backed path is real.
 
 ## Why This Is Next
 

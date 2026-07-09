@@ -1434,6 +1434,9 @@ def _handle_analyze_transition(args, repo_root: Path) -> int:
                 "analysis_provider_resolution": analysis_provider_summary["resolution"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_provider_configuration": analysis_provider_summary["configuration"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_model_execution_contract": analysis_provider_summary["model_execution_contract"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_source": analysis_provider_summary["analysis_source"] if isinstance(analysis_provider_summary, dict) else None,
+                "transition_video": analysis_provider_summary["transition_video"] if isinstance(analysis_provider_summary, dict) else None,
+                "transition_window": analysis_provider_summary["transition_window"] if isinstance(analysis_provider_summary, dict) else None,
                 "comparison_output": str(comparison_output) if comparison_output is not None else None,
                 "style_hint": hint.get("style_hint"),
                 "input_kind": hint.get("input_kind"),
@@ -1962,6 +1965,9 @@ def _handle_sample_video(
                 "analysis_provider_resolution": analysis_provider_summary["resolution"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_provider_configuration": analysis_provider_summary["configuration"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_model_execution_contract": analysis_provider_summary["model_execution_contract"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_source": analysis_provider_summary["analysis_source"] if isinstance(analysis_provider_summary, dict) else None,
+                "transition_video": analysis_provider_summary["transition_video"] if isinstance(analysis_provider_summary, dict) else None,
+                "transition_window": analysis_provider_summary["transition_window"] if isinstance(analysis_provider_summary, dict) else None,
                 "sample_context": _build_sample_video_context(
                     source_a=source_a,
                     source_b=source_b,
@@ -1994,6 +2000,9 @@ def _handle_sample_video(
                 "analysis_provider_resolution": analysis_provider_summary["resolution"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_provider_configuration": analysis_provider_summary["configuration"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_model_execution_contract": analysis_provider_summary["model_execution_contract"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_source": analysis_provider_summary["analysis_source"] if isinstance(analysis_provider_summary, dict) else None,
+                "transition_video": analysis_provider_summary["transition_video"] if isinstance(analysis_provider_summary, dict) else None,
+                "transition_window": analysis_provider_summary["transition_window"] if isinstance(analysis_provider_summary, dict) else None,
                 "sample_context": _build_sample_video_context(
                     source_a=source_a,
                     source_b=source_b,
@@ -2034,6 +2043,9 @@ def _handle_sample_video(
                 "analysis_provider_resolution": analysis_provider_summary["resolution"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_provider_configuration": analysis_provider_summary["configuration"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_model_execution_contract": analysis_provider_summary["model_execution_contract"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_source": analysis_provider_summary["analysis_source"] if isinstance(analysis_provider_summary, dict) else None,
+                "transition_video": analysis_provider_summary["transition_video"] if isinstance(analysis_provider_summary, dict) else None,
+                "transition_window": analysis_provider_summary["transition_window"] if isinstance(analysis_provider_summary, dict) else None,
                 "status": report.status,
                 "summary": report.summary,
             },
@@ -2514,6 +2526,7 @@ def _build_analysis_provider_artifact_summary(analysis_artifact: dict | None) ->
     resolution = facts.get("analysis_provider_resolution")
     runtime = facts.get("analysis_provider_runtime")
     execution = runtime.get("execution") if isinstance(runtime, dict) else None
+    transition_video_analysis = facts.get("transition_video_analysis")
 
     return {
         "request": facts.get("analysis_provider_request"),
@@ -2522,6 +2535,9 @@ def _build_analysis_provider_artifact_summary(analysis_artifact: dict | None) ->
         "runtime": runtime,
         "adapter": runtime.get("adapter") if isinstance(runtime, dict) else None,
         "model_execution_contract": execution.get("model_execution_contract") if isinstance(execution, dict) else None,
+        "analysis_source": facts.get("analysis_source"),
+        "transition_video": transition_video_analysis.get("transition_video") if isinstance(transition_video_analysis, dict) else None,
+        "transition_window": transition_video_analysis.get("transition_window") if isinstance(transition_video_analysis, dict) else None,
     }
 
 
@@ -2635,6 +2651,9 @@ def _build_flow_report(
             "analysis_provider_runtime": analysis_provider_summary["runtime"] if isinstance(analysis_provider_summary, dict) else None,
             "analysis_provider_adapter": analysis_provider_summary["adapter"] if isinstance(analysis_provider_summary, dict) else None,
             "analysis_model_execution_contract": analysis_provider_summary["model_execution_contract"] if isinstance(analysis_provider_summary, dict) else None,
+            "analysis_source": analysis_provider_summary["analysis_source"] if isinstance(analysis_provider_summary, dict) else None,
+            "transition_video": analysis_provider_summary["transition_video"] if isinstance(analysis_provider_summary, dict) else None,
+            "transition_window": analysis_provider_summary["transition_window"] if isinstance(analysis_provider_summary, dict) else None,
             "run": {
                 "status": run_status,
                 "summary": run_summary,
