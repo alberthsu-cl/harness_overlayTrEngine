@@ -1110,6 +1110,33 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(config["config_path"], str(override_path))
         self.assertTrue(config["model_backed_provider"]["enabled"])
 
+    def test_analysis_provider_config_rejects_invalid_schema(self) -> None:
+        invalid_path = self.root / "analysis_provider.invalid.json"
+        invalid_path.write_text(
+            json.dumps(
+                {
+                    "config_type": "analysis_provider_config",
+                    "config_version": 1,
+                    "default_provider": {
+                        "kind": "deterministic_rules",
+                        "name": "deterministic_rules_v1",
+                        "mode": "deterministic",
+                    },
+                    "model_backed_provider": {
+                        "enabled": "yes",
+                        "kind": "model_backed",
+                        "name": "openai-transition-model",
+                        "mode": "vision",
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch.dict(os.environ, {"HARNESS_ANALYSIS_PROVIDER_CONFIG": str(invalid_path)}):
+            with self.assertRaises(ValueError):
+                load_analysis_provider_config(HARNESS_ROOT / "configs")
+
     def _flow_command_persists_end_to_end_evaluation_summary(self) -> None:
         output_root = self.root / "flow_evaluation_output"
         output_root.mkdir(parents=True, exist_ok=True)

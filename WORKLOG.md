@@ -14,6 +14,7 @@ Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retr
 - Documented the deterministic fallback for requested `model_backed` analysis providers.
 - Exposed requested provider metadata on `analyze-transition` and `flow`.
 - Added env-backed override support for the analysis provider config contract.
+- Added schema validation for the analysis provider config contract.
 
 ## Next Implementation Step
 
