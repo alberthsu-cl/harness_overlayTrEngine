@@ -362,6 +362,7 @@ class ModelBackedTransitionAnalysisProvider:
             "contract_version": MODEL_EXECUTION_CONTRACT_VERSION,
             "expected_status": "delegated_to_deterministic_fallback",
             "result_contract": {
+                "analysis_source": "str",
                 "style_hint": "str",
                 "input_kind": "str",
                 "reference_transition": "str | None",
@@ -376,6 +377,8 @@ class ModelBackedTransitionAnalysisProvider:
                 "transition_video": "Path",
                 "transition_window": "dict[str, Any] | None",
             }
+            execution_contract["result_contract"]["transition_video"] = "str | None"
+            execution_contract["result_contract"]["transition_window"] = "dict[str, Any] | None"
         else:
             execution_contract["input_contract"] = {
                 "analysis_source": "source_a_source_b",
@@ -950,6 +953,9 @@ def build_transition_analysis_provider_runtime(
                         "repo_root": "Path",
                         "source_a": "prepared source A frame directory",
                         "source_b": "prepared source B frame directory",
+                        "transition_video": "str | None",
+                        "transition_window": "dict[str, Any] | None",
+                        "analysis_source": "str",
                         "input_kind": "str",
                         "style_hint": "str | None",
                         "intent": "str | None",
@@ -968,6 +974,9 @@ def build_transition_analysis_provider_runtime(
                     "status": "str",
                     "execution_mode": "str",
                     "notes": "str",
+                    "analysis_source": "str",
+                    "transition_video": "str | None",
+                    "transition_window": "dict[str, Any] | None",
                     "hint": "dict[str, Any]",
                 },
             },
@@ -975,6 +984,9 @@ def build_transition_analysis_provider_runtime(
                 "repo_root": "Path",
                 "source_a": "prepared source A frame directory",
                 "source_b": "prepared source B frame directory",
+                "transition_video": "str | None",
+                "transition_window": "dict[str, Any] | None",
+                "analysis_source": "str",
                 "input_kind": "str",
                 "style_hint": "str | None",
                 "intent": "str | None",
@@ -992,6 +1004,9 @@ def build_transition_analysis_provider_runtime(
                 "reference_transition": "str | None",
                 "job_name": "str | None",
                 "notes": "str",
+                "analysis_source": "str",
+                "transition_video": "str | None",
+                "transition_window": "dict[str, Any] | None",
                 "analysis": "dict[str, Any]",
                 "analysis_provider_runtime": "dict[str, Any]",
                 "analysis_provider_adapter": "dict[str, Any]",
