@@ -1818,6 +1818,8 @@ def _handle_flow(args, repo_root: Path, harness_root: Path, config_dir: Path, de
                 "analysis_provider_resolution_requested": report_data.data.get("analysis_provider_resolution_requested"),
                 "analysis_provider_resolution_resolved": report_data.data.get("analysis_provider_resolution_resolved"),
                 "analysis_provider_resolution_configuration": report_data.data.get("analysis_provider_resolution_configuration"),
+                "analysis_provider_resolution_status": report_data.data.get("analysis_provider_resolution_status"),
+                "analysis_provider_resolution_reason": report_data.data.get("analysis_provider_resolution_reason"),
                 "analysis_provider_configuration": report_data.data.get("analysis_provider_configuration"),
                 "analysis_provider_configuration_type": report_data.data.get("analysis_provider_configuration_type"),
                 "analysis_provider_runtime": report_data.data.get("analysis_provider_runtime"),

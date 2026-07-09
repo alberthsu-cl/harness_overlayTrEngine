@@ -14,6 +14,7 @@ Milestone 7 will cover the retry and validation loop that makes generation robus
 
 ## Last Completed
 
+- Surfaced the provider resolution status/reason in flow command payloads and run reports.
 - Surfaced the provider runtime and execution blocks in flow command payloads and run reports.
 - Surfaced the provider configuration type scalar in command payloads and run reports.
 - Surfaced the provider model-backed config enabled/source scalars in command payloads and run reports.
@@ -22,7 +23,7 @@ Milestone 7 will cover the retry and validation loop that makes generation robus
 
 ## Next Implementation Step
 
-Promote the next provider-resolution field into the command payloads and run reports, then verify the same contract stays stable in the flow and sample-video paths.
+Promote the next provider contract field into the command payloads and run reports, then verify the same contract stays stable in the flow and sample-video paths.
 
 1. Keep the source-pair analyzer in place as the compatibility path for `analyze-transition`.
 2. Add focused tests for the next contract surface before changing behavior.
