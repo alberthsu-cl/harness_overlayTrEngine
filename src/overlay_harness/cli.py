@@ -2573,6 +2573,11 @@ def _build_flow_report(
                 if isinstance(analysis_artifact, dict)
                 else None
             ),
+            "analysis_model_execution_contract": (
+                analysis_artifact.get("facts", {}).get("analysis_provider_runtime", {}).get("execution", {}).get("model_execution_contract")
+                if isinstance(analysis_artifact, dict)
+                else None
+            ),
             "run": {
                 "status": run_status,
                 "summary": run_summary,

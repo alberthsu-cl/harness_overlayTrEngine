@@ -1586,6 +1586,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["analysis_provider_runtime"]["execution"]["execution_mode"], "builtin_deterministic")
         self.assertEqual(payload["data"]["analysis_provider_adapter"]["status"], "deterministic_adapter")
         self.assertEqual(payload["data"]["analysis_provider_runtime"]["delegation"]["path"], "deterministic")
+        self.assertEqual(payload["data"]["analysis_model_execution_contract"]["contract_type"], "transition_analysis_model_execution")
+        self.assertEqual(payload["data"]["analysis_model_execution_contract"]["contract_version"], 1)
         stdout_payload = json.loads(print_mock.call_args.args[0])
         self.assertEqual(stdout_payload["status"], "succeeded")
         self.assertEqual(stdout_payload["analysis_artifact"]["planning_recommendation"]["analysis_engine"], "deterministic_rules_v1")
