@@ -1534,7 +1534,9 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(hint["analysis_model_execution_contract"]["result_contract"]["analysis_source"], "str")
         self.assertEqual(hint["analysis_model_execution_contract"]["result_contract"]["transition_video"], "str | None")
         self.assertEqual(hint["analysis_model_execution_contract"]["result_contract"]["transition_window"], "dict[str, Any] | None")
+        self.assertEqual(hint["analysis_model_execution_contract"]["result_contract"]["transition_progression"], "dict[str, Any] | None")
         self.assertEqual(hint["analysis_provider"]["kind"], "deterministic_rules")
+        self.assertEqual(hint["transition_progression"]["window_span_frames"], 30)
 
     def _flow_command_persists_end_to_end_evaluation_summary(self) -> None:
         output_root = self.root / "flow_evaluation_output"

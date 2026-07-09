@@ -14,6 +14,7 @@ Milestone 7 will cover the retry and validation loop that makes generation robus
 
 ## Last Completed
 
+- Promoted transition progression into the transition-video model execution contract and validator.
 - Added transition progression to the shared analysis-provider summary and top-level flow/sample outputs.
 - Added request/result validation for the transition-video model execution contract and made source-pair analysis emit `analysis_source` too.
 - Promoted the transition-video analysis fields into the model-execution contract block.
@@ -49,7 +50,7 @@ Milestone 7 will cover the retry and validation loop that makes generation robus
 
 ## Next Implementation Step
 
-Start the next Milestone 5 slice by deciding whether the transition-video progression should become part of the model execution request/result contract too.
+Start the next Milestone 5 slice by promoting one more derived analysis field or moving closer to the real model executor boundary.
 
 1. Keep the source-pair analyzer in place as the compatibility path for `analyze-transition`.
 2. Add focused tests for the next contract surface before changing behavior.

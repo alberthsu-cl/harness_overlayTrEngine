@@ -153,6 +153,7 @@ class DeterministicTransitionAnalysisProvider:
             "analysis_source": "transition_video",
             "transition_video": _format_optional_path(transition_video, repo_root),
             "transition_window": _build_transition_window_analysis(transition_window),
+            "transition_progression": _build_transition_progression(transition_window),
             "style_hint": resolved_style_hint,
             "input_kind": resolved_input_kind,
             "reference_transition": _format_optional_path(reference_transition, repo_root),
@@ -165,6 +166,7 @@ class DeterministicTransitionAnalysisProvider:
                 "signals": {
                     "transition_video": _format_optional_path(transition_video, repo_root),
                     "transition_window": _build_transition_window_analysis(transition_window),
+                    "transition_progression": _build_transition_progression(transition_window),
                 },
             },
         }
@@ -321,6 +323,8 @@ class ModelBackedTransitionAnalysisProvider:
             provider_name=self._resolved_name,
             provider_mode=model_result["execution_mode"],
         )
+        hint["analysis_source"] = "transition_video"
+        hint["transition_progression"] = _build_transition_progression(transition_window)
         return hint
 
     def build_model_execution_request(
@@ -358,6 +362,7 @@ class ModelBackedTransitionAnalysisProvider:
             inputs["transition_video"] = _format_optional_path(transition_video, repo_root)
         if transition_window is not None:
             inputs["transition_window"] = transition_window
+            inputs["transition_progression"] = _build_transition_progression(transition_window)
 
         execution_contract = {
             "contract_type": MODEL_EXECUTION_CONTRACT_TYPE,
@@ -378,9 +383,11 @@ class ModelBackedTransitionAnalysisProvider:
                 "analysis_source": "transition_video",
                 "transition_video": "Path",
                 "transition_window": "dict[str, Any] | None",
+                "transition_progression": "dict[str, Any] | None",
             }
             execution_contract["result_contract"]["transition_video"] = "str | None"
             execution_contract["result_contract"]["transition_window"] = "dict[str, Any] | None"
+            execution_contract["result_contract"]["transition_progression"] = "dict[str, Any] | None"
         else:
             execution_contract["input_contract"] = {
                 "analysis_source": "source_a_source_b",
@@ -463,7 +470,7 @@ def _validate_model_execution_result(model_request: dict[str, Any], model_result
     analysis_source = inputs.get("analysis_source")
     hint = model_result["hint"]
     if analysis_source == "transition_video":
-        for field_name in ("analysis_source", "transition_video", "transition_window"):
+        for field_name in ("analysis_source", "transition_video", "transition_window", "transition_progression"):
             if field_name not in hint:
                 raise ValueError(f"model execution result hint.{field_name} is required for transition video analysis")
         if hint.get("analysis_source") != "transition_video":
@@ -975,6 +982,7 @@ def build_transition_analysis_provider_runtime(
                         "source_b": "prepared source B frame directory",
                         "transition_video": "str | None",
                         "transition_window": "dict[str, Any] | None",
+                        "transition_progression": "dict[str, Any] | None",
                         "analysis_source": "str",
                         "input_kind": "str",
                         "style_hint": "str | None",
@@ -997,6 +1005,7 @@ def build_transition_analysis_provider_runtime(
                     "analysis_source": "str",
                     "transition_video": "str | None",
                     "transition_window": "dict[str, Any] | None",
+                    "transition_progression": "dict[str, Any] | None",
                     "hint": "dict[str, Any]",
                 },
             },
@@ -1006,6 +1015,7 @@ def build_transition_analysis_provider_runtime(
                 "source_b": "prepared source B frame directory",
                 "transition_video": "str | None",
                 "transition_window": "dict[str, Any] | None",
+                "transition_progression": "dict[str, Any] | None",
                 "analysis_source": "str",
                 "input_kind": "str",
                 "style_hint": "str | None",
@@ -1027,6 +1037,7 @@ def build_transition_analysis_provider_runtime(
                 "analysis_source": "str",
                 "transition_video": "str | None",
                 "transition_window": "dict[str, Any] | None",
+                "transition_progression": "dict[str, Any] | None",
                 "analysis": "dict[str, Any]",
                 "analysis_provider_runtime": "dict[str, Any]",
                 "analysis_provider_adapter": "dict[str, Any]",
