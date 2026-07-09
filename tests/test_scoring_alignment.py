@@ -1196,6 +1196,9 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(stdout_payload["analysis_provider_execution"]["implementation_status"], "fallback_only")
         self.assertEqual(stdout_payload["analysis_provider_execution_request_contract"]["inputs"]["transition_video_analysis"], "dict[str, Any] | None")
         self.assertEqual(stdout_payload["analysis_provider_execution_result_contract"]["analysis_source"], "str")
+        self.assertEqual(stdout_payload["analysis_provider_execution_contract_type"], "transition_analysis_model_execution")
+        self.assertEqual(stdout_payload["analysis_provider_execution_contract_version"], 1)
+        self.assertEqual(stdout_payload["analysis_provider_execution_entry_point"], "overlay_harness.analyzer.analyze_transition")
         self.assertEqual(stdout_payload["analysis_provider_configuration"]["loaded"], True)
         self.assertEqual(stdout_payload["analysis_model_execution_mode"], "deterministic_fallback")
         self.assertEqual(stdout_payload["analysis_model_execution_contract"]["contract_type"], "transition_analysis_model_execution")
@@ -1883,6 +1886,9 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertIsNone(payload["data"]["analysis_provider_resolution_configuration"])
         self.assertEqual(payload["data"]["analysis_provider_execution_request_contract"]["inputs"]["transition_video_analysis"], "dict[str, Any] | None")
         self.assertEqual(payload["data"]["analysis_provider_execution_result_contract"]["analysis_source"], "str")
+        self.assertEqual(payload["data"]["analysis_provider_execution_contract_type"], "transition_analysis_model_execution")
+        self.assertEqual(payload["data"]["analysis_provider_execution_contract_version"], 1)
+        self.assertEqual(payload["data"]["analysis_provider_execution_entry_point"], "overlay_harness.analyzer.analyze_transition")
         self.assertEqual(payload["data"]["analysis_provider_execution"]["execution_mode"], "builtin_deterministic")
         self.assertEqual(payload["data"]["analysis_provider_resolution_status"], "resolved")
         self.assertEqual(payload["data"]["analysis_provider_resolution_reason"], "deterministic analyzer is built into the harness")
@@ -2076,6 +2082,9 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertIsNone(stdout_payload["analysis_provider_execution"])
         self.assertIsNone(stdout_payload["analysis_provider_execution_request_contract"])
         self.assertIsNone(stdout_payload["analysis_provider_execution_result_contract"])
+        self.assertIsNone(stdout_payload["analysis_provider_execution_contract_type"])
+        self.assertIsNone(stdout_payload["analysis_provider_execution_contract_version"])
+        self.assertIsNone(stdout_payload["analysis_provider_execution_entry_point"])
 
     def test_sample_video_command_with_force_mode_uses_forced_planner_mode(self) -> None:
         source_a = self.root / "source_a"
