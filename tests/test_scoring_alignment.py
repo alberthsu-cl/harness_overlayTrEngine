@@ -864,6 +864,25 @@ class ScoringAlignmentTests(unittest.TestCase):
                                 },
                             },
                         },
+                        "analysis_provider_resolution": {
+                            "requested": {
+                                "kind": "model_backed",
+                                "name": "openai-transition-model",
+                                "mode": "vision",
+                            },
+                            "resolved": {
+                                "kind": "deterministic_rules",
+                                "name": "deterministic_rules_v1",
+                                "mode": "deterministic",
+                            },
+                            "status": "fallback_to_deterministic",
+                            "reason": "model-backed provider configuration is loaded but provider execution is not yet implemented",
+                            "configuration": {
+                                "loaded": True,
+                                "config_source": "repo:configs/analysis_provider.json",
+                                "model_backed_enabled": False,
+                            },
+                        },
                         "transition_video_analysis": {
                             "source": "transition_video",
                             "analysis_engine": "deterministic_rules_v1",
@@ -954,6 +973,9 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["analysis_model_delegation_path"], "deterministic")
         self.assertTrue(payload["data"]["analysis_model_backed_requested"])
         self.assertFalse(payload["data"]["analysis_model_backed_enabled"])
+        self.assertEqual(payload["data"]["analysis_selected_provider_kind"], "deterministic_rules")
+        self.assertEqual(payload["data"]["analysis_selected_provider_name"], "deterministic_rules_v1")
+        self.assertEqual(payload["data"]["analysis_selected_provider_mode"], "deterministic")
         self.assertEqual(payload["data"]["transition_video"], "harness/sample_glitch.mp4")
         self.assertEqual(payload["data"]["transition_window"]["frame_count"], 30)
         self.assertEqual(payload["data"]["transition_progression"]["window_span_frames"], 30)
@@ -1164,6 +1186,9 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(stdout_payload["analysis_model_delegation_path"], "deterministic")
         self.assertTrue(stdout_payload["analysis_model_backed_requested"])
         self.assertFalse(stdout_payload["analysis_model_backed_enabled"])
+        self.assertEqual(stdout_payload["analysis_selected_provider_kind"], "deterministic_rules")
+        self.assertEqual(stdout_payload["analysis_selected_provider_name"], "deterministic_rules_v1")
+        self.assertEqual(stdout_payload["analysis_selected_provider_mode"], "deterministic")
         self.assertIsNone(stdout_payload["transition_video"])
         self.assertIsNotNone(stdout_payload["transition_progression"])
         self.assertIsNone(stdout_payload["transition_progression"]["window_span_frames"])
@@ -1600,6 +1625,9 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(hint["analysis_provider_runtime"]["delegation"]["path"], "deterministic")
         self.assertTrue(hint["analysis_provider_runtime"]["delegation"]["model_backed_requested"])
         self.assertFalse(hint["analysis_provider_runtime"]["delegation"]["model_backed_enabled"])
+        self.assertEqual(hint["analysis_provider_runtime"]["selected"]["kind"], "deterministic_rules")
+        self.assertEqual(hint["analysis_provider_runtime"]["selected"]["name"], "deterministic_rules_v1")
+        self.assertEqual(hint["analysis_provider_runtime"]["selected"]["mode"], "deterministic")
         self.assertEqual(hint["analysis_provider"]["kind"], "deterministic_rules")
         self.assertEqual(hint["transition_progression"]["window_span_frames"], 30)
 
@@ -1764,6 +1792,21 @@ class ScoringAlignmentTests(unittest.TestCase):
                                 },
                                 "input_contract": {},
                                 "output_contract": {},
+                            },
+                        },
+                        "analysis_provider_resolution": {
+                            "requested": {"kind": "deterministic_rules", "name": "deterministic_rules_v1", "mode": "deterministic"},
+                            "resolved": {
+                                "kind": "deterministic_rules",
+                                "name": "deterministic_rules_v1",
+                                "mode": "deterministic",
+                            },
+                            "status": "resolved",
+                            "reason": "deterministic analyzer is built into the harness",
+                            "configuration": {
+                                "loaded": True,
+                                "config_source": "repo:configs/analysis_provider.json",
+                                "model_backed_enabled": False,
                             },
                         },
                         "transition_summary": {"combined_motion_level": "high"},
