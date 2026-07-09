@@ -22,6 +22,7 @@ Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retr
 - Surfaced the provider adapter block in the top-level flow report too.
 - Added a delegation section to the provider runtime contract.
 - Added a model execution request/result record to the model-backed skeleton path.
+- Split the model-backed path into an injectable model executor boundary.
 
 ## Next Implementation Step
 

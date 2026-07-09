@@ -39,6 +39,8 @@ from overlay_harness.effect_catalog import load_effect_catalog
 from overlay_harness.effect_catalog import select_effect_candidate
 from overlay_harness.config import load_analysis_provider_config
 from overlay_harness.analyzer import build_transition_analysis_provider_adapter
+from overlay_harness.analyzer import build_transition_model_executor
+from overlay_harness.analyzer import ModelBackedTransitionAnalysisProvider
 from overlay_harness.analyzer import analyze_transition
 from overlay_harness.analyzer import build_transition_analysis_artifact
 from overlay_harness.analyzer import derive_analyzer_inputs_from_metadata
@@ -1145,6 +1147,11 @@ class ScoringAlignmentTests(unittest.TestCase):
 
         self.assertEqual(provider.__class__.__name__, "DeterministicTransitionAnalysisProvider")
 
+    def test_default_model_executor_is_deterministic_fallback(self) -> None:
+        executor = build_transition_model_executor()
+
+        self.assertEqual(executor.__class__.__name__, "DeterministicTransitionModelExecutor")
+
     def test_enabled_model_backed_config_selects_model_backed_adapter(self) -> None:
         override_path = self.root / "analysis_provider.enabled.json"
         override_path.write_text(
@@ -1221,6 +1228,61 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertFalse(artifact["facts"]["analysis_provider_runtime"]["delegation"]["model_execution_ready"])
         self.assertEqual(artifact["facts"]["analysis_provider_runtime"]["execution"]["implementation_status"], "pending_model_execution")
         self.assertEqual(artifact["facts"]["analysis_provider_runtime"]["execution"]["execution_mode"], "deterministic_fallback_pending_model_execution")
+
+    def test_model_backed_provider_uses_custom_executor_boundary(self) -> None:
+        class CustomExecutor:
+            def execute_model_request(self, model_request):
+                return {
+                    "status": "custom_model_execution",
+                    "execution_mode": "custom_model_execution",
+                    "notes": "custom executor boundary used",
+                    "hint": {
+                        "analysis_provider": {
+                            "kind": "model_backed",
+                            "name": model_request["provider"]["name"],
+                            "mode": "custom_model_execution",
+                        },
+                        "style_hint": "generated-noise",
+                        "input_kind": model_request["inputs"]["input_kind"],
+                        "reference_transition": model_request["inputs"]["reference_transition"],
+                        "job_name": model_request["inputs"]["job_name"],
+                        "notes": "custom executor boundary used",
+                        "analysis": {
+                            "style_reason": "custom executor boundary used",
+                            "model_execution": model_request,
+                        },
+                    },
+                }
+
+        provider = ModelBackedTransitionAnalysisProvider(
+            resolved_name="openai-transition-model",
+            model_executor=CustomExecutor(),
+        )
+        hint = provider.analyze_transition(
+            repo_root=HARNESS_ROOT.parent,
+            source_a=HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real",
+            source_b=HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real",
+            input_kind="auto",
+            style_hint=None,
+            intent="generated noise transition",
+            prefer_generated=False,
+            reference_transition=None,
+            job_name="custom_model_executor_job",
+            analyzer_inputs={
+                "input_kind": "auto",
+                "style_hint": None,
+                "intent": "generated noise transition",
+                "prefer_generated": False,
+                "reference_transition": None,
+                "job_name": "custom_model_executor_job",
+            },
+        )
+
+        self.assertEqual(hint["analysis_provider"]["kind"], "model_backed")
+        self.assertEqual(hint["analysis_provider"]["mode"], "custom_model_execution")
+        self.assertEqual(hint["analysis"]["model_execution_status"], "custom_model_execution")
+        self.assertEqual(hint["analysis"]["model_execution_mode"], "custom_model_execution")
+        self.assertEqual(hint["analysis"]["model_execution"]["request"]["provider"]["name"], "openai-transition-model")
 
     def _flow_command_persists_end_to_end_evaluation_summary(self) -> None:
         output_root = self.root / "flow_evaluation_output"

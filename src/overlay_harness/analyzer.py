@@ -34,6 +34,11 @@ class TransitionAnalysisProvider(Protocol):
         """Return a transition hint that matches the current analyzer contract."""
 
 
+class TransitionModelExecutor(Protocol):
+    def execute_model_request(self, model_request: dict[str, Any]) -> dict[str, Any]:
+        """Execute a model-backed analysis request and return the normalized result contract."""
+
+
 class DeterministicTransitionAnalysisProvider:
     def analyze_transition(
         self,
@@ -89,15 +94,40 @@ class DeterministicTransitionAnalysisProvider:
         }
 
 
+class DeterministicTransitionModelExecutor:
+    def execute_model_request(self, model_request: dict[str, Any]) -> dict[str, Any]:
+        deterministic_provider = DeterministicTransitionAnalysisProvider()
+        hint = deterministic_provider.analyze_transition(
+            repo_root=Path(model_request["inputs"]["repo_root"]),
+            source_a=Path(model_request["inputs"]["source_a"]),
+            source_b=Path(model_request["inputs"]["source_b"]),
+            input_kind=model_request["inputs"]["input_kind"],
+            style_hint=model_request["inputs"]["style_hint"],
+            intent=model_request["inputs"]["intent"],
+            prefer_generated=bool(model_request["inputs"]["prefer_generated"]),
+            reference_transition=Path(model_request["inputs"]["reference_transition"])
+            if model_request["inputs"]["reference_transition"]
+            else None,
+            job_name=model_request["inputs"]["job_name"],
+            analyzer_inputs=model_request["analyzer_inputs"],
+        )
+        return {
+            "status": "delegated_to_deterministic_fallback",
+            "execution_mode": "pending_model_execution",
+            "notes": "model execution boundary is stubbed and delegates to deterministic analysis",
+            "hint": hint,
+        }
+
+
 class ModelBackedTransitionAnalysisProvider:
     def __init__(
         self,
         *,
         resolved_name: str,
-        deterministic_provider: TransitionAnalysisProvider | None = None,
+        model_executor: TransitionModelExecutor | None = None,
     ) -> None:
         self._resolved_name = resolved_name
-        self._deterministic_provider = deterministic_provider or DeterministicTransitionAnalysisProvider()
+        self._model_executor = model_executor or DeterministicTransitionModelExecutor()
 
     def analyze_transition(
         self,
@@ -190,26 +220,11 @@ class ModelBackedTransitionAnalysisProvider:
         }
 
     def invoke_model_execution(self, *, model_request: dict[str, Any]) -> dict[str, Any]:
-        hint = self._deterministic_provider.analyze_transition(
-            repo_root=Path(model_request["inputs"]["repo_root"]),
-            source_a=Path(model_request["inputs"]["source_a"]),
-            source_b=Path(model_request["inputs"]["source_b"]),
-            input_kind=model_request["inputs"]["input_kind"],
-            style_hint=model_request["inputs"]["style_hint"],
-            intent=model_request["inputs"]["intent"],
-            prefer_generated=bool(model_request["inputs"]["prefer_generated"]),
-            reference_transition=Path(model_request["inputs"]["reference_transition"])
-            if model_request["inputs"]["reference_transition"]
-            else None,
-            job_name=model_request["inputs"]["job_name"],
-            analyzer_inputs=model_request["analyzer_inputs"],
-        )
-        return {
-            "status": "delegated_to_deterministic_fallback",
-            "execution_mode": "pending_model_execution",
-            "notes": "model execution boundary is stubbed and delegates to deterministic analysis",
-            "hint": hint,
-        }
+        return self._model_executor.execute_model_request(model_request)
+
+
+def build_transition_model_executor() -> TransitionModelExecutor:
+    return DeterministicTransitionModelExecutor()
 
 
 def build_transition_analysis_provider_adapter(
@@ -234,7 +249,10 @@ def build_transition_analysis_provider_adapter(
         ),
     )
     if model_backed_enabled:
-        return ModelBackedTransitionAnalysisProvider(resolved_name=resolved_name)
+        return ModelBackedTransitionAnalysisProvider(
+            resolved_name=resolved_name,
+            model_executor=build_transition_model_executor(),
+        )
 
     return DeterministicTransitionAnalysisProvider()
 

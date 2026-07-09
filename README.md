@@ -254,6 +254,7 @@ The end-to-end `flow` report also includes the same `analysis_provider_runtime` 
 It also mirrors the adapter block as `analysis_provider_adapter`, which makes the selected adapter explicit in the top-level run output too.
 That runtime block includes a `delegation` section that says whether the current execution path is deterministic or model-backed skeleton mode.
 When the model-backed skeleton is selected, it also emits a `model_execution` request/result record in the analysis payload so the future inference call shape is already defined.
+The boundary is split into a model executor object, which currently defaults to `DeterministicTransitionModelExecutor` and can be replaced later without changing the surrounding provider contract.
 
 Use `plan-job` to create a valid render job from prepared A/B inputs without hand-editing JSON:
 
