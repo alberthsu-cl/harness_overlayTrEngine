@@ -1197,6 +1197,9 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(hint["analysis_provider"]["kind"], "model_backed")
         self.assertEqual(hint["analysis_provider"]["name"], "openai-transition-model")
         self.assertEqual(hint["analysis_provider"]["mode"], "pending_model_execution")
+        self.assertEqual(hint["analysis"]["model_execution_status"], "delegated_to_deterministic_fallback")
+        self.assertEqual(hint["analysis"]["model_execution"]["execution_mode"], "pending_model_execution")
+        self.assertEqual(hint["analysis"]["model_execution"]["request"]["provider"]["name"], "openai-transition-model")
 
         artifact = build_transition_analysis_artifact(
             repo_root=HARNESS_ROOT.parent,
@@ -1217,6 +1220,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(artifact["facts"]["analysis_provider_runtime"]["delegation"]["path"], "model_backed_skeleton")
         self.assertFalse(artifact["facts"]["analysis_provider_runtime"]["delegation"]["model_execution_ready"])
         self.assertEqual(artifact["facts"]["analysis_provider_runtime"]["execution"]["implementation_status"], "pending_model_execution")
+        self.assertEqual(artifact["facts"]["analysis_provider_runtime"]["execution"]["execution_mode"], "deterministic_fallback_pending_model_execution")
 
     def _flow_command_persists_end_to_end_evaluation_summary(self) -> None:
         output_root = self.root / "flow_evaluation_output"

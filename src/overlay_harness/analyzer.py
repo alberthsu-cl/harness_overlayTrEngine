@@ -113,7 +113,7 @@ class ModelBackedTransitionAnalysisProvider:
         job_name: str | None,
         analyzer_inputs: dict[str, Any],
     ) -> dict[str, Any]:
-        hint = self._deterministic_provider.analyze_transition(
+        model_request = self.build_model_execution_request(
             repo_root=repo_root,
             source_a=source_a,
             source_b=source_b,
@@ -125,12 +125,91 @@ class ModelBackedTransitionAnalysisProvider:
             job_name=job_name,
             analyzer_inputs=analyzer_inputs,
         )
+        model_result = self.invoke_model_execution(model_request=model_request)
+        hint = model_result["hint"]
+        hint.setdefault("analysis", {})
+        hint["analysis"]["model_execution"] = {
+            "request": model_request,
+            "status": model_result["status"],
+            "execution_mode": model_result["execution_mode"],
+        }
+        hint["analysis"]["model_execution_request"] = model_request
+        hint["analysis"]["model_execution_status"] = model_result["status"]
+        hint["analysis"]["model_execution_mode"] = model_result["execution_mode"]
+        hint["analysis"]["model_execution_notes"] = model_result["notes"]
         hint["analysis_provider"] = _build_transition_analysis_provider(
             provider_kind="model_backed",
             provider_name=self._resolved_name,
-            provider_mode="pending_model_execution",
+            provider_mode=model_result["execution_mode"],
         )
         return hint
+
+    def build_model_execution_request(
+        self,
+        *,
+        repo_root: Path,
+        source_a: Path,
+        source_b: Path,
+        input_kind: str,
+        style_hint: str | None,
+        intent: str | None,
+        prefer_generated: bool,
+        reference_transition: Path | None,
+        job_name: str | None,
+        analyzer_inputs: dict[str, Any],
+    ) -> dict[str, Any]:
+        return {
+            "provider": {
+                "kind": "model_backed",
+                "name": self._resolved_name,
+                "mode": "vision",
+            },
+            "inputs": {
+                "repo_root": str(repo_root),
+                "source_a": str(source_a),
+                "source_b": str(source_b),
+                "input_kind": input_kind,
+                "style_hint": style_hint,
+                "intent": intent,
+                "prefer_generated": prefer_generated,
+                "reference_transition": _format_optional_path(reference_transition, repo_root),
+                "job_name": job_name,
+            },
+            "analyzer_inputs": analyzer_inputs,
+            "execution": {
+                "expected_status": "delegated_to_deterministic_fallback",
+                "result_contract": {
+                    "style_hint": "str",
+                    "input_kind": "str",
+                    "reference_transition": "str | None",
+                    "job_name": "str | None",
+                    "notes": "str",
+                    "analysis": "dict[str, Any]",
+                },
+            },
+        }
+
+    def invoke_model_execution(self, *, model_request: dict[str, Any]) -> dict[str, Any]:
+        hint = self._deterministic_provider.analyze_transition(
+            repo_root=Path(model_request["inputs"]["repo_root"]),
+            source_a=Path(model_request["inputs"]["source_a"]),
+            source_b=Path(model_request["inputs"]["source_b"]),
+            input_kind=model_request["inputs"]["input_kind"],
+            style_hint=model_request["inputs"]["style_hint"],
+            intent=model_request["inputs"]["intent"],
+            prefer_generated=bool(model_request["inputs"]["prefer_generated"]),
+            reference_transition=Path(model_request["inputs"]["reference_transition"])
+            if model_request["inputs"]["reference_transition"]
+            else None,
+            job_name=model_request["inputs"]["job_name"],
+            analyzer_inputs=model_request["analyzer_inputs"],
+        )
+        return {
+            "status": "delegated_to_deterministic_fallback",
+            "execution_mode": "pending_model_execution",
+            "notes": "model execution boundary is stubbed and delegates to deterministic analysis",
+            "hint": hint,
+        }
 
 
 def build_transition_analysis_provider_adapter(
