@@ -860,8 +860,19 @@ class ScoringAlignmentTests(unittest.TestCase):
                                 "model_execution_contract": {
                                     "contract_type": "transition_analysis_model_execution",
                                     "contract_version": 1,
-                                    "request_contract": {},
-                                    "result_contract": {},
+                                    "request_contract": {
+                                        "provider": {
+                                            "kind": "model_backed",
+                                            "name": "openai-transition-model",
+                                            "mode": "vision",
+                                        },
+                                        "inputs": {
+                                            "transition_video_analysis": "dict[str, Any] | None",
+                                        },
+                                    },
+                                    "result_contract": {
+                                        "analysis_source": "str",
+                                    },
                                 },
                             },
                         },
@@ -1025,6 +1036,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(stdout_payload["analysis_provider_resolution_reason"], "model-backed provider configuration is loaded but provider execution is not yet implemented")
         self.assertEqual(stdout_payload["analysis_provider_runtime"]["configuration"]["loaded"], True)
         self.assertEqual(stdout_payload["analysis_provider_execution"]["execution_mode"], "deterministic_fallback")
+        self.assertEqual(stdout_payload["analysis_provider_execution_request_contract"]["inputs"]["transition_video_analysis"], "dict[str, Any] | None")
+        self.assertEqual(stdout_payload["analysis_provider_execution_result_contract"]["analysis_source"], "str")
         self.assertEqual(stdout_payload["transition_progression"]["window_span_frames"], 30)
 
     def test_analyze_sample_video_command_writes_video_backed_analysis(self) -> None:

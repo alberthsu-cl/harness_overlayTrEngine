@@ -1825,6 +1825,8 @@ def _handle_flow(args, repo_root: Path, harness_root: Path, config_dir: Path, de
                 "analysis_provider_adapter": report_data.data.get("analysis_provider_adapter"),
                 "analysis_provider_runtime": report_data.data.get("analysis_provider_runtime"),
                 "analysis_provider_execution": report_data.data.get("analysis_provider_execution"),
+                "analysis_provider_execution_request_contract": report_data.data.get("analysis_provider_execution_request_contract"),
+                "analysis_provider_execution_result_contract": report_data.data.get("analysis_provider_execution_result_contract"),
                 "analysis_provider_execution_contract_type": report_data.data.get("analysis_provider_execution_contract_type"),
                 "analysis_provider_execution_contract_version": report_data.data.get("analysis_provider_execution_contract_version"),
                 "analysis_provider_execution_entry_point": report_data.data.get("analysis_provider_execution_entry_point"),
