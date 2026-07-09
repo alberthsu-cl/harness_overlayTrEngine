@@ -14,6 +14,8 @@ ANALYSIS_ARTIFACT_VERSION = 2
 ANALYSIS_ENGINE = "deterministic_rules_v1"
 ANALYSIS_PROVIDER_KIND = "deterministic_rules"
 ANALYSIS_PROVIDER_NAME = ANALYSIS_ENGINE
+MODEL_EXECUTION_CONTRACT_TYPE = "transition_analysis_model_execution"
+MODEL_EXECUTION_CONTRACT_VERSION = 1
 
 
 class TransitionAnalysisProvider(Protocol):
@@ -112,6 +114,8 @@ class DeterministicTransitionModelExecutor:
             analyzer_inputs=model_request["analyzer_inputs"],
         )
         return {
+            "contract_type": MODEL_EXECUTION_CONTRACT_TYPE,
+            "contract_version": MODEL_EXECUTION_CONTRACT_VERSION,
             "status": "delegated_to_deterministic_fallback",
             "execution_mode": "pending_model_execution",
             "notes": "model execution boundary is stubbed and delegates to deterministic analysis",
@@ -189,6 +193,8 @@ class ModelBackedTransitionAnalysisProvider:
         analyzer_inputs: dict[str, Any],
     ) -> dict[str, Any]:
         return {
+            "contract_type": MODEL_EXECUTION_CONTRACT_TYPE,
+            "contract_version": MODEL_EXECUTION_CONTRACT_VERSION,
             "provider": {
                 "kind": "model_backed",
                 "name": self._resolved_name,
@@ -207,6 +213,8 @@ class ModelBackedTransitionAnalysisProvider:
             },
             "analyzer_inputs": analyzer_inputs,
             "execution": {
+                "contract_type": MODEL_EXECUTION_CONTRACT_TYPE,
+                "contract_version": MODEL_EXECUTION_CONTRACT_VERSION,
                 "expected_status": "delegated_to_deterministic_fallback",
                 "result_contract": {
                     "style_hint": "str",
@@ -253,9 +261,13 @@ def _validate_model_execution_request(model_request: dict[str, Any]) -> None:
 def _validate_model_execution_result(model_result: dict[str, Any]) -> None:
     if not isinstance(model_result, dict):
         raise ValueError("model execution result must be a JSON object")
-    for field_name in ("status", "execution_mode", "notes", "hint"):
+    for field_name in ("contract_type", "contract_version", "status", "execution_mode", "notes", "hint"):
         if field_name not in model_result:
             raise ValueError(f"model execution result {field_name} is required")
+    if model_result.get("contract_type") != MODEL_EXECUTION_CONTRACT_TYPE:
+        raise ValueError("model execution result contract_type is invalid")
+    if not isinstance(model_result.get("contract_version"), int) or model_result["contract_version"] < 1:
+        raise ValueError("model execution result contract_version must be a positive integer")
     if not isinstance(model_result.get("hint"), dict):
         raise ValueError("model execution result hint must be a JSON object")
 
@@ -628,6 +640,8 @@ def build_transition_analysis_provider_runtime(
         },
         "execution": {
             "entry_point": "overlay_harness.analyzer.analyze_transition",
+            "contract_type": MODEL_EXECUTION_CONTRACT_TYPE,
+            "contract_version": MODEL_EXECUTION_CONTRACT_VERSION,
             "implementation_status": implementation_status,
             "execution_mode": execution_mode,
             "input_contract": {

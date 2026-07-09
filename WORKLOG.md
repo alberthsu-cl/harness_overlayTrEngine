@@ -24,6 +24,7 @@ Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retr
 - Added a model execution request/result record to the model-backed skeleton path.
 - Split the model-backed path into an injectable model executor boundary.
 - Added request/result validation to the model executor boundary.
+- Versioned the model execution contract as `transition_analysis_model_execution` v1.
 
 ## Next Implementation Step
 

@@ -1152,6 +1152,58 @@ class ScoringAlignmentTests(unittest.TestCase):
 
         self.assertEqual(executor.__class__.__name__, "DeterministicTransitionModelExecutor")
 
+    def test_default_model_executor_emits_versioned_contract(self) -> None:
+        executor = build_transition_model_executor()
+        model_result = executor.execute_model_request(
+            {
+                "contract_type": "transition_analysis_model_execution",
+                "contract_version": 1,
+                "provider": {
+                    "kind": "model_backed",
+                    "name": "openai-transition-model",
+                    "mode": "vision",
+                },
+                "inputs": {
+                    "repo_root": str(HARNESS_ROOT.parent),
+                    "source_a": str(HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"),
+                    "source_b": str(HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"),
+                    "input_kind": "auto",
+                    "style_hint": None,
+                    "intent": "generated glitch transition",
+                    "prefer_generated": False,
+                    "reference_transition": None,
+                    "job_name": "versioned_contract_executor_job",
+                },
+                "analyzer_inputs": {
+                    "input_kind": "auto",
+                    "style_hint": None,
+                    "intent": "generated glitch transition",
+                    "prefer_generated": False,
+                    "reference_transition": None,
+                    "job_name": "versioned_contract_executor_job",
+                },
+                "execution": {
+                    "contract_type": "transition_analysis_model_execution",
+                    "contract_version": 1,
+                    "expected_status": "delegated_to_deterministic_fallback",
+                    "result_contract": {
+                        "style_hint": "str",
+                        "input_kind": "str",
+                        "reference_transition": "str | None",
+                        "job_name": "str | None",
+                        "notes": "str",
+                        "analysis": "dict[str, Any]",
+                    },
+                },
+            }
+        )
+
+        self.assertEqual(model_result["contract_type"], "transition_analysis_model_execution")
+        self.assertEqual(model_result["contract_version"], 1)
+        self.assertEqual(model_result["status"], "delegated_to_deterministic_fallback")
+        self.assertEqual(model_result["execution_mode"], "pending_model_execution")
+        self.assertIn("hint", model_result)
+
     def test_enabled_model_backed_config_selects_model_backed_adapter(self) -> None:
         override_path = self.root / "analysis_provider.enabled.json"
         override_path.write_text(
@@ -1228,11 +1280,14 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertFalse(artifact["facts"]["analysis_provider_runtime"]["delegation"]["model_execution_ready"])
         self.assertEqual(artifact["facts"]["analysis_provider_runtime"]["execution"]["implementation_status"], "pending_model_execution")
         self.assertEqual(artifact["facts"]["analysis_provider_runtime"]["execution"]["execution_mode"], "deterministic_fallback_pending_model_execution")
+        self.assertEqual(artifact["facts"]["analysis_provider_runtime"]["execution"]["contract_version"], 1)
 
     def test_model_backed_provider_uses_custom_executor_boundary(self) -> None:
         class CustomExecutor:
             def execute_model_request(self, model_request):
                 return {
+                    "contract_type": "transition_analysis_model_execution",
+                    "contract_version": 1,
                     "status": "custom_model_execution",
                     "execution_mode": "custom_model_execution",
                     "notes": "custom executor boundary used",
@@ -1283,6 +1338,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(hint["analysis"]["model_execution_status"], "custom_model_execution")
         self.assertEqual(hint["analysis"]["model_execution_mode"], "custom_model_execution")
         self.assertEqual(hint["analysis"]["model_execution"]["request"]["provider"]["name"], "openai-transition-model")
+        self.assertEqual(hint["analysis"]["model_execution"]["status"], "custom_model_execution")
 
     def test_model_backed_provider_rejects_invalid_executor_result(self) -> None:
         class InvalidExecutor:
