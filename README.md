@@ -255,6 +255,7 @@ It also mirrors the adapter block as `analysis_provider_adapter`, which makes th
 That runtime block includes a `delegation` section that says whether the current execution path is deterministic or model-backed skeleton mode.
 When the model-backed skeleton is selected, it also emits a `model_execution` request/result record in the analysis payload so the future inference call shape is already defined.
 The boundary is split into a model executor object, which currently defaults to `DeterministicTransitionModelExecutor` and can be replaced later without changing the surrounding provider contract.
+The executor boundary validates both the request and the normalized result so malformed future model integrations fail fast instead of drifting through the artifact chain.
 
 Use `plan-job` to create a valid render job from prepared A/B inputs without hand-editing JSON:
 

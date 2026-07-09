@@ -220,11 +220,44 @@ class ModelBackedTransitionAnalysisProvider:
         }
 
     def invoke_model_execution(self, *, model_request: dict[str, Any]) -> dict[str, Any]:
-        return self._model_executor.execute_model_request(model_request)
+        _validate_model_execution_request(model_request)
+        model_result = self._model_executor.execute_model_request(model_request)
+        _validate_model_execution_result(model_result)
+        return model_result
 
 
 def build_transition_model_executor() -> TransitionModelExecutor:
     return DeterministicTransitionModelExecutor()
+
+
+def _validate_model_execution_request(model_request: dict[str, Any]) -> None:
+    if not isinstance(model_request, dict):
+        raise ValueError("model execution request must be a JSON object")
+    provider = model_request.get("provider")
+    inputs = model_request.get("inputs")
+    analyzer_inputs = model_request.get("analyzer_inputs")
+    execution = model_request.get("execution")
+    if not isinstance(provider, dict) or not isinstance(inputs, dict) or not isinstance(analyzer_inputs, dict) or not isinstance(execution, dict):
+        raise ValueError("model execution request is missing required sections")
+    for field_name in ("kind", "name", "mode"):
+        value = provider.get(field_name)
+        if not isinstance(value, str) or not value:
+            raise ValueError(f"model execution request provider.{field_name} must be a non-empty string")
+    for field_name in ("repo_root", "source_a", "source_b", "input_kind", "prefer_generated", "job_name"):
+        if field_name not in inputs:
+            raise ValueError(f"model execution request inputs.{field_name} is required")
+    if "result_contract" not in execution:
+        raise ValueError("model execution request execution.result_contract is required")
+
+
+def _validate_model_execution_result(model_result: dict[str, Any]) -> None:
+    if not isinstance(model_result, dict):
+        raise ValueError("model execution result must be a JSON object")
+    for field_name in ("status", "execution_mode", "notes", "hint"):
+        if field_name not in model_result:
+            raise ValueError(f"model execution result {field_name} is required")
+    if not isinstance(model_result.get("hint"), dict):
+        raise ValueError("model execution result hint must be a JSON object")
 
 
 def build_transition_analysis_provider_adapter(

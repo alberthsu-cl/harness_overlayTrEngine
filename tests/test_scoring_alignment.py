@@ -1284,6 +1284,41 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(hint["analysis"]["model_execution_mode"], "custom_model_execution")
         self.assertEqual(hint["analysis"]["model_execution"]["request"]["provider"]["name"], "openai-transition-model")
 
+    def test_model_backed_provider_rejects_invalid_executor_result(self) -> None:
+        class InvalidExecutor:
+            def execute_model_request(self, model_request):
+                return {
+                    "status": "custom_model_execution",
+                    "execution_mode": "custom_model_execution",
+                    "notes": "missing hint",
+                }
+
+        provider = ModelBackedTransitionAnalysisProvider(
+            resolved_name="openai-transition-model",
+            model_executor=InvalidExecutor(),
+        )
+
+        with self.assertRaises(ValueError):
+            provider.analyze_transition(
+                repo_root=HARNESS_ROOT.parent,
+                source_a=HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real",
+                source_b=HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real",
+                input_kind="auto",
+                style_hint=None,
+                intent="generated noise transition",
+                prefer_generated=False,
+                reference_transition=None,
+                job_name="invalid_model_executor_job",
+                analyzer_inputs={
+                    "input_kind": "auto",
+                    "style_hint": None,
+                    "intent": "generated noise transition",
+                    "prefer_generated": False,
+                    "reference_transition": None,
+                    "job_name": "invalid_model_executor_job",
+                },
+            )
+
     def _flow_command_persists_end_to_end_evaluation_summary(self) -> None:
         output_root = self.root / "flow_evaluation_output"
         output_root.mkdir(parents=True, exist_ok=True)
