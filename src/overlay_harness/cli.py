@@ -1358,6 +1358,12 @@ def _handle_analyze_transition(args, repo_root: Path) -> int:
             prefer_generated=analyzer_inputs["prefer_generated"],
             reference_transition=reference_transition,
             job_name=analyzer_inputs["job_name"],
+            provider_request={
+                "kind": analyzer_inputs["analysis_provider_kind"],
+                "name": analyzer_inputs["analysis_provider_name"],
+                "mode": analyzer_inputs["analysis_provider_mode"],
+            },
+            provider_configuration=analysis_provider_config,
         )
         if metadata_inputs and metadata_inputs.get("style_reason"):
             hint["analysis"]["style_reason"] = metadata_inputs["style_reason"]
@@ -1585,6 +1591,12 @@ def _handle_flow(args, repo_root: Path, harness_root: Path, config_dir: Path, de
             prefer_generated=args.prefer_generated,
             reference_transition=reference_output,
             job_name=args.job_name,
+            provider_request={
+                "kind": args.analysis_provider_kind,
+                "name": args.analysis_provider_name,
+                "mode": args.analysis_provider_mode,
+            },
+            provider_configuration=analysis_provider_config,
         )
         write_json(hint_output, hint)
         analyzer_inputs = {

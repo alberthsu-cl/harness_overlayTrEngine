@@ -89,6 +89,50 @@ class DeterministicTransitionAnalysisProvider:
         }
 
 
+class ModelBackedTransitionAnalysisProvider:
+    def __init__(
+        self,
+        *,
+        resolved_name: str,
+        deterministic_provider: TransitionAnalysisProvider | None = None,
+    ) -> None:
+        self._resolved_name = resolved_name
+        self._deterministic_provider = deterministic_provider or DeterministicTransitionAnalysisProvider()
+
+    def analyze_transition(
+        self,
+        *,
+        repo_root: Path,
+        source_a: Path,
+        source_b: Path,
+        input_kind: str,
+        style_hint: str | None,
+        intent: str | None,
+        prefer_generated: bool,
+        reference_transition: Path | None,
+        job_name: str | None,
+        analyzer_inputs: dict[str, Any],
+    ) -> dict[str, Any]:
+        hint = self._deterministic_provider.analyze_transition(
+            repo_root=repo_root,
+            source_a=source_a,
+            source_b=source_b,
+            input_kind=input_kind,
+            style_hint=style_hint,
+            intent=intent,
+            prefer_generated=prefer_generated,
+            reference_transition=reference_transition,
+            job_name=job_name,
+            analyzer_inputs=analyzer_inputs,
+        )
+        hint["analysis_provider"] = _build_transition_analysis_provider(
+            provider_kind="model_backed",
+            provider_name=self._resolved_name,
+            provider_mode="pending_model_execution",
+        )
+        return hint
+
+
 def build_transition_analysis_provider_adapter(
     request: dict[str, Any] | None = None,
     configuration: dict[str, Any] | None = None,
@@ -100,7 +144,19 @@ def build_transition_analysis_provider_adapter(
     if resolved_kind == ANALYSIS_PROVIDER_KIND:
         return DeterministicTransitionAnalysisProvider()
 
-    _ = configuration
+    config_loaded = isinstance(configuration, dict)
+    model_backed_provider = configuration.get("model_backed_provider") if config_loaded else None
+    model_backed_enabled = bool(model_backed_provider.get("enabled")) if isinstance(model_backed_provider, dict) else False
+    resolved_name = _normalize_provider_value(
+        request.get("name") if isinstance(request, dict) else None,
+        _normalize_provider_value(
+            model_backed_provider.get("name") if isinstance(model_backed_provider, dict) else None,
+            ANALYSIS_PROVIDER_NAME,
+        ),
+    )
+    if model_backed_enabled:
+        return ModelBackedTransitionAnalysisProvider(resolved_name=resolved_name)
+
     return DeterministicTransitionAnalysisProvider()
 
 
@@ -235,6 +291,8 @@ def analyze_transition(
     prefer_generated: bool,
     reference_transition: Path | None,
     job_name: str | None,
+    provider_request: dict[str, Any] | None = None,
+    provider_configuration: dict[str, Any] | None = None,
     provider: TransitionAnalysisProvider | None = None,
 ) -> dict:
     if provider is not None:
@@ -266,7 +324,7 @@ def analyze_transition(
             provider_kind="model_backed",
             provider_name=provider_name,
         )
-    execution_provider = build_transition_analysis_provider_adapter()
+    execution_provider = build_transition_analysis_provider_adapter(provider_request, provider_configuration)
     return execution_provider.analyze_transition(
         repo_root=repo_root,
         source_a=source_a,
@@ -389,6 +447,18 @@ def build_transition_analysis_provider_runtime(
 
     config_loaded = bool(config_state.get("loaded")) if isinstance(config_state, dict) else isinstance(configuration, dict)
     model_backed_enabled = bool(config_state.get("model_backed_enabled")) if isinstance(config_state, dict) else False
+    requested_name = requested.get("name") if isinstance(requested, dict) else ANALYSIS_PROVIDER_NAME
+
+    if requested_kind == ANALYSIS_PROVIDER_KIND or not model_backed_enabled:
+        adapter_kind = ANALYSIS_PROVIDER_KIND
+        adapter_name = ANALYSIS_PROVIDER_NAME
+        adapter_mode = "deterministic"
+        adapter_status = "deterministic_adapter"
+    else:
+        adapter_kind = "model_backed"
+        adapter_name = requested_name
+        adapter_mode = requested_mode
+        adapter_status = "model_backed_adapter_skeleton"
 
     if requested_kind == ANALYSIS_PROVIDER_KIND:
         execution_mode = "builtin_deterministic"
@@ -410,6 +480,12 @@ def build_transition_analysis_provider_runtime(
             "name": selected_name,
             "mode": selected_mode,
         },
+        "adapter": {
+            "kind": adapter_kind,
+            "name": adapter_name,
+            "mode": adapter_mode,
+            "status": adapter_status,
+        },
         "configuration": {
             "loaded": config_loaded,
             "model_backed_enabled": model_backed_enabled,
@@ -428,6 +504,8 @@ def build_transition_analysis_provider_runtime(
                 "prefer_generated": "bool",
                 "reference_transition": "Path | None",
                 "job_name": "str | None",
+                "provider_request": "dict[str, Any] | None",
+                "provider_configuration": "dict[str, Any] | None",
             },
             "output_contract": {
                 "analysis_provider": "dict[str, str]",

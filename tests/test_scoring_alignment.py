@@ -1145,6 +1145,58 @@ class ScoringAlignmentTests(unittest.TestCase):
 
         self.assertEqual(provider.__class__.__name__, "DeterministicTransitionAnalysisProvider")
 
+    def test_enabled_model_backed_config_selects_model_backed_adapter(self) -> None:
+        override_path = self.root / "analysis_provider.enabled.json"
+        override_path.write_text(
+            json.dumps(
+                {
+                    "config_type": "analysis_provider_config",
+                    "config_version": 1,
+                    "default_provider": {
+                        "kind": "deterministic_rules",
+                        "name": "deterministic_rules_v1",
+                        "mode": "deterministic",
+                    },
+                    "model_backed_provider": {
+                        "enabled": True,
+                        "kind": "model_backed",
+                        "name": "openai-transition-model",
+                        "mode": "vision",
+                        "source": "env:HARNESS_ANALYSIS_PROVIDER_CONFIG",
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch.dict(os.environ, {"HARNESS_ANALYSIS_PROVIDER_CONFIG": str(override_path)}):
+            config = load_analysis_provider_config(HARNESS_ROOT / "configs")
+            provider = build_transition_analysis_provider_adapter(
+                {"kind": "model_backed", "name": "openai-transition-model", "mode": "vision"},
+                config,
+            )
+            hint = analyze_transition(
+                repo_root=HARNESS_ROOT.parent,
+                source_a=HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real",
+                source_b=HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real",
+                input_kind="auto",
+                style_hint=None,
+                intent="generated glitch transition",
+                prefer_generated=False,
+                reference_transition=None,
+                job_name="enabled_model_backed_adapter",
+                provider_request={
+                    "kind": "model_backed",
+                    "name": "openai-transition-model",
+                    "mode": "vision",
+                },
+                provider_configuration=config,
+            )
+
+        self.assertEqual(provider.__class__.__name__, "ModelBackedTransitionAnalysisProvider")
+        self.assertEqual(hint["analysis_provider"]["kind"], "model_backed")
+        self.assertEqual(hint["analysis_provider"]["name"], "openai-transition-model")
+
     def _flow_command_persists_end_to_end_evaluation_summary(self) -> None:
         output_root = self.root / "flow_evaluation_output"
         output_root.mkdir(parents=True, exist_ok=True)

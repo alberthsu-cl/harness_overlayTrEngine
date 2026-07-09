@@ -249,7 +249,7 @@ That richer artifact now includes a versioned `planning_recommendation` block wi
 You can also record a requested provider kind with `--analysis-provider-kind deterministic_rules|model_backed`; the current harness keeps the deterministic implementation but stores both the request and the resolved fallback in the analysis artifact so a future model-backed provider can slot into the same contract.
 The default config source for that provider contract lives at [configs/analysis_provider.json](configs/analysis_provider.json), and you can override it by setting `HARNESS_ANALYSIS_PROVIDER_CONFIG` to another JSON file path.
 The richer analysis artifact also includes an `analysis_provider_runtime` block that records the provider request, selected runtime path, and input/output contract expected by the analyzer entry point.
-The current default runtime adapter is `DeterministicTransitionAnalysisProvider`, which preserves the existing rule-based behavior while keeping a concrete provider entry point ready for a later model-backed implementation.
+The current default runtime adapter is `DeterministicTransitionAnalysisProvider`, and enabled model-backed configs select a `ModelBackedTransitionAnalysisProvider` skeleton that still delegates to the deterministic implementation for now.
 
 Use `plan-job` to create a valid render job from prepared A/B inputs without hand-editing JSON:
 
