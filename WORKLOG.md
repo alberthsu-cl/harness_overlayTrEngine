@@ -14,30 +14,17 @@ Milestone 7 will cover the retry and validation loop that makes generation robus
 
 ## Last Completed
 
-- Threaded the executor source marker through the model execution request/result contract.
-- Added an environment-driven model executor override hook for the transition analysis boundary.
-- Surfaced the provider configuration loaded/path/version/source/provider blocks in flow command payloads and run reports.
-- Locked down the flow model-execution contract fields in tests.
-- Surfaced the provider execution request/result contract blocks in flow command payloads and run reports.
-- Surfaced the provider adapter block in flow command payloads and run reports.
-- Surfaced the provider resolution status/reason in flow command payloads and run reports.
-- Surfaced the provider runtime and execution blocks in flow command payloads and run reports.
-- Surfaced the provider configuration type scalar in command payloads and run reports.
-- Surfaced the provider model-backed config enabled/source scalars in command payloads and run reports.
-- Surfaced the provider config provider-kind/name/mode scalars in command payloads and run reports.
-- Surfaced the provider configuration default/model-backed provider blocks in command payloads and run reports.
+- Added a built-in OpenAI chat-completions executor path behind `HARNESS_TRANSITION_MODEL_EXECUTOR=openai`.
+- Threaded the selected executor source through the model execution request/result contract and provider-runtime summaries.
+- Added tests for the built-in executor selection and the ready-state reporting path.
 
 ## Next Implementation Step
 
-Promote the next provider contract field into the command payloads and run reports, then verify the same contract stays stable in the flow and sample-video paths.
-
-1. Keep the source-pair analyzer in place as the compatibility path for `analyze-transition`.
-2. Add focused tests for the next contract surface before changing behavior.
-3. Leave deterministic fallback available until the model-backed path is real.
+Continue from the model-backed boundary by wiring the next real request field through the flow path, then verify it in `flow` and `sample-video`.
 
 ## Why This Is Next
 
-- Retrieval metadata and the rule-based analysis contract now flow through planning, run reports, top-level run output, plan-comparison reports, smoke-test batch summaries, the plan-job result payload, the `validate`/`prepare` command results, and the end-to-end `flow` command. Milestone 4 can build on that stable base.
+- The model-executor boundary is now concrete, but the flow still needs the next request fields and follow-on reporting to be wired through the same stable contract.
 
 ## Resume Commands
 

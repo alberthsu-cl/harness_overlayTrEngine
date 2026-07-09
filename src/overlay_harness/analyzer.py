@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from .planner import GENERATED_EFFECT_SUPPORTED_STYLES, auto_styles, build_recommended_plan, infer_input_kind
+from .transition_model_executor import OpenAIChatTransitionModelExecutor
 
 
 STYLE_HINTS = set(auto_styles())
@@ -209,6 +210,8 @@ class DeterministicTransitionAnalysisProvider:
 
 
 class DeterministicTransitionModelExecutor:
+    executor_source = "default:DeterministicTransitionModelExecutor"
+
     def execute_model_request(self, model_request: dict[str, Any]) -> dict[str, Any]:
         deterministic_provider = DeterministicTransitionAnalysisProvider()
         inputs = model_request["inputs"]
@@ -261,9 +264,15 @@ class ModelBackedTransitionAnalysisProvider:
         *,
         resolved_name: str,
         model_executor: TransitionModelExecutor | None = None,
+        executor_source: str | None = None,
     ) -> None:
         self._resolved_name = resolved_name
         self._model_executor = model_executor or DeterministicTransitionModelExecutor()
+        self._executor_source = executor_source or getattr(
+            self._model_executor,
+            "executor_source",
+            "default:DeterministicTransitionModelExecutor",
+        )
 
     def analyze_transition(
         self,
@@ -391,7 +400,7 @@ class ModelBackedTransitionAnalysisProvider:
     ) -> dict[str, Any]:
         inputs: dict[str, Any] = {
             "repo_root": str(repo_root),
-            "executor_source": _describe_transition_model_executor_source(),
+            "executor_source": self._executor_source,
             "analysis_source": analysis_source,
             "input_kind": input_kind,
             "style_hint": style_hint,
@@ -484,6 +493,8 @@ class ModelBackedTransitionAnalysisProvider:
 def build_transition_model_executor() -> TransitionModelExecutor:
     executor_spec = os.environ.get("HARNESS_TRANSITION_MODEL_EXECUTOR")
     if executor_spec:
+        if executor_spec.strip().lower() in {"openai", "openai-chat", "openai_chat"}:
+            return OpenAIChatTransitionModelExecutor.from_environment()
         return _load_transition_model_executor(executor_spec)
     return DeterministicTransitionModelExecutor()
 
@@ -491,8 +502,27 @@ def build_transition_model_executor() -> TransitionModelExecutor:
 def _describe_transition_model_executor_source() -> str:
     executor_spec = os.environ.get("HARNESS_TRANSITION_MODEL_EXECUTOR")
     if executor_spec:
+        if executor_spec.strip().lower() in {"openai", "openai-chat", "openai_chat"}:
+            model_name = os.environ.get("HARNESS_TRANSITION_MODEL_NAME") or os.environ.get("OPENAI_TRANSITION_MODEL")
+            if model_name:
+                return f"env:openai:{model_name}"
+            return "env:openai"
         return f"env:{executor_spec}"
     return "default:DeterministicTransitionModelExecutor"
+
+
+def _transition_model_executor_ready() -> bool:
+    executor_spec = os.environ.get("HARNESS_TRANSITION_MODEL_EXECUTOR")
+    if not executor_spec:
+        return False
+
+    normalized_spec = executor_spec.strip().lower()
+    if normalized_spec in {"openai", "openai-chat", "openai_chat"}:
+        model_name = os.environ.get("HARNESS_TRANSITION_MODEL_NAME") or os.environ.get("OPENAI_TRANSITION_MODEL")
+        api_key = os.environ.get("OPENAI_API_KEY")
+        return bool(model_name and api_key)
+
+    return True
 
 
 def _load_transition_model_executor(executor_spec: str) -> TransitionModelExecutor:
@@ -514,6 +544,8 @@ def _load_transition_model_executor(executor_spec: str) -> TransitionModelExecut
         raise ValueError(
             f"HARNESS_TRANSITION_MODEL_EXECUTOR resolved to {executor_spec!r}, which does not provide execute_model_request()"
         )
+    if not hasattr(executor, "executor_source"):
+        setattr(executor, "executor_source", f"env:{executor_spec}")
     return executor
 
 
@@ -600,9 +632,11 @@ def build_transition_analysis_provider_adapter(
         ),
     )
     if model_backed_enabled:
+        model_executor = build_transition_model_executor()
         return ModelBackedTransitionAnalysisProvider(
             resolved_name=resolved_name,
-            model_executor=build_transition_model_executor(),
+            model_executor=model_executor,
+            executor_source=getattr(model_executor, "executor_source", _describe_transition_model_executor_source()),
         )
 
     return DeterministicTransitionAnalysisProvider()
@@ -630,6 +664,7 @@ def resolve_transition_analysis_provider(
     config_source = configuration.get("config_source") if config_loaded else None
     model_backed_provider = configuration.get("model_backed_provider") if config_loaded else None
     model_backed_enabled = bool(model_backed_provider.get("enabled")) if isinstance(model_backed_provider, dict) else False
+    model_execution_ready = _transition_model_executor_ready()
 
     if requested_kind == ANALYSIS_PROVIDER_KIND:
         return {
@@ -657,6 +692,22 @@ def resolve_transition_analysis_provider(
             },
         }
 
+    resolved_kind = (
+        requested_kind
+        if model_backed_enabled and model_execution_ready
+        else ANALYSIS_PROVIDER_KIND
+    )
+    resolved_name = (
+        requested_name
+        if model_backed_enabled and model_execution_ready
+        else ANALYSIS_PROVIDER_NAME
+    )
+    resolved_mode = (
+        requested_mode
+        if model_backed_enabled and model_execution_ready
+        else "deterministic"
+    )
+
     return {
         "requested": {
             "kind": requested_kind,
@@ -664,13 +715,15 @@ def resolve_transition_analysis_provider(
             "mode": requested_mode,
         },
         "resolved": {
-            "kind": ANALYSIS_PROVIDER_KIND,
-            "name": ANALYSIS_PROVIDER_NAME,
-            "mode": "deterministic",
+            "kind": resolved_kind,
+            "name": resolved_name,
+            "mode": resolved_mode,
         },
-        "status": "fallback_to_deterministic",
+        "status": "resolved" if model_backed_enabled and model_execution_ready else "fallback_to_deterministic",
         "reason": (
-            "model-backed provider configuration is loaded but provider execution is not yet implemented"
+            "model-backed provider configuration is loaded and the executor runtime is ready"
+            if model_backed_enabled and model_execution_ready
+            else "model-backed provider configuration is loaded but the executor runtime is not yet configured"
             if model_backed_enabled
             else "model-backed provider configuration is loaded but disabled"
             if config_loaded
@@ -683,6 +736,7 @@ def resolve_transition_analysis_provider(
             "config_version": configuration.get("config_version") if config_loaded else None,
             "config_source": config_source,
             "model_backed_enabled": model_backed_enabled,
+            "model_execution_ready": model_execution_ready,
             "default_provider": configuration.get("default_provider") if config_loaded else None,
             "model_backed_provider": configuration.get("model_backed_provider") if config_loaded else None,
         },
@@ -1023,12 +1077,18 @@ def build_transition_analysis_provider_runtime(
     config_loaded = bool(config_state.get("loaded")) if isinstance(config_state, dict) else isinstance(configuration, dict)
     model_backed_enabled = bool(config_state.get("model_backed_enabled")) if isinstance(config_state, dict) else False
     requested_name = requested.get("name") if isinstance(requested, dict) else ANALYSIS_PROVIDER_NAME
+    model_execution_ready = _transition_model_executor_ready()
 
     if requested_kind == ANALYSIS_PROVIDER_KIND or not model_backed_enabled:
         adapter_kind = ANALYSIS_PROVIDER_KIND
         adapter_name = ANALYSIS_PROVIDER_NAME
         adapter_mode = "deterministic"
         adapter_status = "deterministic_adapter"
+    elif model_execution_ready:
+        adapter_kind = "model_backed"
+        adapter_name = requested_name
+        adapter_mode = requested_mode
+        adapter_status = "model_backed_adapter_ready"
     else:
         adapter_kind = "model_backed"
         adapter_name = requested_name
@@ -1037,6 +1097,9 @@ def build_transition_analysis_provider_runtime(
 
     if requested_kind == ANALYSIS_PROVIDER_KIND:
         execution_mode = "builtin_deterministic"
+        implementation_status = "ready"
+    elif model_backed_enabled and model_execution_ready:
+        execution_mode = "model_backed_execution_ready"
         implementation_status = "ready"
     elif model_backed_enabled:
         execution_mode = "deterministic_fallback_pending_model_execution"
@@ -1066,10 +1129,14 @@ def build_transition_analysis_provider_runtime(
             "model_backed_enabled": model_backed_enabled,
         },
         "delegation": {
-            "path": "deterministic" if adapter_status == "deterministic_adapter" else "model_backed_skeleton",
+            "path": "deterministic"
+            if adapter_status == "deterministic_adapter"
+            else "model_backed_ready"
+            if adapter_status == "model_backed_adapter_ready"
+            else "model_backed_skeleton",
             "model_backed_requested": requested_kind == "model_backed",
             "model_backed_enabled": model_backed_enabled,
-            "model_execution_ready": False,
+            "model_execution_ready": model_execution_ready,
         },
         "execution": {
             "entry_point": "overlay_harness.analyzer.analyze_transition",

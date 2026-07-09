@@ -39,11 +39,13 @@ from overlay_harness.effect_catalog import load_effect_catalog
 from overlay_harness.effect_catalog import select_effect_candidate
 from overlay_harness.config import load_analysis_provider_config
 from overlay_harness.analyzer import build_transition_analysis_provider_adapter
+from overlay_harness.analyzer import build_transition_analysis_provider_runtime
 from overlay_harness.analyzer import build_transition_model_executor
 from overlay_harness.analyzer import ModelBackedTransitionAnalysisProvider
 from overlay_harness.analyzer import analyze_transition
 from overlay_harness.analyzer import analyze_transition_video
 from overlay_harness.analyzer import build_transition_analysis_artifact
+from overlay_harness.analyzer import resolve_transition_analysis_provider
 from overlay_harness.analyzer import derive_analyzer_inputs_from_metadata
 from overlay_harness.evaluator import score_frame_sequences
 from overlay_harness.models import EffectSpec, InputSpec, RenderJob, RenderSettings
@@ -1356,6 +1358,21 @@ class ScoringAlignmentTests(unittest.TestCase):
 
         self.assertEqual(executor.__class__.__name__, "DeterministicTransitionModelExecutor")
 
+    def test_model_executor_can_use_builtin_openai_executor(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "HARNESS_TRANSITION_MODEL_EXECUTOR": "openai",
+                "HARNESS_TRANSITION_MODEL_NAME": "gpt-transition-test",
+                "OPENAI_API_KEY": "test-key",
+            },
+            clear=False,
+        ):
+            executor = build_transition_model_executor()
+
+        self.assertEqual(executor.__class__.__name__, "OpenAIChatTransitionModelExecutor")
+        self.assertEqual(executor.executor_source, "env:openai:gpt-transition-test")
+
     def test_model_executor_can_be_overridden_by_env_hook(self) -> None:
         module_name = "test_transition_model_executor_override"
         module = ModuleType(module_name)
@@ -1500,6 +1517,62 @@ class ScoringAlignmentTests(unittest.TestCase):
             )
 
         self.assertEqual(model_result["executor_source"], "default:DeterministicTransitionModelExecutor")
+
+    def test_model_backed_runtime_reports_ready_for_builtin_openai_executor(self) -> None:
+        override_path = self.root / "analysis_provider.enabled.runtime.json"
+        override_path.write_text(
+            json.dumps(
+                {
+                    "config_type": "analysis_provider_config",
+                    "config_version": 1,
+                    "default_provider": {
+                        "kind": "deterministic_rules",
+                        "name": "deterministic_rules_v1",
+                        "mode": "deterministic",
+                    },
+                    "model_backed_provider": {
+                        "enabled": True,
+                        "kind": "model_backed",
+                        "name": "openai-transition-model",
+                        "mode": "vision",
+                        "source": "env:HARNESS_ANALYSIS_PROVIDER_CONFIG",
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch.dict(
+            os.environ,
+            {
+                "HARNESS_ANALYSIS_PROVIDER_CONFIG": str(override_path),
+                "HARNESS_TRANSITION_MODEL_EXECUTOR": "openai",
+                "HARNESS_TRANSITION_MODEL_NAME": "gpt-transition-test",
+                "OPENAI_API_KEY": "test-key",
+            },
+            clear=False,
+        ):
+            config = load_analysis_provider_config(HARNESS_ROOT / "configs")
+            resolution = resolve_transition_analysis_provider(
+                {"kind": "model_backed", "name": "openai-transition-model", "mode": "vision"},
+                config,
+            )
+            runtime = build_transition_analysis_provider_runtime(
+                {"kind": "model_backed", "name": "openai-transition-model", "mode": "vision"},
+                config,
+                resolution,
+            )
+
+        self.assertEqual(resolution["status"], "resolved")
+        self.assertEqual(resolution["resolved"]["kind"], "model_backed")
+        self.assertEqual(resolution["resolved"]["name"], "openai-transition-model")
+        self.assertEqual(resolution["resolved"]["mode"], "vision")
+        self.assertTrue(resolution["configuration"]["model_execution_ready"])
+        self.assertEqual(runtime["adapter"]["status"], "model_backed_adapter_ready")
+        self.assertEqual(runtime["delegation"]["path"], "model_backed_ready")
+        self.assertTrue(runtime["delegation"]["model_execution_ready"])
+        self.assertEqual(runtime["execution"]["implementation_status"], "ready")
+        self.assertEqual(runtime["execution"]["execution_mode"], "model_backed_execution_ready")
 
     def test_model_executor_env_hook_rejects_invalid_target(self) -> None:
         with patch.dict(os.environ, {"HARNESS_TRANSITION_MODEL_EXECUTOR": "invalid-target"}):
