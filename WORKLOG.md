@@ -14,6 +14,7 @@ Milestone 7 will cover the retry and validation loop that makes generation robus
 
 ## Last Completed
 
+- Surfaced the model execution readiness flag in provider summaries and top-level report payloads.
 - Promoted the transition-video analysis block into the model execution contract and validation surface.
 - Surfaced the transition-video analysis block in the provider summary and top-level report payloads.
 - Promoted transition summary into the transition-video model execution contract and artifact summary.
@@ -28,7 +29,7 @@ Milestone 7 will cover the retry and validation loop that makes generation robus
 
 ## Next Implementation Step
 
-Start the next Milestone 5 slice by promoting one more shared analysis field or moving closer to the real model executor boundary.
+Start the next Milestone 5 slice by promoting one more runtime or delegation field, or moving closer to the real model executor boundary.
 
 1. Keep the source-pair analyzer in place as the compatibility path for `analyze-transition`.
 2. Add focused tests for the next contract surface before changing behavior.

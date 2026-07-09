@@ -908,6 +908,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["analysis_source"], "transition_video")
         self.assertEqual(payload["data"]["transition_summary"]["combined_motion_level"], "high")
         self.assertEqual(payload["data"]["transition_video_analysis"]["source"], "transition_video")
+        self.assertFalse(payload["data"]["analysis_model_execution_ready"])
         self.assertEqual(payload["data"]["transition_video"], "harness/sample_glitch.mp4")
         self.assertEqual(payload["data"]["transition_window"]["frame_count"], 30)
         self.assertEqual(payload["data"]["transition_progression"]["window_span_frames"], 30)
@@ -1112,6 +1113,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(stdout_payload["analysis_source"], "source_a_source_b")
         self.assertEqual(stdout_payload["transition_summary"]["combined_motion_level"], "high")
         self.assertEqual(stdout_payload["transition_video_analysis"]["source"], "source_a_source_b")
+        self.assertFalse(stdout_payload["analysis_model_execution_ready"])
         self.assertIsNone(stdout_payload["transition_video"])
         self.assertIsNotNone(stdout_payload["transition_progression"])
         self.assertIsNone(stdout_payload["transition_progression"]["window_span_frames"])
@@ -1543,6 +1545,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(hint["analysis_model_execution_contract"]["result_contract"]["transition_summary"], "dict[str, Any] | None")
         self.assertEqual(hint["analysis_model_execution_contract"]["result_contract"]["transition_window"], "dict[str, Any] | None")
         self.assertEqual(hint["analysis_model_execution_contract"]["result_contract"]["transition_progression"], "dict[str, Any] | None")
+        self.assertFalse(hint["analysis_provider_runtime"]["delegation"]["model_execution_ready"])
         self.assertEqual(hint["analysis_provider"]["kind"], "deterministic_rules")
         self.assertEqual(hint["transition_progression"]["window_span_frames"], 30)
 
