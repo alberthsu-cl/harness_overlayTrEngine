@@ -14,23 +14,13 @@ Milestone 7 will cover the retry and validation loop that makes generation robus
 
 ## Last Completed
 
+- Surfaced provider resolution status and config provenance in command payloads and run reports.
 - Surfaced the selected provider identity in provider summaries and top-level report payloads.
 - Surfaced the model execution delegation path and request flag in provider summaries and top-level report payloads.
 - Surfaced the model execution enabled flag in provider summaries and top-level report payloads.
 - Surfaced the model execution mode in provider summaries and top-level report payloads.
 - Surfaced the model execution status in provider summaries and top-level report payloads.
 - Surfaced the model execution readiness flag in provider summaries and top-level report payloads.
-- Promoted the transition-video analysis block into the model execution contract and validation surface.
-- Surfaced the transition-video analysis block in the provider summary and top-level report payloads.
-- Promoted transition summary into the transition-video model execution contract and artifact summary.
-- Promoted transition progression into the transition-video model execution contract and validator.
-- Added transition progression to the shared analysis-provider summary and top-level flow/sample outputs.
-- Added request/result validation for the transition-video model execution contract and made source-pair analysis emit `analysis_source` too.
-- Promoted the transition-video analysis fields into the model-execution contract block.
-- Added the transition-video analysis source and window to the shared analysis-provider summary and top-level command outputs.
-- Added an explicit transition-video analysis path and routed `flow` and `analyze-sample-video` through it.
-- Recorded `analysis_source` in the transition analysis artifact so the report distinguishes video-backed analysis from source-pair analysis.
-- Added a checked-in analysis provider config source and wired the transition analysis path to load it.
 
 ## Next Implementation Step
 
@@ -39,7 +29,6 @@ Start the next Milestone 5 slice by promoting one more runtime or delegation fie
 1. Keep the source-pair analyzer in place as the compatibility path for `analyze-transition`.
 2. Add focused tests for the next contract surface before changing behavior.
 3. Leave deterministic fallback available until the model-backed path is real.
-4. Prefer the smallest contract or summary gap that still makes the transition-video path clearer.
 
 ## Why This Is Next
 
