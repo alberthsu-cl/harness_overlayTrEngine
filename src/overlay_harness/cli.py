@@ -1446,6 +1446,8 @@ def _handle_analyze_transition(args, repo_root: Path) -> int:
                 "analysis_provider_configuration_version": analysis_provider_summary["configuration_version"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_provider_configuration_source": analysis_provider_summary["configuration_source"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_provider_configuration_model_backed_enabled": analysis_provider_summary["configuration_model_backed_enabled"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_provider_configuration_default_provider": analysis_provider_summary["configuration_default_provider"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_provider_configuration_model_backed_provider": analysis_provider_summary["configuration_model_backed_provider"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_provider_adapter": analysis_provider_summary["adapter"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_provider_runtime": analysis_provider_summary["runtime"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_provider_execution": analysis_provider_summary["execution"] if isinstance(analysis_provider_summary, dict) else None,
@@ -2074,6 +2076,8 @@ def _handle_sample_video(
                 "analysis_provider_configuration_version": analysis_provider_summary["configuration_version"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_provider_configuration_source": analysis_provider_summary["configuration_source"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_provider_configuration_model_backed_enabled": analysis_provider_summary["configuration_model_backed_enabled"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_provider_configuration_default_provider": analysis_provider_summary["configuration_default_provider"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_provider_configuration_model_backed_provider": analysis_provider_summary["configuration_model_backed_provider"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_provider_adapter": analysis_provider_summary["adapter"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_provider_runtime": analysis_provider_summary["runtime"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_provider_execution": analysis_provider_summary["execution"] if isinstance(analysis_provider_summary, dict) else None,
@@ -2139,6 +2143,8 @@ def _handle_sample_video(
                 "analysis_provider_configuration_version": analysis_provider_summary["configuration_version"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_provider_configuration_source": analysis_provider_summary["configuration_source"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_provider_configuration_model_backed_enabled": analysis_provider_summary["configuration_model_backed_enabled"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_provider_configuration_default_provider": analysis_provider_summary["configuration_default_provider"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_provider_configuration_model_backed_provider": analysis_provider_summary["configuration_model_backed_provider"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_provider_adapter": analysis_provider_summary["adapter"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_provider_runtime": analysis_provider_summary["runtime"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_provider_execution": analysis_provider_summary["execution"] if isinstance(analysis_provider_summary, dict) else None,
@@ -2633,6 +2639,7 @@ def _build_analysis_provider_artifact_summary(analysis_artifact: dict | None) ->
     runtime = facts.get("analysis_provider_runtime")
     execution = runtime.get("execution") if isinstance(runtime, dict) else None
     delegation = runtime.get("delegation") if isinstance(runtime, dict) else None
+    configuration = resolution.get("configuration") if isinstance(resolution, dict) else None
     transition_video_analysis = facts.get("transition_video_analysis")
 
     return {
@@ -2643,8 +2650,8 @@ def _build_analysis_provider_artifact_summary(analysis_artifact: dict | None) ->
         "resolution": resolution,
         "resolution_requested": resolution.get("requested") if isinstance(resolution, dict) else None,
         "resolution_resolved": resolution.get("resolved") if isinstance(resolution, dict) else None,
-        "resolution_configuration": resolution.get("configuration") if isinstance(resolution, dict) else None,
-        "configuration": resolution.get("configuration") if isinstance(resolution, dict) else None,
+        "resolution_configuration": configuration,
+        "configuration": configuration,
         "runtime": runtime,
         "execution": execution,
         "execution_contract_type": execution.get("contract_type") if isinstance(execution, dict) else None,
@@ -2657,6 +2664,8 @@ def _build_analysis_provider_artifact_summary(analysis_artifact: dict | None) ->
         "configuration_version": resolution.get("configuration", {}).get("config_version") if isinstance(resolution, dict) and isinstance(resolution.get("configuration"), dict) else None,
         "configuration_source": resolution.get("configuration", {}).get("config_source") if isinstance(resolution, dict) and isinstance(resolution.get("configuration"), dict) else None,
         "configuration_model_backed_enabled": resolution.get("configuration", {}).get("model_backed_enabled") if isinstance(resolution, dict) and isinstance(resolution.get("configuration"), dict) else None,
+        "configuration_default_provider": configuration.get("default_provider") if isinstance(configuration, dict) else None,
+        "configuration_model_backed_provider": configuration.get("model_backed_provider") if isinstance(configuration, dict) else None,
         "selected_provider_kind": resolution.get("resolved", {}).get("kind") if isinstance(resolution, dict) else None,
         "selected_provider_name": resolution.get("resolved", {}).get("name") if isinstance(resolution, dict) else None,
         "selected_provider_mode": resolution.get("resolved", {}).get("mode") if isinstance(resolution, dict) else None,
@@ -2799,6 +2808,8 @@ def _build_flow_report(
             "analysis_provider_configuration_version": analysis_provider_summary["configuration_version"] if isinstance(analysis_provider_summary, dict) else None,
             "analysis_provider_configuration_source": analysis_provider_summary["configuration_source"] if isinstance(analysis_provider_summary, dict) else None,
             "analysis_provider_configuration_model_backed_enabled": analysis_provider_summary["configuration_model_backed_enabled"] if isinstance(analysis_provider_summary, dict) else None,
+            "analysis_provider_configuration_default_provider": analysis_provider_summary["configuration_default_provider"] if isinstance(analysis_provider_summary, dict) else None,
+            "analysis_provider_configuration_model_backed_provider": analysis_provider_summary["configuration_model_backed_provider"] if isinstance(analysis_provider_summary, dict) else None,
             "analysis_provider_adapter": analysis_provider_summary["adapter"] if isinstance(analysis_provider_summary, dict) else None,
             "analysis_provider_runtime": analysis_provider_summary["runtime"] if isinstance(analysis_provider_summary, dict) else None,
             "analysis_provider_execution": analysis_provider_summary["execution"] if isinstance(analysis_provider_summary, dict) else None,

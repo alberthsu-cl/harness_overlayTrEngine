@@ -614,6 +614,8 @@ def resolve_transition_analysis_provider(
                 "config_version": configuration.get("config_version") if config_loaded else None,
                 "config_source": config_source,
                 "model_backed_enabled": model_backed_enabled,
+                "default_provider": configuration.get("default_provider") if config_loaded else None,
+                "model_backed_provider": configuration.get("model_backed_provider") if config_loaded else None,
             },
         }
 
@@ -642,6 +644,8 @@ def resolve_transition_analysis_provider(
             "config_version": configuration.get("config_version") if config_loaded else None,
             "config_source": config_source,
             "model_backed_enabled": model_backed_enabled,
+            "default_provider": configuration.get("default_provider") if config_loaded else None,
+            "model_backed_provider": configuration.get("model_backed_provider") if config_loaded else None,
         },
     }
 

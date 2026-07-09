@@ -1190,6 +1190,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(stdout_payload["analysis_provider_configuration_version"], 1)
         self.assertEqual(stdout_payload["analysis_provider_configuration_source"], "repo:configs/analysis_provider.json")
         self.assertFalse(stdout_payload["analysis_provider_configuration_model_backed_enabled"])
+        self.assertEqual(stdout_payload["analysis_provider_configuration_default_provider"]["kind"], "deterministic_rules")
+        self.assertEqual(stdout_payload["analysis_provider_configuration_model_backed_provider"]["kind"], "model_backed")
         self.assertEqual(stdout_payload["analysis_provider_adapter"]["kind"], "deterministic_rules")
         self.assertEqual(stdout_payload["analysis_provider_adapter"]["status"], "deterministic_adapter")
         self.assertEqual(stdout_payload["analysis_provider_runtime"]["execution"]["execution_mode"], "deterministic_fallback")
@@ -1891,6 +1893,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["analysis_provider_execution_contract_type"], "transition_analysis_model_execution")
         self.assertEqual(payload["data"]["analysis_provider_execution_contract_version"], 1)
         self.assertEqual(payload["data"]["analysis_provider_execution_entry_point"], "overlay_harness.analyzer.analyze_transition")
+        self.assertEqual(payload["data"]["analysis_provider_configuration_default_provider"]["kind"], "deterministic_rules")
+        self.assertEqual(payload["data"]["analysis_provider_configuration_model_backed_provider"]["kind"], "model_backed")
         self.assertEqual(payload["data"]["analysis_provider_execution"]["execution_mode"], "builtin_deterministic")
         self.assertEqual(payload["data"]["analysis_provider_resolution_status"], "resolved")
         self.assertEqual(payload["data"]["analysis_provider_resolution_reason"], "deterministic analyzer is built into the harness")
@@ -2089,6 +2093,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertIsNone(stdout_payload["analysis_provider_execution_contract_type"])
         self.assertIsNone(stdout_payload["analysis_provider_execution_contract_version"])
         self.assertIsNone(stdout_payload["analysis_provider_execution_entry_point"])
+        self.assertIsNone(stdout_payload["analysis_provider_configuration_default_provider"])
+        self.assertIsNone(stdout_payload["analysis_provider_configuration_model_backed_provider"])
 
     def test_sample_video_command_with_force_mode_uses_forced_planner_mode(self) -> None:
         source_a = self.root / "source_a"
