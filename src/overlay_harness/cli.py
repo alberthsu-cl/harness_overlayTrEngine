@@ -1437,6 +1437,7 @@ def _handle_analyze_transition(args, repo_root: Path) -> int:
                 "analysis_source": analysis_provider_summary["analysis_source"] if isinstance(analysis_provider_summary, dict) else None,
                 "transition_video": analysis_provider_summary["transition_video"] if isinstance(analysis_provider_summary, dict) else None,
                 "transition_window": analysis_provider_summary["transition_window"] if isinstance(analysis_provider_summary, dict) else None,
+                "transition_progression": analysis_provider_summary["transition_progression"] if isinstance(analysis_provider_summary, dict) else None,
                 "comparison_output": str(comparison_output) if comparison_output is not None else None,
                 "style_hint": hint.get("style_hint"),
                 "input_kind": hint.get("input_kind"),
@@ -1770,6 +1771,10 @@ def _handle_flow(args, repo_root: Path, harness_root: Path, config_dir: Path, de
                 "analysis_provider_resolution": report_data.data.get("analysis_provider_resolution"),
                 "analysis_provider_configuration": report_data.data.get("analysis_provider_configuration"),
                 "analysis_model_execution_contract": report_data.data.get("analysis_model_execution_contract"),
+                "analysis_source": report_data.data.get("analysis_source"),
+                "transition_video": report_data.data.get("transition_video"),
+                "transition_window": report_data.data.get("transition_window"),
+                "transition_progression": report_data.data.get("transition_progression"),
                 "status": report_data.status,
                 "summary": report_data.summary,
                 "flow_root": str(flow_root),
@@ -1968,6 +1973,7 @@ def _handle_sample_video(
                 "analysis_source": analysis_provider_summary["analysis_source"] if isinstance(analysis_provider_summary, dict) else None,
                 "transition_video": analysis_provider_summary["transition_video"] if isinstance(analysis_provider_summary, dict) else None,
                 "transition_window": analysis_provider_summary["transition_window"] if isinstance(analysis_provider_summary, dict) else None,
+                "transition_progression": analysis_provider_summary["transition_progression"] if isinstance(analysis_provider_summary, dict) else None,
                 "sample_context": _build_sample_video_context(
                     source_a=source_a,
                     source_b=source_b,
@@ -2003,6 +2009,7 @@ def _handle_sample_video(
                 "analysis_source": analysis_provider_summary["analysis_source"] if isinstance(analysis_provider_summary, dict) else None,
                 "transition_video": analysis_provider_summary["transition_video"] if isinstance(analysis_provider_summary, dict) else None,
                 "transition_window": analysis_provider_summary["transition_window"] if isinstance(analysis_provider_summary, dict) else None,
+                "transition_progression": analysis_provider_summary["transition_progression"] if isinstance(analysis_provider_summary, dict) else None,
                 "sample_context": _build_sample_video_context(
                     source_a=source_a,
                     source_b=source_b,
@@ -2046,6 +2053,7 @@ def _handle_sample_video(
                 "analysis_source": analysis_provider_summary["analysis_source"] if isinstance(analysis_provider_summary, dict) else None,
                 "transition_video": analysis_provider_summary["transition_video"] if isinstance(analysis_provider_summary, dict) else None,
                 "transition_window": analysis_provider_summary["transition_window"] if isinstance(analysis_provider_summary, dict) else None,
+                "transition_progression": analysis_provider_summary["transition_progression"] if isinstance(analysis_provider_summary, dict) else None,
                 "status": report.status,
                 "summary": report.summary,
             },
@@ -2538,6 +2546,7 @@ def _build_analysis_provider_artifact_summary(analysis_artifact: dict | None) ->
         "analysis_source": facts.get("analysis_source"),
         "transition_video": transition_video_analysis.get("transition_video") if isinstance(transition_video_analysis, dict) else None,
         "transition_window": transition_video_analysis.get("transition_window") if isinstance(transition_video_analysis, dict) else None,
+        "transition_progression": transition_video_analysis.get("transition_progression") if isinstance(transition_video_analysis, dict) else None,
     }
 
 
@@ -2654,6 +2663,7 @@ def _build_flow_report(
             "analysis_source": analysis_provider_summary["analysis_source"] if isinstance(analysis_provider_summary, dict) else None,
             "transition_video": analysis_provider_summary["transition_video"] if isinstance(analysis_provider_summary, dict) else None,
             "transition_window": analysis_provider_summary["transition_window"] if isinstance(analysis_provider_summary, dict) else None,
+            "transition_progression": analysis_provider_summary["transition_progression"] if isinstance(analysis_provider_summary, dict) else None,
             "run": {
                 "status": run_status,
                 "summary": run_summary,

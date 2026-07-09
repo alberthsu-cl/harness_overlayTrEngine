@@ -908,6 +908,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["analysis_source"], "transition_video")
         self.assertEqual(payload["data"]["transition_video"], "harness/sample_glitch.mp4")
         self.assertEqual(payload["data"]["transition_window"]["frame_count"], 30)
+        self.assertEqual(payload["data"]["transition_progression"]["window_span_frames"], 30)
         self.assertEqual(payload["data"]["planning"]["mode"], "builtin-glitch")
         self.assertEqual(payload["data"]["run"]["evaluation"]["overall_status"], "succeeded_with_score")
         self.assertEqual(payload["data"]["run"]["evaluation"]["score"]["status"], "succeeded")
@@ -945,6 +946,7 @@ class ScoringAlignmentTests(unittest.TestCase):
             str(output_root / "transition_flow_stub" / "workspace" / "render" / "renderer_result.json"),
         )
         self.assertEqual(stdout_payload["workspace_paths"]["demo_video_file"], str(run_result["demo_video_file"]))
+        self.assertEqual(stdout_payload["transition_progression"]["window_span_frames"], 30)
 
     def test_analyze_sample_video_command_writes_video_backed_analysis(self) -> None:
         output_root = self.root / "sample_video_analysis_output"
@@ -1105,6 +1107,10 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(stdout_payload["analysis_provider_resolution"]["status"], "fallback_to_deterministic")
         self.assertEqual(stdout_payload["analysis_provider_configuration"]["loaded"], True)
         self.assertEqual(stdout_payload["analysis_model_execution_contract"]["contract_type"], "transition_analysis_model_execution")
+        self.assertEqual(stdout_payload["analysis_source"], "source_a_source_b")
+        self.assertIsNone(stdout_payload["transition_video"])
+        self.assertIsNotNone(stdout_payload["transition_progression"])
+        self.assertIsNone(stdout_payload["transition_progression"]["window_span_frames"])
 
     def test_analysis_provider_config_is_loaded(self) -> None:
         config = load_analysis_provider_config(HARNESS_ROOT / "configs")
