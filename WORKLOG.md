@@ -18,39 +18,14 @@ Milestone 7 will cover the retry and validation loop that makes generation robus
 - Added transition progression to the shared analysis-provider summary and top-level flow/sample outputs.
 - Added request/result validation for the transition-video model execution contract and made source-pair analysis emit `analysis_source` too.
 - Promoted the transition-video analysis fields into the model-execution contract block.
-- Threaded the transition-video analysis source and window into the shared analysis-provider summary and top-level command outputs.
+- Added the transition-video analysis source and window to the shared analysis-provider summary and top-level command outputs.
 - Added an explicit transition-video analysis path and routed `flow` and `analyze-sample-video` through it.
 - Recorded `analysis_source` in the transition analysis artifact so the report distinguishes video-backed analysis from source-pair analysis.
 - Added a checked-in analysis provider config source and wired the transition analysis path to load it.
-- Recorded provider request, resolution, and loaded config metadata in the analysis artifact.
-- Added provider request versus resolution metadata to the transition analysis artifact.
-- Documented the deterministic fallback for requested `model_backed` analysis providers.
-- Exposed requested provider metadata on `analyze-transition` and `flow`.
-- Added env-backed override support for the analysis provider config contract.
-- Added schema validation for the analysis provider config contract.
-- Added a provider runtime contract block to the transition analysis artifact.
-- Added a deterministic default adapter class for the analysis provider entry point.
-- Added a model-backed adapter skeleton selected from enabled provider config.
-- Surfaced the provider runtime block in the top-level flow report too.
-- Surfaced the provider adapter block in the top-level flow report too.
-- Added a delegation section to the provider runtime contract.
-- Added a model execution request/result record to the model-backed skeleton path.
-- Split the model-backed path into an injectable model executor boundary.
-- Added request/result validation to the model executor boundary.
-- Versioned the model execution contract as `transition_analysis_model_execution` v1.
-- Added a structured model execution contract block to the provider runtime artifact.
-- Surfaced the model execution contract block in the top-level flow report.
-- Mirrored the model execution contract block into the printed flow summary JSON.
-- Surfaced provider request, resolution, and configuration directly in the flow report and summary JSON.
-- Printed the same provider request, resolution, configuration, and model contract summary from `analyze-transition`.
-- Attached the same provider summary to the `analyze-transition` result so downstream commands can reuse it directly.
-- Exposed the resolved analysis provider identity in the `sample-video` report and summary JSON.
-- Mirrored the provider request, resolution, configuration, and model contract fields into the analysis-driven `sample-video` report and summary JSON.
-- Centralized the analysis-provider summary extraction and reused it in `sample-video`.
 
 ## Next Implementation Step
 
-Start the next Milestone 5 slice by promoting one more derived analysis field or moving closer to the real model executor boundary.
+Start the next Milestone 5 slice by promoting one more shared analysis summary field or moving closer to the real model executor boundary.
 
 1. Keep the source-pair analyzer in place as the compatibility path for `analyze-transition`.
 2. Add focused tests for the next contract surface before changing behavior.
