@@ -31,6 +31,7 @@ Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retr
 - Surfaced provider request, resolution, and configuration directly in the flow report and summary JSON.
 - Printed the same provider request, resolution, configuration, and model contract summary from `analyze-transition`.
 - Exposed the resolved analysis provider identity in the `sample-video` report and summary JSON.
+- Mirrored the provider request, resolution, configuration, and model contract fields into the analysis-driven `sample-video` report and summary JSON.
 
 ## Next Implementation Step
 
