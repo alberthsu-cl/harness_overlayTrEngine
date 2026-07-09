@@ -824,6 +824,46 @@ class ScoringAlignmentTests(unittest.TestCase):
                         },
                         "analyzer_inputs": {"flow": True},
                         "analysis_mode": "deterministic_rules",
+                        "analysis_provider_runtime": {
+                            "requested": {
+                                "kind": "model_backed",
+                                "mode": "vision",
+                            },
+                            "selected": {
+                                "kind": "deterministic_rules",
+                                "name": "deterministic_rules_v1",
+                                "mode": "deterministic",
+                            },
+                            "adapter": {
+                                "kind": "deterministic_rules",
+                                "name": "deterministic_rules_v1",
+                                "mode": "deterministic",
+                                "status": "deterministic_adapter",
+                            },
+                            "configuration": {
+                                "loaded": True,
+                                "model_backed_enabled": False,
+                            },
+                            "delegation": {
+                                "path": "deterministic",
+                                "model_backed_requested": True,
+                                "model_backed_enabled": False,
+                                "model_execution_ready": False,
+                            },
+                            "execution": {
+                                "entry_point": "overlay_harness.analyzer.analyze_transition",
+                                "contract_type": "transition_analysis_model_execution",
+                                "contract_version": 1,
+                                "implementation_status": "fallback_only",
+                                "execution_mode": "deterministic_fallback",
+                                "model_execution_contract": {
+                                    "contract_type": "transition_analysis_model_execution",
+                                    "contract_version": 1,
+                                    "request_contract": {},
+                                    "result_contract": {},
+                                },
+                            },
+                        },
                         "transition_video_analysis": {
                             "source": "transition_video",
                             "analysis_engine": "deterministic_rules_v1",
@@ -909,6 +949,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["data"]["transition_summary"]["combined_motion_level"], "high")
         self.assertEqual(payload["data"]["transition_video_analysis"]["source"], "transition_video")
         self.assertFalse(payload["data"]["analysis_model_execution_ready"])
+        self.assertEqual(payload["data"]["analysis_model_execution_status"], "fallback_only")
         self.assertEqual(payload["data"]["transition_video"], "harness/sample_glitch.mp4")
         self.assertEqual(payload["data"]["transition_window"]["frame_count"], 30)
         self.assertEqual(payload["data"]["transition_progression"]["window_span_frames"], 30)
@@ -1114,6 +1155,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(stdout_payload["transition_summary"]["combined_motion_level"], "high")
         self.assertEqual(stdout_payload["transition_video_analysis"]["source"], "source_a_source_b")
         self.assertFalse(stdout_payload["analysis_model_execution_ready"])
+        self.assertEqual(stdout_payload["analysis_model_execution_status"], "fallback_only")
         self.assertIsNone(stdout_payload["transition_video"])
         self.assertIsNotNone(stdout_payload["transition_progression"])
         self.assertIsNone(stdout_payload["transition_progression"]["window_span_frames"])
@@ -1546,6 +1588,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(hint["analysis_model_execution_contract"]["result_contract"]["transition_window"], "dict[str, Any] | None")
         self.assertEqual(hint["analysis_model_execution_contract"]["result_contract"]["transition_progression"], "dict[str, Any] | None")
         self.assertFalse(hint["analysis_provider_runtime"]["delegation"]["model_execution_ready"])
+        self.assertEqual(hint["analysis_provider_runtime"]["execution"]["implementation_status"], "fallback_only")
         self.assertEqual(hint["analysis_provider"]["kind"], "deterministic_rules")
         self.assertEqual(hint["transition_progression"]["window_span_frames"], 30)
 
