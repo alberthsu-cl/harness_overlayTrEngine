@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import importlib
+import os
 import hashlib
 import json
 from pathlib import Path
@@ -477,7 +479,32 @@ class ModelBackedTransitionAnalysisProvider:
 
 
 def build_transition_model_executor() -> TransitionModelExecutor:
+    executor_spec = os.environ.get("HARNESS_TRANSITION_MODEL_EXECUTOR")
+    if executor_spec:
+        return _load_transition_model_executor(executor_spec)
     return DeterministicTransitionModelExecutor()
+
+
+def _load_transition_model_executor(executor_spec: str) -> TransitionModelExecutor:
+    module_name: str
+    attribute_name: str
+    if ":" in executor_spec:
+        module_name, attribute_name = executor_spec.split(":", 1)
+    elif "." in executor_spec:
+        module_name, attribute_name = executor_spec.rsplit(".", 1)
+    else:
+        raise ValueError(
+            "HARNESS_TRANSITION_MODEL_EXECUTOR must use module:attribute or module.attribute syntax"
+        )
+
+    module = importlib.import_module(module_name)
+    executor_factory = getattr(module, attribute_name)
+    executor = executor_factory() if callable(executor_factory) else executor_factory
+    if not hasattr(executor, "execute_model_request"):
+        raise ValueError(
+            f"HARNESS_TRANSITION_MODEL_EXECUTOR resolved to {executor_spec!r}, which does not provide execute_model_request()"
+        )
+    return executor
 
 
 def _validate_model_execution_request(model_request: dict[str, Any]) -> None:

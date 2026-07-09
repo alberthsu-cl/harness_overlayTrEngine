@@ -8,7 +8,7 @@ import shutil
 import sys
 import unittest
 from uuid import uuid4
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from unittest.mock import patch
 
 
@@ -1355,6 +1355,99 @@ class ScoringAlignmentTests(unittest.TestCase):
         executor = build_transition_model_executor()
 
         self.assertEqual(executor.__class__.__name__, "DeterministicTransitionModelExecutor")
+
+    def test_model_executor_can_be_overridden_by_env_hook(self) -> None:
+        module_name = "test_transition_model_executor_override"
+        module = ModuleType(module_name)
+
+        class CustomExecutor:
+            def execute_model_request(self, model_request):
+                return {
+                    "contract_type": "transition_analysis_model_execution",
+                    "contract_version": 1,
+                    "status": "custom_model_execution",
+                    "execution_mode": "custom_model_execution",
+                    "notes": "custom executor override used",
+                    "hint": {
+                        "analysis_source": model_request["inputs"]["analysis_source"],
+                        "style_hint": "generated-noise",
+                        "input_kind": model_request["inputs"]["input_kind"],
+                        "reference_transition": model_request["inputs"]["reference_transition"],
+                        "job_name": model_request["inputs"]["job_name"],
+                        "notes": "custom executor override used",
+                        "analysis": {
+                            "style_reason": "custom executor override used",
+                            "model_execution": model_request,
+                        },
+                    },
+                }
+
+        def build_executor():
+            return CustomExecutor()
+
+        module.build_executor = build_executor
+        sys.modules[module_name] = module
+
+        try:
+            with patch.dict(os.environ, {"HARNESS_TRANSITION_MODEL_EXECUTOR": f"{module_name}:build_executor"}):
+                executor = build_transition_model_executor()
+                model_result = executor.execute_model_request(
+                    {
+                        "contract_type": "transition_analysis_model_execution",
+                        "contract_version": 1,
+                        "provider": {
+                            "kind": "model_backed",
+                            "name": "openai-transition-model",
+                            "mode": "vision",
+                        },
+                        "inputs": {
+                            "repo_root": str(HARNESS_ROOT.parent),
+                            "analysis_source": "source_a_source_b",
+                            "input_kind": "auto",
+                            "style_hint": None,
+                            "intent": "generated glitch transition",
+                            "prefer_generated": False,
+                            "reference_transition": None,
+                            "job_name": "env_override_executor_job",
+                            "source_a": str(HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"),
+                            "source_b": str(HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"),
+                        },
+                        "analyzer_inputs": {
+                            "input_kind": "auto",
+                            "style_hint": None,
+                            "intent": "generated glitch transition",
+                            "prefer_generated": False,
+                            "reference_transition": None,
+                            "job_name": "env_override_executor_job",
+                        },
+                        "execution": {
+                            "contract_type": "transition_analysis_model_execution",
+                            "contract_version": 1,
+                            "expected_status": "delegated_to_deterministic_fallback",
+                            "result_contract": {
+                                "analysis_source": "str",
+                                "style_hint": "str",
+                                "input_kind": "str",
+                                "reference_transition": "str | None",
+                                "job_name": "str | None",
+                                "notes": "str",
+                                "analysis": "dict[str, Any]",
+                            },
+                        },
+                    }
+                )
+        finally:
+            sys.modules.pop(module_name, None)
+
+        self.assertEqual(executor.__class__.__name__, "CustomExecutor")
+        self.assertEqual(model_result["status"], "custom_model_execution")
+        self.assertEqual(model_result["execution_mode"], "custom_model_execution")
+        self.assertEqual(model_result["hint"]["analysis"]["style_reason"], "custom executor override used")
+
+    def test_model_executor_env_hook_rejects_invalid_target(self) -> None:
+        with patch.dict(os.environ, {"HARNESS_TRANSITION_MODEL_EXECUTOR": "invalid-target"}):
+            with self.assertRaises(ValueError):
+                build_transition_model_executor()
 
     def test_default_model_executor_emits_versioned_contract(self) -> None:
         executor = build_transition_model_executor()

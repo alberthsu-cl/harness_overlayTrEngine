@@ -14,6 +14,7 @@ Milestone 7 will cover the retry and validation loop that makes generation robus
 
 ## Last Completed
 
+- Added an environment-driven model executor override hook for the transition analysis boundary.
 - Surfaced the provider configuration loaded/path/version/source/provider blocks in flow command payloads and run reports.
 - Locked down the flow model-execution contract fields in tests.
 - Surfaced the provider execution request/result contract blocks in flow command payloads and run reports.
