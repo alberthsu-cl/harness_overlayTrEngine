@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import json
 import re
 from pathlib import Path
@@ -1063,6 +1064,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(payload["facts"]["analysis_provider_request"]["mode"], "vision")
         self.assertEqual(payload["facts"]["analysis_provider_resolution"]["status"], "fallback_to_deterministic")
         self.assertEqual(payload["facts"]["analysis_provider_resolution"]["configuration"]["loaded"], True)
+        self.assertEqual(payload["facts"]["analysis_provider_resolution"]["configuration"]["config_source"], "repo:configs/analysis_provider.json")
+        self.assertEqual(payload["facts"]["analysis_provider_resolution"]["configuration"]["model_backed_enabled"], False)
         self.assertEqual(payload["facts"]["analysis_provider"]["kind"], "deterministic_rules")
         self.assertEqual(payload["facts"]["analysis_provider"]["name"], "deterministic_rules_v1")
 
@@ -1073,6 +1076,39 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(config["config_type"], "analysis_provider_config")
         self.assertEqual(config["default_provider"]["kind"], "deterministic_rules")
         self.assertEqual(config["model_backed_provider"]["kind"], "model_backed")
+
+    def test_analysis_provider_config_uses_environment_override(self) -> None:
+        override_path = self.root / "analysis_provider.override.json"
+        override_path.write_text(
+            json.dumps(
+                {
+                    "config_type": "analysis_provider_config",
+                    "config_version": 2,
+                    "default_provider": {
+                        "kind": "deterministic_rules",
+                        "name": "deterministic_rules_v2",
+                        "mode": "deterministic",
+                    },
+                    "model_backed_provider": {
+                        "enabled": True,
+                        "kind": "model_backed",
+                        "name": "openai-transition-model-v2",
+                        "mode": "vision",
+                        "source": "env:HARNESS_ANALYSIS_PROVIDER_CONFIG",
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch.dict(os.environ, {"HARNESS_ANALYSIS_PROVIDER_CONFIG": str(override_path)}):
+            config = load_analysis_provider_config(HARNESS_ROOT / "configs")
+
+        self.assertIsNotNone(config)
+        self.assertEqual(config["config_version"], 2)
+        self.assertEqual(config["config_source"], "env:HARNESS_ANALYSIS_PROVIDER_CONFIG")
+        self.assertEqual(config["config_path"], str(override_path))
+        self.assertTrue(config["model_backed_provider"]["enabled"])
 
     def _flow_command_persists_end_to_end_evaluation_summary(self) -> None:
         output_root = self.root / "flow_evaluation_output"
@@ -1751,7 +1787,11 @@ class ScoringAlignmentTests(unittest.TestCase):
                 "analysis_mode": "deterministic_rules",
                 "analysis_provider_configuration": {
                     "config_path": str(HARNESS_ROOT / "configs" / "analysis_provider.json"),
+                    "config_source": "repo:configs/analysis_provider.json",
                     "config_version": 1,
+                    "model_backed_provider": {
+                        "enabled": False,
+                    },
                 },
             },
             hint=hint,
@@ -1760,6 +1800,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(artifact["facts"]["analysis_provider_request"]["kind"], "model_backed")
         self.assertEqual(artifact["facts"]["analysis_provider_resolution"]["status"], "fallback_to_deterministic")
         self.assertEqual(artifact["facts"]["analysis_provider_resolution"]["configuration"]["loaded"], True)
+        self.assertEqual(artifact["facts"]["analysis_provider_resolution"]["configuration"]["config_source"], "repo:configs/analysis_provider.json")
+        self.assertEqual(artifact["facts"]["analysis_provider_resolution"]["configuration"]["model_backed_enabled"], False)
         self.assertEqual(artifact["facts"]["analysis_provider_resolution"]["resolved"]["kind"], "deterministic_rules")
         self.assertEqual(artifact["facts"]["analysis_provider_resolution"]["resolved"]["name"], "deterministic_rules_v1")
 

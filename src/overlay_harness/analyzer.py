@@ -53,6 +53,9 @@ def resolve_transition_analysis_provider(
 
     config_loaded = isinstance(configuration, dict)
     config_path = configuration.get("config_path") if config_loaded else None
+    config_source = configuration.get("config_source") if config_loaded else None
+    model_backed_provider = configuration.get("model_backed_provider") if config_loaded else None
+    model_backed_enabled = bool(model_backed_provider.get("enabled")) if isinstance(model_backed_provider, dict) else False
 
     if requested_kind == ANALYSIS_PROVIDER_KIND:
         return {
@@ -71,6 +74,8 @@ def resolve_transition_analysis_provider(
             "configuration": {
                 "loaded": config_loaded,
                 "config_path": config_path,
+                "config_source": config_source,
+                "model_backed_enabled": model_backed_enabled,
             },
         }
 
@@ -87,13 +92,17 @@ def resolve_transition_analysis_provider(
         },
         "status": "fallback_to_deterministic",
         "reason": (
-            "analysis provider configuration is loaded but model-backed provider invocation is not yet implemented"
+            "model-backed provider configuration is loaded but provider execution is not yet implemented"
+            if model_backed_enabled
+            else "model-backed provider configuration is loaded but disabled"
             if config_loaded
             else "analysis provider configuration is missing"
         ),
         "configuration": {
             "loaded": config_loaded,
             "config_path": config_path,
+            "config_source": config_source,
+            "model_backed_enabled": model_backed_enabled,
         },
     }
 
