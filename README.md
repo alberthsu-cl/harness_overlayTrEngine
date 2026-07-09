@@ -251,6 +251,7 @@ The default config source for that provider contract lives at [configs/analysis_
 The richer analysis artifact also includes an `analysis_provider_runtime` block that records the provider request, selected runtime path, and input/output contract expected by the analyzer entry point.
 The current default runtime adapter is `DeterministicTransitionAnalysisProvider`, and enabled model-backed configs select a `ModelBackedTransitionAnalysisProvider` skeleton that still delegates to the deterministic implementation for now.
 The end-to-end `flow` report also includes the same `analysis_provider_runtime` block so the selected adapter and execution mode are visible alongside the other run artifacts.
+It also mirrors the adapter block as `analysis_provider_adapter`, which makes the selected adapter explicit in the top-level run output too.
 
 Use `plan-job` to create a valid render job from prepared A/B inputs without hand-editing JSON:
 
