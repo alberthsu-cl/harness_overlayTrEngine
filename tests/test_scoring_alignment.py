@@ -939,6 +939,7 @@ class ScoringAlignmentTests(unittest.TestCase):
             payload["data"]["analysis_artifact"]["facts"]["transition_video_analysis"]["transition_video"],
             "harness/sample_glitch.mp4",
         )
+        self.assertEqual(payload["data"]["analysis_artifact"]["facts"]["analysis_provider_runtime"]["execution"]["execution_mode"], "deterministic_fallback")
         self.assertEqual(payload["data"]["analysis_context"]["analysis_source"], "transition_video")
         self.assertEqual(payload["data"]["analysis_context"]["analysis_engine"], "deterministic_rules_v1")
         self.assertEqual(payload["data"]["analysis_context"]["transition_video"], "harness/examples/inputs/source_a_real")
@@ -1150,6 +1151,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(stdout_payload["analysis_provider_request"]["kind"], "model_backed")
         self.assertEqual(stdout_payload["analysis_provider_resolution"]["status"], "fallback_to_deterministic")
         self.assertEqual(stdout_payload["analysis_provider_configuration"]["loaded"], True)
+        self.assertEqual(stdout_payload["analysis_model_execution_mode"], "deterministic_fallback")
         self.assertEqual(stdout_payload["analysis_model_execution_contract"]["contract_type"], "transition_analysis_model_execution")
         self.assertEqual(stdout_payload["analysis_source"], "source_a_source_b")
         self.assertEqual(stdout_payload["transition_summary"]["combined_motion_level"], "high")

@@ -14,6 +14,7 @@ Milestone 7 will cover the retry and validation loop that makes generation robus
 
 ## Last Completed
 
+- Surfaced the model execution mode in provider summaries and top-level report payloads.
 - Surfaced the model execution status in provider summaries and top-level report payloads.
 - Surfaced the model execution readiness flag in provider summaries and top-level report payloads.
 - Promoted the transition-video analysis block into the model execution contract and validation surface.
