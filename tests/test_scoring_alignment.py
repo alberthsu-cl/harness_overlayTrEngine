@@ -1196,6 +1196,27 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(provider.__class__.__name__, "ModelBackedTransitionAnalysisProvider")
         self.assertEqual(hint["analysis_provider"]["kind"], "model_backed")
         self.assertEqual(hint["analysis_provider"]["name"], "openai-transition-model")
+        self.assertEqual(hint["analysis_provider"]["mode"], "pending_model_execution")
+
+        artifact = build_transition_analysis_artifact(
+            repo_root=HARNESS_ROOT.parent,
+            source_a=HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real",
+            source_b=HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real",
+            analyzer_inputs={
+                "analysis_provider_kind": "model_backed",
+                "analysis_provider_name": "openai-transition-model",
+                "analysis_provider_mode": "vision",
+                "analysis_mode": "deterministic_rules",
+                "analysis_provider_configuration": config,
+            },
+            hint=hint,
+        )
+
+        self.assertEqual(artifact["facts"]["analysis_provider_runtime"]["adapter"]["kind"], "model_backed")
+        self.assertEqual(artifact["facts"]["analysis_provider_runtime"]["adapter"]["status"], "model_backed_adapter_skeleton")
+        self.assertEqual(artifact["facts"]["analysis_provider_runtime"]["delegation"]["path"], "model_backed_skeleton")
+        self.assertFalse(artifact["facts"]["analysis_provider_runtime"]["delegation"]["model_execution_ready"])
+        self.assertEqual(artifact["facts"]["analysis_provider_runtime"]["execution"]["implementation_status"], "pending_model_execution")
 
     def _flow_command_persists_end_to_end_evaluation_summary(self) -> None:
         output_root = self.root / "flow_evaluation_output"
@@ -1395,6 +1416,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertIsNone(payload["data"]["run"]["evaluation"]["score"]["error"])
         self.assertEqual(payload["data"]["analysis_provider_runtime"]["execution"]["execution_mode"], "builtin_deterministic")
         self.assertEqual(payload["data"]["analysis_provider_adapter"]["status"], "deterministic_adapter")
+        self.assertEqual(payload["data"]["analysis_provider_runtime"]["delegation"]["path"], "deterministic")
         stdout_payload = json.loads(print_mock.call_args.args[0])
         self.assertEqual(stdout_payload["status"], "succeeded")
         self.assertEqual(stdout_payload["analysis_artifact"]["planning_recommendation"]["analysis_engine"], "deterministic_rules_v1")

@@ -490,6 +490,12 @@ def build_transition_analysis_provider_runtime(
             "loaded": config_loaded,
             "model_backed_enabled": model_backed_enabled,
         },
+        "delegation": {
+            "path": "deterministic" if adapter_status == "deterministic_adapter" else "model_backed_skeleton",
+            "model_backed_requested": requested_kind == "model_backed",
+            "model_backed_enabled": model_backed_enabled,
+            "model_execution_ready": False,
+        },
         "execution": {
             "entry_point": "overlay_harness.analyzer.analyze_transition",
             "implementation_status": implementation_status,
@@ -506,6 +512,7 @@ def build_transition_analysis_provider_runtime(
                 "job_name": "str | None",
                 "provider_request": "dict[str, Any] | None",
                 "provider_configuration": "dict[str, Any] | None",
+                "provider_adapter": "TransitionAnalysisProvider | None",
             },
             "output_contract": {
                 "analysis_provider": "dict[str, str]",
@@ -515,6 +522,8 @@ def build_transition_analysis_provider_runtime(
                 "job_name": "str | None",
                 "notes": "str",
                 "analysis": "dict[str, Any]",
+                "analysis_provider_runtime": "dict[str, Any]",
+                "analysis_provider_adapter": "dict[str, Any]",
             },
         },
     }

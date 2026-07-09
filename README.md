@@ -252,6 +252,7 @@ The richer analysis artifact also includes an `analysis_provider_runtime` block 
 The current default runtime adapter is `DeterministicTransitionAnalysisProvider`, and enabled model-backed configs select a `ModelBackedTransitionAnalysisProvider` skeleton that still delegates to the deterministic implementation for now.
 The end-to-end `flow` report also includes the same `analysis_provider_runtime` block so the selected adapter and execution mode are visible alongside the other run artifacts.
 It also mirrors the adapter block as `analysis_provider_adapter`, which makes the selected adapter explicit in the top-level run output too.
+That runtime block includes a `delegation` section that says whether the current execution path is deterministic or model-backed skeleton mode.
 
 Use `plan-job` to create a valid render job from prepared A/B inputs without hand-editing JSON:
 
