@@ -1740,6 +1740,7 @@ def _handle_flow(args, repo_root: Path, harness_root: Path, config_dir: Path, de
                     "demo_video_file": run_result.get("demo_video_file") if isinstance(run_result, dict) else None,
                 },
                 "analysis_artifact": analysis_artifact,
+                "analysis_model_execution_contract": report_data.data.get("analysis_model_execution_contract"),
                 "status": report_data.status,
                 "summary": report_data.summary,
                 "flow_root": str(flow_root),

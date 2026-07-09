@@ -27,6 +27,7 @@ Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retr
 - Versioned the model execution contract as `transition_analysis_model_execution` v1.
 - Added a structured model execution contract block to the provider runtime artifact.
 - Surfaced the model execution contract block in the top-level flow report.
+- Mirrored the model execution contract block into the printed flow summary JSON.
 
 ## Next Implementation Step
 
