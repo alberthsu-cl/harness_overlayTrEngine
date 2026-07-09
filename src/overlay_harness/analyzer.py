@@ -34,6 +34,76 @@ class TransitionAnalysisProvider(Protocol):
         """Return a transition hint that matches the current analyzer contract."""
 
 
+class DeterministicTransitionAnalysisProvider:
+    def analyze_transition(
+        self,
+        *,
+        repo_root: Path,
+        source_a: Path,
+        source_b: Path,
+        input_kind: str,
+        style_hint: str | None,
+        intent: str | None,
+        prefer_generated: bool,
+        reference_transition: Path | None,
+        job_name: str | None,
+        analyzer_inputs: dict[str, Any],
+    ) -> dict[str, Any]:
+        detected_input_kind = input_kind
+        if detected_input_kind == "auto":
+            detected_input_kind = infer_input_kind(repo_root, source_a, source_b)
+
+        source_a_signals = inspect_prepared_input(source_a)
+        source_b_signals = inspect_prepared_input(source_b)
+        pair_signals = summarize_pair_signals(source_a_signals, source_b_signals)
+
+        resolved_style_hint, reason = _resolve_style_hint(
+            style_hint=style_hint,
+            intent=intent,
+            prefer_generated=prefer_generated,
+            detected_input_kind=detected_input_kind,
+            pair_signals=pair_signals,
+        )
+
+        notes = f"Analyzer selected '{resolved_style_hint}' because {reason}."
+        if intent:
+            notes += f" Intent: {intent}"
+
+        return {
+            "analysis_provider": _build_transition_analysis_provider(
+                provider_kind=ANALYSIS_PROVIDER_KIND,
+                provider_name=ANALYSIS_PROVIDER_NAME,
+                provider_mode="deterministic",
+            ),
+            "style_hint": resolved_style_hint,
+            "input_kind": detected_input_kind,
+            "reference_transition": _format_optional_path(reference_transition, repo_root),
+            "job_name": job_name,
+            "notes": notes,
+            "analysis": {
+                "intent": intent,
+                "prefer_generated": prefer_generated,
+                "style_reason": reason,
+                "signals": pair_signals,
+            },
+        }
+
+
+def build_transition_analysis_provider_adapter(
+    request: dict[str, Any] | None = None,
+    configuration: dict[str, Any] | None = None,
+) -> TransitionAnalysisProvider:
+    resolved_kind = _normalize_provider_value(
+        request.get("kind") if isinstance(request, dict) else None,
+        ANALYSIS_PROVIDER_KIND,
+    )
+    if resolved_kind == ANALYSIS_PROVIDER_KIND:
+        return DeterministicTransitionAnalysisProvider()
+
+    _ = configuration
+    return DeterministicTransitionAnalysisProvider()
+
+
 def resolve_transition_analysis_provider(
     request: dict[str, Any] | None,
     configuration: dict[str, Any] | None = None,
@@ -196,45 +266,26 @@ def analyze_transition(
             provider_kind="model_backed",
             provider_name=provider_name,
         )
-
-    detected_input_kind = input_kind
-    if detected_input_kind == "auto":
-        detected_input_kind = infer_input_kind(repo_root, source_a, source_b)
-
-    source_a_signals = inspect_prepared_input(source_a)
-    source_b_signals = inspect_prepared_input(source_b)
-    pair_signals = summarize_pair_signals(source_a_signals, source_b_signals)
-
-    resolved_style_hint, reason = _resolve_style_hint(
+    execution_provider = build_transition_analysis_provider_adapter()
+    return execution_provider.analyze_transition(
+        repo_root=repo_root,
+        source_a=source_a,
+        source_b=source_b,
+        input_kind=input_kind,
         style_hint=style_hint,
         intent=intent,
         prefer_generated=prefer_generated,
-        detected_input_kind=detected_input_kind,
-        pair_signals=pair_signals,
-    )
-
-    notes = f"Analyzer selected '{resolved_style_hint}' because {reason}."
-    if intent:
-        notes += f" Intent: {intent}"
-
-    return {
-        "analysis_provider": _build_transition_analysis_provider(
-            provider_kind=ANALYSIS_PROVIDER_KIND,
-            provider_name=ANALYSIS_PROVIDER_NAME,
-            provider_mode="deterministic",
-        ),
-        "style_hint": resolved_style_hint,
-        "input_kind": detected_input_kind,
-        "reference_transition": _format_optional_path(reference_transition, repo_root),
-        "job_name": job_name,
-        "notes": notes,
-        "analysis": {
+        reference_transition=reference_transition,
+        job_name=job_name,
+        analyzer_inputs={
+            "input_kind": input_kind,
+            "style_hint": style_hint,
             "intent": intent,
             "prefer_generated": prefer_generated,
-            "style_reason": reason,
-            "signals": pair_signals,
+            "reference_transition": _format_optional_path(reference_transition, repo_root),
+            "job_name": job_name,
         },
-    }
+    )
 
 
 def build_transition_analysis_artifact(

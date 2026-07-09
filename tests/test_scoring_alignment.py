@@ -38,6 +38,7 @@ from overlay_harness.effect_catalog import build_effect_catalog_audit
 from overlay_harness.effect_catalog import load_effect_catalog
 from overlay_harness.effect_catalog import select_effect_candidate
 from overlay_harness.config import load_analysis_provider_config
+from overlay_harness.analyzer import build_transition_analysis_provider_adapter
 from overlay_harness.analyzer import analyze_transition
 from overlay_harness.analyzer import build_transition_analysis_artifact
 from overlay_harness.analyzer import derive_analyzer_inputs_from_metadata
@@ -1138,6 +1139,11 @@ class ScoringAlignmentTests(unittest.TestCase):
         with patch.dict(os.environ, {"HARNESS_ANALYSIS_PROVIDER_CONFIG": str(invalid_path)}):
             with self.assertRaises(ValueError):
                 load_analysis_provider_config(HARNESS_ROOT / "configs")
+
+    def test_default_analysis_provider_adapter_is_deterministic(self) -> None:
+        provider = build_transition_analysis_provider_adapter()
+
+        self.assertEqual(provider.__class__.__name__, "DeterministicTransitionAnalysisProvider")
 
     def _flow_command_persists_end_to_end_evaluation_summary(self) -> None:
         output_root = self.root / "flow_evaluation_output"

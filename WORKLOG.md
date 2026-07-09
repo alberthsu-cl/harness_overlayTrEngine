@@ -16,6 +16,7 @@ Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retr
 - Added env-backed override support for the analysis provider config contract.
 - Added schema validation for the analysis provider config contract.
 - Added a provider runtime contract block to the transition analysis artifact.
+- Added a deterministic default adapter class for the analysis provider entry point.
 
 ## Next Implementation Step
 
