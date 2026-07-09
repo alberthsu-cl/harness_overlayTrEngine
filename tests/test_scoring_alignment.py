@@ -1020,6 +1020,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         )
         self.assertEqual(stdout_payload["workspace_paths"]["demo_video_file"], str(run_result["demo_video_file"]))
         self.assertEqual(stdout_payload["analysis_provider_configuration_type"], "analysis_provider_config")
+        self.assertEqual(stdout_payload["analysis_provider_adapter"]["kind"], "deterministic_rules")
         self.assertEqual(stdout_payload["analysis_provider_resolution_status"], "fallback_to_deterministic")
         self.assertEqual(stdout_payload["analysis_provider_resolution_reason"], "model-backed provider configuration is loaded but provider execution is not yet implemented")
         self.assertEqual(stdout_payload["analysis_provider_runtime"]["configuration"]["loaded"], True)
