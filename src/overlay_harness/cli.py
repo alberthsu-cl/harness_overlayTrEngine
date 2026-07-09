@@ -1422,29 +1422,17 @@ def _handle_analyze_transition(args, repo_root: Path) -> int:
         print(f"analyze-transition failed: {exc}")
         return 1
 
+    analysis_provider_summary = _build_analysis_provider_artifact_summary(analysis_artifact)
     print(
         json.dumps(
             {
                 "hint_output": str(hint_output),
                 "analysis_output": str(analysis_output),
                 "analysis_artifact": analysis_artifact,
-                "analysis_provider_request": analysis_artifact.get("facts", {}).get("analysis_provider_request")
-                if isinstance(analysis_artifact, dict)
-                else None,
-                "analysis_provider_resolution": analysis_artifact.get("facts", {}).get("analysis_provider_resolution")
-                if isinstance(analysis_artifact, dict)
-                else None,
-                "analysis_provider_configuration": analysis_artifact.get("facts", {})
-                .get("analysis_provider_resolution", {})
-                .get("configuration")
-                if isinstance(analysis_artifact, dict)
-                else None,
-                "analysis_model_execution_contract": analysis_artifact.get("facts", {})
-                .get("analysis_provider_runtime", {})
-                .get("execution", {})
-                .get("model_execution_contract")
-                if isinstance(analysis_artifact, dict)
-                else None,
+                "analysis_provider_request": analysis_provider_summary["request"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_provider_resolution": analysis_provider_summary["resolution"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_provider_configuration": analysis_provider_summary["configuration"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_model_execution_contract": analysis_provider_summary["model_execution_contract"] if isinstance(analysis_provider_summary, dict) else None,
                 "comparison_output": str(comparison_output) if comparison_output is not None else None,
                 "style_hint": hint.get("style_hint"),
                 "input_kind": hint.get("input_kind"),
@@ -2513,6 +2501,28 @@ def _summarize_retrieval_fields(plan_data: dict | None) -> dict[str, object | No
     }
 
 
+def _build_analysis_provider_artifact_summary(analysis_artifact: dict | None) -> dict[str, Any] | None:
+    if not isinstance(analysis_artifact, dict):
+        return None
+
+    facts = analysis_artifact.get("facts")
+    if not isinstance(facts, dict):
+        return None
+
+    resolution = facts.get("analysis_provider_resolution")
+    runtime = facts.get("analysis_provider_runtime")
+    execution = runtime.get("execution") if isinstance(runtime, dict) else None
+
+    return {
+        "request": facts.get("analysis_provider_request"),
+        "resolution": resolution,
+        "configuration": resolution.get("configuration") if isinstance(resolution, dict) else None,
+        "runtime": runtime,
+        "adapter": runtime.get("adapter") if isinstance(runtime, dict) else None,
+        "model_execution_contract": execution.get("model_execution_contract") if isinstance(execution, dict) else None,
+    }
+
+
 def _build_flow_report(
     repo_root: Path,
     flow_root: Path,
@@ -2543,6 +2553,7 @@ def _build_flow_report(
     run_status = run_result.get("status") if isinstance(run_result, dict) else None
     run_summary = run_result.get("summary") if isinstance(run_result, dict) else None
     run_evaluation = run_result.get("evaluation") if isinstance(run_result, dict) else None
+    analysis_provider_summary = _build_analysis_provider_artifact_summary(analysis_artifact)
 
     status = _resolve_flow_status(flow_error, validation_valid, run_status)
     summary = _resolve_flow_summary(flow_error, validation_valid, run_summary, reference_result)
@@ -2616,36 +2627,12 @@ def _build_flow_report(
                 "issues": validation_issues,
             },
             "analysis_artifact": analysis_artifact,
-            "analysis_provider_request": (
-                analysis_artifact.get("facts", {}).get("analysis_provider_request")
-                if isinstance(analysis_artifact, dict)
-                else None
-            ),
-            "analysis_provider_resolution": (
-                analysis_artifact.get("facts", {}).get("analysis_provider_resolution")
-                if isinstance(analysis_artifact, dict)
-                else None
-            ),
-            "analysis_provider_configuration": (
-                analysis_artifact.get("facts", {}).get("analysis_provider_resolution", {}).get("configuration")
-                if isinstance(analysis_artifact, dict)
-                else None
-            ),
-            "analysis_provider_runtime": (
-                analysis_artifact.get("facts", {}).get("analysis_provider_runtime")
-                if isinstance(analysis_artifact, dict)
-                else None
-            ),
-            "analysis_provider_adapter": (
-                analysis_artifact.get("facts", {}).get("analysis_provider_runtime", {}).get("adapter")
-                if isinstance(analysis_artifact, dict)
-                else None
-            ),
-            "analysis_model_execution_contract": (
-                analysis_artifact.get("facts", {}).get("analysis_provider_runtime", {}).get("execution", {}).get("model_execution_contract")
-                if isinstance(analysis_artifact, dict)
-                else None
-            ),
+            "analysis_provider_request": analysis_provider_summary["request"] if isinstance(analysis_provider_summary, dict) else None,
+            "analysis_provider_resolution": analysis_provider_summary["resolution"] if isinstance(analysis_provider_summary, dict) else None,
+            "analysis_provider_configuration": analysis_provider_summary["configuration"] if isinstance(analysis_provider_summary, dict) else None,
+            "analysis_provider_runtime": analysis_provider_summary["runtime"] if isinstance(analysis_provider_summary, dict) else None,
+            "analysis_provider_adapter": analysis_provider_summary["adapter"] if isinstance(analysis_provider_summary, dict) else None,
+            "analysis_model_execution_contract": analysis_provider_summary["model_execution_contract"] if isinstance(analysis_provider_summary, dict) else None,
             "run": {
                 "status": run_status,
                 "summary": run_summary,

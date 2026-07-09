@@ -437,6 +437,17 @@ def analyze_transition(
     provider_configuration: dict[str, Any] | None = None,
     provider: TransitionAnalysisProvider | None = None,
 ) -> dict:
+    provider_request_data = provider_request or {
+        "kind": ANALYSIS_PROVIDER_KIND,
+        "name": ANALYSIS_PROVIDER_NAME,
+        "mode": "deterministic",
+    }
+    provider_resolution = resolve_transition_analysis_provider(provider_request_data, provider_configuration)
+    provider_runtime = build_transition_analysis_provider_runtime(
+        request=provider_request_data,
+        configuration=provider_configuration,
+        resolution=provider_resolution,
+    )
     if provider is not None:
         hint = provider.analyze_transition(
             repo_root=repo_root,
@@ -461,31 +472,40 @@ def analyze_transition(
         provider_name = "custom_provider"
         if isinstance(returned_provider, dict) and isinstance(returned_provider.get("name"), str):
             provider_name = returned_provider["name"]
-        return _attach_transition_analysis_provider(
+        hint = _attach_transition_analysis_provider(
             hint=hint,
             provider_kind="model_backed",
             provider_name=provider_name,
         )
-    execution_provider = build_transition_analysis_provider_adapter(provider_request, provider_configuration)
-    return execution_provider.analyze_transition(
-        repo_root=repo_root,
-        source_a=source_a,
-        source_b=source_b,
-        input_kind=input_kind,
-        style_hint=style_hint,
-        intent=intent,
-        prefer_generated=prefer_generated,
-        reference_transition=reference_transition,
-        job_name=job_name,
-        analyzer_inputs={
-            "input_kind": input_kind,
-            "style_hint": style_hint,
-            "intent": intent,
-            "prefer_generated": prefer_generated,
-            "reference_transition": _format_optional_path(reference_transition, repo_root),
-            "job_name": job_name,
-        },
-    )
+    else:
+        execution_provider = build_transition_analysis_provider_adapter(provider_request, provider_configuration)
+        hint = execution_provider.analyze_transition(
+            repo_root=repo_root,
+            source_a=source_a,
+            source_b=source_b,
+            input_kind=input_kind,
+            style_hint=style_hint,
+            intent=intent,
+            prefer_generated=prefer_generated,
+            reference_transition=reference_transition,
+            job_name=job_name,
+            analyzer_inputs={
+                "input_kind": input_kind,
+                "style_hint": style_hint,
+                "intent": intent,
+                "prefer_generated": prefer_generated,
+                "reference_transition": _format_optional_path(reference_transition, repo_root),
+                "job_name": job_name,
+            },
+        )
+    hint.setdefault("analysis", {})
+    hint["analysis_provider_request"] = provider_request_data
+    hint["analysis_provider_resolution"] = provider_resolution
+    hint["analysis_provider_configuration"] = provider_resolution["configuration"]
+    hint["analysis_provider_runtime"] = provider_runtime
+    hint["analysis_provider_adapter"] = provider_runtime["adapter"]
+    hint["analysis_model_execution_contract"] = provider_runtime["execution"]["model_execution_contract"]
+    return hint
 
 
 def build_transition_analysis_artifact(
