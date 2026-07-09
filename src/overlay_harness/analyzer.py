@@ -152,6 +152,15 @@ class DeterministicTransitionAnalysisProvider:
             ),
             "analysis_source": "transition_video",
             "transition_video": _format_optional_path(transition_video, repo_root),
+            "transition_summary": _build_transition_summary(
+                {
+                    "source_a": {},
+                    "source_b": {},
+                    "combined_motion_level": None,
+                    "combined_visual_energy": None,
+                    "detected_static_pair": None,
+                }
+            ),
             "transition_window": _build_transition_window_analysis(transition_window),
             "transition_progression": _build_transition_progression(transition_window),
             "style_hint": resolved_style_hint,
@@ -165,6 +174,15 @@ class DeterministicTransitionAnalysisProvider:
                 "style_reason": reason,
                 "signals": {
                     "transition_video": _format_optional_path(transition_video, repo_root),
+                    "transition_summary": _build_transition_summary(
+                        {
+                            "source_a": {},
+                            "source_b": {},
+                            "combined_motion_level": None,
+                            "combined_visual_energy": None,
+                            "detected_static_pair": None,
+                        }
+                    ),
                     "transition_window": _build_transition_window_analysis(transition_window),
                     "transition_progression": _build_transition_progression(transition_window),
                 },
@@ -362,6 +380,15 @@ class ModelBackedTransitionAnalysisProvider:
             inputs["transition_video"] = _format_optional_path(transition_video, repo_root)
         if transition_window is not None:
             inputs["transition_window"] = transition_window
+            inputs["transition_summary"] = _build_transition_summary(
+                {
+                    "source_a": {},
+                    "source_b": {},
+                    "combined_motion_level": None,
+                    "combined_visual_energy": None,
+                    "detected_static_pair": None,
+                }
+            )
             inputs["transition_progression"] = _build_transition_progression(transition_window)
 
         execution_contract = {
@@ -382,10 +409,12 @@ class ModelBackedTransitionAnalysisProvider:
             execution_contract["input_contract"] = {
                 "analysis_source": "transition_video",
                 "transition_video": "Path",
+                "transition_summary": "dict[str, Any] | None",
                 "transition_window": "dict[str, Any] | None",
                 "transition_progression": "dict[str, Any] | None",
             }
             execution_contract["result_contract"]["transition_video"] = "str | None"
+            execution_contract["result_contract"]["transition_summary"] = "dict[str, Any] | None"
             execution_contract["result_contract"]["transition_window"] = "dict[str, Any] | None"
             execution_contract["result_contract"]["transition_progression"] = "dict[str, Any] | None"
         else:
@@ -470,7 +499,7 @@ def _validate_model_execution_result(model_request: dict[str, Any], model_result
     analysis_source = inputs.get("analysis_source")
     hint = model_result["hint"]
     if analysis_source == "transition_video":
-        for field_name in ("analysis_source", "transition_video", "transition_window", "transition_progression"):
+        for field_name in ("analysis_source", "transition_video", "transition_summary", "transition_window", "transition_progression"):
             if field_name not in hint:
                 raise ValueError(f"model execution result hint.{field_name} is required for transition video analysis")
         if hint.get("analysis_source") != "transition_video":
@@ -818,6 +847,9 @@ def build_transition_analysis_artifact(
     hint: dict[str, Any],
 ) -> dict[str, Any]:
     signals = hint.get("analysis", {}).get("signals", {})
+    source_a_signals = inspect_prepared_input(source_a)
+    source_b_signals = inspect_prepared_input(source_b)
+    pair_signals = summarize_pair_signals(source_a_signals, source_b_signals)
     resolved_provider = hint.get("analysis_provider")
     provider_request = {
         "kind": analyzer_inputs.get("analysis_provider_kind") or ANALYSIS_PROVIDER_KIND,
@@ -865,10 +897,11 @@ def build_transition_analysis_artifact(
                 "analysis_engine": analyzer_inputs.get("analysis_engine", ANALYSIS_ENGINE),
                 "reference_transition": analyzer_inputs.get("reference_transition"),
                 "transition_video": analyzer_inputs.get("transition_video"),
+                "transition_summary": _build_transition_summary(pair_signals),
                 "transition_window": analyzer_inputs.get("transition_window"),
                 "transition_progression": _build_transition_progression(analyzer_inputs.get("transition_window")),
             },
-            "transition_summary": _build_transition_summary(signals),
+            "transition_summary": _build_transition_summary(pair_signals if analyzer_inputs.get("analysis_source") == "transition_video" else signals),
             "transition_window": analyzer_inputs.get("transition_window"),
             "transition_progression": _build_transition_progression(analyzer_inputs.get("transition_window")),
             "resolved": {
@@ -981,6 +1014,7 @@ def build_transition_analysis_provider_runtime(
                         "source_a": "prepared source A frame directory",
                         "source_b": "prepared source B frame directory",
                         "transition_video": "str | None",
+                        "transition_summary": "dict[str, Any] | None",
                         "transition_window": "dict[str, Any] | None",
                         "transition_progression": "dict[str, Any] | None",
                         "analysis_source": "str",
@@ -1004,6 +1038,7 @@ def build_transition_analysis_provider_runtime(
                     "notes": "str",
                     "analysis_source": "str",
                     "transition_video": "str | None",
+                    "transition_summary": "dict[str, Any] | None",
                     "transition_window": "dict[str, Any] | None",
                     "transition_progression": "dict[str, Any] | None",
                     "hint": "dict[str, Any]",
