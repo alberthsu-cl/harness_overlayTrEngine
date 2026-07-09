@@ -14,6 +14,7 @@ Milestone 7 will cover the retry and validation loop that makes generation robus
 
 ## Last Completed
 
+- Surfaced the provider runtime in command payloads and run reports.
 - Surfaced the provider adapter in command payloads and run reports.
 - Surfaced provider resolution status and config provenance in command payloads and run reports.
 - Surfaced the selected provider identity in provider summaries and top-level report payloads.
@@ -21,7 +22,6 @@ Milestone 7 will cover the retry and validation loop that makes generation robus
 - Surfaced the model execution enabled flag in provider summaries and top-level report payloads.
 - Surfaced the model execution mode in provider summaries and top-level report payloads.
 - Surfaced the model execution status in provider summaries and top-level report payloads.
-- Surfaced the model execution readiness flag in provider summaries and top-level report payloads.
 
 ## Next Implementation Step
 
