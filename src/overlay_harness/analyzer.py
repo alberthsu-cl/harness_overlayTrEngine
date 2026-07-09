@@ -98,6 +98,7 @@ class DeterministicTransitionAnalysisProvider:
                 provider_name=ANALYSIS_PROVIDER_NAME,
                 provider_mode="deterministic",
             ),
+            "analysis_source": "source_a_source_b",
             "style_hint": resolved_style_hint,
             "input_kind": detected_input_kind,
             "reference_transition": _format_optional_path(reference_transition, repo_root),
@@ -271,6 +272,7 @@ class ModelBackedTransitionAnalysisProvider:
             provider_name=self._resolved_name,
             provider_mode=model_result["execution_mode"],
         )
+        hint["analysis_source"] = "source_a_source_b"
         return hint
 
     def analyze_transition_video(
@@ -402,7 +404,7 @@ class ModelBackedTransitionAnalysisProvider:
     def invoke_model_execution(self, *, model_request: dict[str, Any]) -> dict[str, Any]:
         _validate_model_execution_request(model_request)
         model_result = self._model_executor.execute_model_request(model_request)
-        _validate_model_execution_result(model_result)
+        _validate_model_execution_result(model_request, model_result)
         return model_result
 
 
@@ -439,7 +441,7 @@ def _validate_model_execution_request(model_request: dict[str, Any]) -> None:
         raise ValueError("model execution request execution.result_contract is required")
 
 
-def _validate_model_execution_result(model_result: dict[str, Any]) -> None:
+def _validate_model_execution_result(model_request: dict[str, Any], model_result: dict[str, Any]) -> None:
     if not isinstance(model_result, dict):
         raise ValueError("model execution result must be a JSON object")
     for field_name in ("contract_type", "contract_version", "status", "execution_mode", "notes", "hint"):
@@ -451,6 +453,24 @@ def _validate_model_execution_result(model_result: dict[str, Any]) -> None:
         raise ValueError("model execution result contract_version must be a positive integer")
     if not isinstance(model_result.get("hint"), dict):
         raise ValueError("model execution result hint must be a JSON object")
+    if not isinstance(model_request, dict):
+        raise ValueError("model execution request must be a JSON object")
+
+    inputs = model_request.get("inputs")
+    if not isinstance(inputs, dict):
+        raise ValueError("model execution request inputs must be a JSON object")
+
+    analysis_source = inputs.get("analysis_source")
+    hint = model_result["hint"]
+    if analysis_source == "transition_video":
+        for field_name in ("analysis_source", "transition_video", "transition_window"):
+            if field_name not in hint:
+                raise ValueError(f"model execution result hint.{field_name} is required for transition video analysis")
+        if hint.get("analysis_source") != "transition_video":
+            raise ValueError("model execution result hint.analysis_source must be transition_video for transition video analysis")
+    else:
+        if "analysis_source" not in hint:
+            raise ValueError("model execution result hint.analysis_source is required")
 
 
 def build_transition_analysis_provider_adapter(

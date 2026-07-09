@@ -1345,6 +1345,7 @@ class ScoringAlignmentTests(unittest.TestCase):
                             "name": model_request["provider"]["name"],
                             "mode": "custom_model_execution",
                         },
+                        "analysis_source": "source_a_source_b",
                         "style_hint": "generated-noise",
                         "input_kind": model_request["inputs"]["input_kind"],
                         "reference_transition": model_request["inputs"]["reference_transition"],
@@ -1420,6 +1421,75 @@ class ScoringAlignmentTests(unittest.TestCase):
                     "prefer_generated": False,
                     "reference_transition": None,
                     "job_name": "invalid_model_executor_job",
+                },
+            )
+
+    def test_model_backed_video_executor_rejects_missing_video_fields(self) -> None:
+        class MissingVideoFieldsExecutor:
+            def execute_model_request(self, model_request):
+                return {
+                    "contract_type": "transition_analysis_model_execution",
+                    "contract_version": 1,
+                    "status": "custom_model_execution",
+                    "execution_mode": "custom_model_execution",
+                    "notes": "missing transition video fields",
+                    "hint": {
+                        "analysis_provider": {
+                            "kind": "model_backed",
+                            "name": model_request["provider"]["name"],
+                            "mode": "custom_model_execution",
+                        },
+                        "analysis_source": "source_a_source_b",
+                        "style_hint": "generated-noise",
+                        "input_kind": model_request["inputs"]["input_kind"],
+                        "reference_transition": model_request["inputs"]["reference_transition"],
+                        "job_name": model_request["inputs"]["job_name"],
+                        "notes": "missing transition video fields",
+                        "analysis": {
+                            "style_reason": "missing transition video fields",
+                            "model_execution": model_request,
+                        },
+                    },
+                }
+
+        provider = ModelBackedTransitionAnalysisProvider(
+            resolved_name="openai-transition-model",
+            model_executor=MissingVideoFieldsExecutor(),
+        )
+
+        with self.assertRaises(ValueError):
+            provider.analyze_transition_video(
+                repo_root=HARNESS_ROOT.parent,
+                transition_video=HARNESS_ROOT.parent / "harness/sample_glitch.mp4",
+                input_kind="auto",
+                style_hint=None,
+                intent="generated noise transition",
+                prefer_generated=False,
+                reference_transition=None,
+                job_name="invalid_transition_video_executor_job",
+                transition_window={
+                    "frame_count": 30,
+                    "detected_start_frame": 0,
+                    "detected_end_frame": 29,
+                    "detected_frame_count": 30,
+                    "message": "prepared",
+                },
+                analyzer_inputs={
+                    "input_kind": "auto",
+                    "style_hint": None,
+                    "intent": "generated noise transition",
+                    "prefer_generated": False,
+                    "reference_transition": None,
+                    "job_name": "invalid_transition_video_executor_job",
+                    "analysis_source": "transition_video",
+                    "transition_video": "harness/sample_glitch.mp4",
+                    "transition_window": {
+                        "frame_count": 30,
+                        "detected_start_frame": 0,
+                        "detected_end_frame": 29,
+                        "detected_frame_count": 30,
+                        "message": "prepared",
+                    },
                 },
             )
 
