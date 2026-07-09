@@ -1437,6 +1437,8 @@ def _handle_analyze_transition(args, repo_root: Path) -> int:
                 "analysis_model_execution_ready": analysis_provider_summary["model_execution_ready"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_model_execution_status": analysis_provider_summary["runtime"]["execution"]["implementation_status"] if isinstance(analysis_provider_summary, dict) and isinstance(analysis_provider_summary.get("runtime"), dict) and isinstance(analysis_provider_summary["runtime"].get("execution"), dict) else None,
                 "analysis_model_execution_mode": analysis_provider_summary["runtime"]["execution"]["execution_mode"] if isinstance(analysis_provider_summary, dict) and isinstance(analysis_provider_summary.get("runtime"), dict) and isinstance(analysis_provider_summary["runtime"].get("execution"), dict) else None,
+                "analysis_model_delegation_path": analysis_provider_summary["delegation_path"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_model_backed_requested": analysis_provider_summary["model_backed_requested"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_source": analysis_provider_summary["analysis_source"] if isinstance(analysis_provider_summary, dict) else None,
                 "transition_summary": analysis_provider_summary["transition_summary"] if isinstance(analysis_provider_summary, dict) else None,
                 "transition_video_analysis": analysis_provider_summary["transition_video_analysis"] if isinstance(analysis_provider_summary, dict) else None,
@@ -1978,6 +1980,8 @@ def _handle_sample_video(
                 "analysis_model_execution_ready": analysis_provider_summary["model_execution_ready"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_model_execution_status": analysis_provider_summary["implementation_status"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_model_execution_mode": analysis_provider_summary["execution_mode"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_model_delegation_path": analysis_provider_summary["delegation_path"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_model_backed_requested": analysis_provider_summary["model_backed_requested"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_source": analysis_provider_summary["analysis_source"] if isinstance(analysis_provider_summary, dict) else None,
                 "transition_summary": analysis_provider_summary["transition_summary"] if isinstance(analysis_provider_summary, dict) else None,
                 "transition_video_analysis": analysis_provider_summary["transition_video_analysis"] if isinstance(analysis_provider_summary, dict) else None,
@@ -2544,6 +2548,7 @@ def _build_analysis_provider_artifact_summary(analysis_artifact: dict | None) ->
     resolution = facts.get("analysis_provider_resolution")
     runtime = facts.get("analysis_provider_runtime")
     execution = runtime.get("execution") if isinstance(runtime, dict) else None
+    delegation = runtime.get("delegation") if isinstance(runtime, dict) else None
     transition_video_analysis = facts.get("transition_video_analysis")
 
     return {
@@ -2554,6 +2559,8 @@ def _build_analysis_provider_artifact_summary(analysis_artifact: dict | None) ->
         "model_execution_ready": runtime.get("delegation", {}).get("model_execution_ready") if isinstance(runtime, dict) else None,
         "implementation_status": execution.get("implementation_status") if isinstance(execution, dict) else None,
         "execution_mode": execution.get("execution_mode") if isinstance(execution, dict) else None,
+        "delegation_path": delegation.get("path") if isinstance(delegation, dict) else None,
+        "model_backed_requested": delegation.get("model_backed_requested") if isinstance(delegation, dict) else None,
         "adapter": runtime.get("adapter") if isinstance(runtime, dict) else None,
         "model_execution_contract": execution.get("model_execution_contract") if isinstance(execution, dict) else None,
         "analysis_source": facts.get("analysis_source"),
@@ -2678,6 +2685,8 @@ def _build_flow_report(
                 "analysis_model_execution_ready": analysis_provider_summary["model_execution_ready"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_model_execution_status": analysis_provider_summary["implementation_status"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_model_execution_mode": analysis_provider_summary["execution_mode"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_model_delegation_path": analysis_provider_summary["delegation_path"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_model_backed_requested": analysis_provider_summary["model_backed_requested"] if isinstance(analysis_provider_summary, dict) else None,
                 "analysis_source": analysis_provider_summary["analysis_source"] if isinstance(analysis_provider_summary, dict) else None,
                 "transition_summary": analysis_provider_summary["transition_summary"] if isinstance(analysis_provider_summary, dict) else None,
                 "transition_video_analysis": analysis_provider_summary["transition_video_analysis"] if isinstance(analysis_provider_summary, dict) else None,
