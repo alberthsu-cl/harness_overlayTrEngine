@@ -4,7 +4,13 @@ This file is the persistent session handoff for the `harness/` project. Keep it 
 
 ## Current Objective
 
-Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retrieval coverage is complete. Milestone 3 rule-based single-pass flow is stable. Milestone 4 is closed as the video-backed transition analysis/report path. Milestone 5 adds optional model-backed transition analysis while keeping the deterministic fallback and current report contracts stable.
+Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retrieval coverage is complete. Milestone 3 rule-based single-pass flow is stable. Milestone 4 is closed as the video-backed transition analysis/report path.
+
+Milestone 5 is now the model-inference phase for video analysis. It focuses on replacing the deterministic fallback with a real model-backed analysis path while keeping the current artifact contracts stable.
+
+Milestone 6 will cover model inference for compile-gated C++/HLSL generation.
+
+Milestone 7 will cover the retry and validation loop that makes generation robust.
 
 ## Last Completed
 
@@ -33,10 +39,11 @@ Milestone 1 acceptance is frozen in `MILESTONE1_ACCEPTANCE.md`. Milestone 2 retr
 - Attached the same provider summary to the `analyze-transition` result so downstream commands can reuse it directly.
 - Exposed the resolved analysis provider identity in the `sample-video` report and summary JSON.
 - Mirrored the provider request, resolution, configuration, and model contract fields into the analysis-driven `sample-video` report and summary JSON.
+- Centralized the analysis-provider summary extraction and reused it in `sample-video`.
 
 ## Next Implementation Step
 
-Define the first real model-backed provider implementation and its runtime contract.
+Define the first real model-backed provider implementation for video analysis and its runtime contract.
 
 1. Decide the first real model-backed provider implementation and its execution contract.
 2. Decide how the provider config should be supplied at runtime.

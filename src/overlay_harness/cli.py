@@ -1928,6 +1928,7 @@ def _handle_sample_video(
             if demo_video_path.exists():
                 output_video.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(demo_video_path, output_video)
+        analysis_provider_summary = _build_analysis_provider_artifact_summary(sample_hint)
         report = HarnessReport(
             status="succeeded" if isinstance(run_result, dict) and run_result.get("exit_code") == 0 else "failed",
             summary="sample video rendered" if isinstance(run_result, dict) and run_result.get("exit_code") == 0 else "sample video failed",
@@ -1956,10 +1957,10 @@ def _handle_sample_video(
                 "planning": planning,
                 "analysis": sample_hint,
                 "analysis_provider": sample_hint.get("analysis_provider") if isinstance(sample_hint, dict) else None,
-                "analysis_provider_request": sample_hint.get("analysis_provider_request") if isinstance(sample_hint, dict) else None,
-                "analysis_provider_resolution": sample_hint.get("analysis_provider_resolution") if isinstance(sample_hint, dict) else None,
-                "analysis_provider_configuration": sample_hint.get("analysis_provider_configuration") if isinstance(sample_hint, dict) else None,
-                "analysis_model_execution_contract": sample_hint.get("analysis_model_execution_contract") if isinstance(sample_hint, dict) else None,
+                "analysis_provider_request": analysis_provider_summary["request"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_provider_resolution": analysis_provider_summary["resolution"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_provider_configuration": analysis_provider_summary["configuration"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_model_execution_contract": analysis_provider_summary["model_execution_contract"] if isinstance(analysis_provider_summary, dict) else None,
                 "sample_context": _build_sample_video_context(
                     source_a=source_a,
                     source_b=source_b,
@@ -1988,10 +1989,10 @@ def _handle_sample_video(
                 "planning": planning,
                 "analysis": sample_hint,
                 "analysis_provider": sample_hint.get("analysis_provider") if isinstance(sample_hint, dict) else None,
-                "analysis_provider_request": sample_hint.get("analysis_provider_request") if isinstance(sample_hint, dict) else None,
-                "analysis_provider_resolution": sample_hint.get("analysis_provider_resolution") if isinstance(sample_hint, dict) else None,
-                "analysis_provider_configuration": sample_hint.get("analysis_provider_configuration") if isinstance(sample_hint, dict) else None,
-                "analysis_model_execution_contract": sample_hint.get("analysis_model_execution_contract") if isinstance(sample_hint, dict) else None,
+                "analysis_provider_request": analysis_provider_summary["request"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_provider_resolution": analysis_provider_summary["resolution"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_provider_configuration": analysis_provider_summary["configuration"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_model_execution_contract": analysis_provider_summary["model_execution_contract"] if isinstance(analysis_provider_summary, dict) else None,
                 "sample_context": _build_sample_video_context(
                     source_a=source_a,
                     source_b=source_b,
@@ -2028,10 +2029,10 @@ def _handle_sample_video(
                     repo_root=repo_root,
                 ),
                 "analysis_provider": sample_hint.get("analysis_provider") if isinstance(sample_hint, dict) else None,
-                "analysis_provider_request": sample_hint.get("analysis_provider_request") if isinstance(sample_hint, dict) else None,
-                "analysis_provider_resolution": sample_hint.get("analysis_provider_resolution") if isinstance(sample_hint, dict) else None,
-                "analysis_provider_configuration": sample_hint.get("analysis_provider_configuration") if isinstance(sample_hint, dict) else None,
-                "analysis_model_execution_contract": sample_hint.get("analysis_model_execution_contract") if isinstance(sample_hint, dict) else None,
+                "analysis_provider_request": analysis_provider_summary["request"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_provider_resolution": analysis_provider_summary["resolution"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_provider_configuration": analysis_provider_summary["configuration"] if isinstance(analysis_provider_summary, dict) else None,
+                "analysis_model_execution_contract": analysis_provider_summary["model_execution_contract"] if isinstance(analysis_provider_summary, dict) else None,
                 "status": report.status,
                 "summary": report.summary,
             },
