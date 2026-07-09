@@ -1368,6 +1368,7 @@ class ScoringAlignmentTests(unittest.TestCase):
                     "status": "custom_model_execution",
                     "execution_mode": "custom_model_execution",
                     "notes": "custom executor override used",
+                    "executor_source": model_request["inputs"]["executor_source"],
                     "hint": {
                         "analysis_source": model_request["inputs"]["analysis_source"],
                         "style_hint": "generated-noise",
@@ -1402,6 +1403,7 @@ class ScoringAlignmentTests(unittest.TestCase):
                         },
                         "inputs": {
                             "repo_root": str(HARNESS_ROOT.parent),
+                            "executor_source": "env:test_transition_model_executor_override:build_executor",
                             "analysis_source": "source_a_source_b",
                             "input_kind": "auto",
                             "style_hint": None,
@@ -1425,6 +1427,7 @@ class ScoringAlignmentTests(unittest.TestCase):
                             "contract_version": 1,
                             "expected_status": "delegated_to_deterministic_fallback",
                             "result_contract": {
+                                "executor_source": "str",
                                 "analysis_source": "str",
                                 "style_hint": "str",
                                 "input_kind": "str",
@@ -1442,7 +1445,61 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(executor.__class__.__name__, "CustomExecutor")
         self.assertEqual(model_result["status"], "custom_model_execution")
         self.assertEqual(model_result["execution_mode"], "custom_model_execution")
+        self.assertEqual(model_result["executor_source"], "env:test_transition_model_executor_override:build_executor")
         self.assertEqual(model_result["hint"]["analysis"]["style_reason"], "custom executor override used")
+
+    def test_model_executor_env_hook_reports_source(self) -> None:
+        with patch.dict(os.environ, {}, clear=False):
+            executor = build_transition_model_executor()
+            model_result = executor.execute_model_request(
+                {
+                    "contract_type": "transition_analysis_model_execution",
+                    "contract_version": 1,
+                    "provider": {
+                        "kind": "model_backed",
+                        "name": "openai-transition-model",
+                        "mode": "vision",
+                    },
+                    "inputs": {
+                        "repo_root": str(HARNESS_ROOT.parent),
+                        "executor_source": "default:DeterministicTransitionModelExecutor",
+                        "analysis_source": "source_a_source_b",
+                        "input_kind": "auto",
+                        "style_hint": None,
+                        "intent": "generated glitch transition",
+                        "prefer_generated": False,
+                        "reference_transition": None,
+                        "job_name": "source_report_executor_job",
+                        "source_a": str(HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"),
+                        "source_b": str(HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"),
+                    },
+                    "analyzer_inputs": {
+                        "input_kind": "auto",
+                        "style_hint": None,
+                        "intent": "generated glitch transition",
+                        "prefer_generated": False,
+                        "reference_transition": None,
+                        "job_name": "source_report_executor_job",
+                    },
+                    "execution": {
+                        "contract_type": "transition_analysis_model_execution",
+                        "contract_version": 1,
+                        "expected_status": "delegated_to_deterministic_fallback",
+                        "result_contract": {
+                            "executor_source": "str",
+                            "analysis_source": "str",
+                            "style_hint": "str",
+                            "input_kind": "str",
+                            "reference_transition": "str | None",
+                            "job_name": "str | None",
+                            "notes": "str",
+                            "analysis": "dict[str, Any]",
+                        },
+                    },
+                }
+            )
+
+        self.assertEqual(model_result["executor_source"], "default:DeterministicTransitionModelExecutor")
 
     def test_model_executor_env_hook_rejects_invalid_target(self) -> None:
         with patch.dict(os.environ, {"HARNESS_TRANSITION_MODEL_EXECUTOR": "invalid-target"}):
@@ -1462,6 +1519,7 @@ class ScoringAlignmentTests(unittest.TestCase):
                 },
                 "inputs": {
                     "repo_root": str(HARNESS_ROOT.parent),
+                    "executor_source": "default:DeterministicTransitionModelExecutor",
                     "source_a": str(HARNESS_ROOT.parent / "harness/examples/inputs/source_a_real"),
                     "source_b": str(HARNESS_ROOT.parent / "harness/examples/inputs/source_b_real"),
                     "input_kind": "auto",
@@ -1484,6 +1542,7 @@ class ScoringAlignmentTests(unittest.TestCase):
                     "contract_version": 1,
                     "expected_status": "delegated_to_deterministic_fallback",
                     "result_contract": {
+                        "executor_source": "str",
                         "style_hint": "str",
                         "input_kind": "str",
                         "reference_transition": "str | None",
@@ -1499,6 +1558,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(model_result["contract_version"], 1)
         self.assertEqual(model_result["status"], "delegated_to_deterministic_fallback")
         self.assertEqual(model_result["execution_mode"], "pending_model_execution")
+        self.assertEqual(model_result["executor_source"], "default:DeterministicTransitionModelExecutor")
         self.assertIn("hint", model_result)
 
     def test_enabled_model_backed_config_selects_model_backed_adapter(self) -> None:
@@ -1604,6 +1664,7 @@ class ScoringAlignmentTests(unittest.TestCase):
                     "status": "custom_model_execution",
                     "execution_mode": "custom_model_execution",
                     "notes": "custom executor boundary used",
+                    "executor_source": model_request["inputs"]["executor_source"],
                     "hint": {
                         "analysis_provider": {
                             "kind": "model_backed",
@@ -1653,6 +1714,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(hint["analysis"]["model_execution_mode"], "custom_model_execution")
         self.assertEqual(hint["analysis"]["model_execution"]["request"]["provider"]["name"], "openai-transition-model")
         self.assertEqual(hint["analysis"]["model_execution"]["status"], "custom_model_execution")
+        self.assertEqual(hint["analysis"]["model_execution"]["request"]["inputs"]["executor_source"], "default:DeterministicTransitionModelExecutor")
 
     def test_model_backed_provider_rejects_invalid_executor_result(self) -> None:
         class InvalidExecutor:

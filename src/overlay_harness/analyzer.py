@@ -250,6 +250,7 @@ class DeterministicTransitionModelExecutor:
             "status": "delegated_to_deterministic_fallback",
             "execution_mode": "pending_model_execution",
             "notes": "model execution boundary is stubbed and delegates to deterministic analysis",
+            "executor_source": model_request.get("inputs", {}).get("executor_source"),
             "hint": hint,
         }
 
@@ -390,6 +391,7 @@ class ModelBackedTransitionAnalysisProvider:
     ) -> dict[str, Any]:
         inputs: dict[str, Any] = {
             "repo_root": str(repo_root),
+            "executor_source": _describe_transition_model_executor_source(),
             "analysis_source": analysis_source,
             "input_kind": input_kind,
             "style_hint": style_hint,
@@ -430,6 +432,7 @@ class ModelBackedTransitionAnalysisProvider:
             "contract_version": MODEL_EXECUTION_CONTRACT_VERSION,
             "expected_status": "delegated_to_deterministic_fallback",
             "result_contract": {
+                "executor_source": "str",
                 "analysis_source": "str",
                 "style_hint": "str",
                 "input_kind": "str",
@@ -485,6 +488,13 @@ def build_transition_model_executor() -> TransitionModelExecutor:
     return DeterministicTransitionModelExecutor()
 
 
+def _describe_transition_model_executor_source() -> str:
+    executor_spec = os.environ.get("HARNESS_TRANSITION_MODEL_EXECUTOR")
+    if executor_spec:
+        return f"env:{executor_spec}"
+    return "default:DeterministicTransitionModelExecutor"
+
+
 def _load_transition_model_executor(executor_spec: str) -> TransitionModelExecutor:
     module_name: str
     attribute_name: str
@@ -520,7 +530,7 @@ def _validate_model_execution_request(model_request: dict[str, Any]) -> None:
         value = provider.get(field_name)
         if not isinstance(value, str) or not value:
             raise ValueError(f"model execution request provider.{field_name} must be a non-empty string")
-    for field_name in ("repo_root", "analysis_source", "input_kind", "prefer_generated", "job_name"):
+    for field_name in ("repo_root", "executor_source", "analysis_source", "input_kind", "prefer_generated", "job_name"):
         if field_name not in inputs:
             raise ValueError(f"model execution request inputs.{field_name} is required")
     analysis_source = inputs.get("analysis_source")
@@ -539,7 +549,7 @@ def _validate_model_execution_request(model_request: dict[str, Any]) -> None:
 def _validate_model_execution_result(model_request: dict[str, Any], model_result: dict[str, Any]) -> None:
     if not isinstance(model_result, dict):
         raise ValueError("model execution result must be a JSON object")
-    for field_name in ("contract_type", "contract_version", "status", "execution_mode", "notes", "hint"):
+    for field_name in ("contract_type", "contract_version", "status", "execution_mode", "notes", "executor_source", "hint"):
         if field_name not in model_result:
             raise ValueError(f"model execution result {field_name} is required")
     if model_result.get("contract_type") != MODEL_EXECUTION_CONTRACT_TYPE:
