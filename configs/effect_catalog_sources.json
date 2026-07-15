@@ -456,6 +456,26 @@
         "overlaytrengine/OverlayTrPlugInFx/TrGlitch.cpp",
         "overlaytrengine/OverlayTrPlugInFx/TrGlitchInfoManager.cpp"
       ]
+    },
+    {
+      "effect_id": "generated-dissolve-01",
+      "mode": "generated-dissolve-01",
+      "effect_source": "generated",
+      "family": "seamless",
+      "fx_id": "ModelGenerated\\Dissolve_01",
+      "fallback_fx_id": "ModelGenerated\\Dissolve_01",
+      "style_hints": [
+        "generated-dissolve",
+        "dissolve",
+        "crossfade"
+      ],
+      "retrieval_priority": 20,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrGeneratedDissolve.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrGeneratedDissolve_ps.hlsl"
+      ]
     }
   ]
 }
