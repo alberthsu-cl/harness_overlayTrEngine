@@ -476,6 +476,26 @@
         "overlaytrengine/OverlayTrPlugInFx/TrGeneratedDissolve.cpp",
         "overlaytrengine/OverlayTrPlugInFx/TrGeneratedDissolve_ps.hlsl"
       ]
+    },
+    {
+      "effect_id": "generated-seamless-sliding-01",
+      "mode": "generated-seamless-sliding-01",
+      "effect_source": "generated",
+      "family": "seamless_slide",
+      "fx_id": "ModelGenerated\\SeamlessSliding_01",
+      "fallback_fx_id": "ModelGenerated\\SeamlessSliding_01",
+      "style_hints": [
+        "generated-seamless-sliding",
+        "seamless_slide",
+        "sliding"
+      ],
+      "retrieval_priority": 20,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrModelGeneratedSeamlessSliding01.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrModelGeneratedSeamlessSliding01_ps.hlsl"
+      ]
     }
   ]
 }

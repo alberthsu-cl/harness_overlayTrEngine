@@ -460,9 +460,9 @@
     {
       "effect_id": "generated-dissolve-01",
       "effect_source": "generated",
-      "fallback_fx_id": "CES_PlugIn_Generated.dll\\DSP_TR_GeneratedDissolve_01",
+      "fallback_fx_id": "ModelGenerated\\Dissolve_01",
       "family": "seamless",
-      "fx_id": "CES_PlugIn_Generated.dll\\DSP_TR_GeneratedDissolve_01",
+      "fx_id": "ModelGenerated\\Dissolve_01",
       "mode": "generated-dissolve-01",
       "retrieval_priority": 20,
       "source_documents": [
@@ -476,9 +476,29 @@
         "dissolve",
         "crossfade"
       ]
+    },
+    {
+      "effect_id": "generated-seamless-sliding-01",
+      "effect_source": "generated",
+      "fallback_fx_id": "ModelGenerated\\SeamlessSliding_01",
+      "family": "seamless_slide",
+      "fx_id": "ModelGenerated\\SeamlessSliding_01",
+      "mode": "generated-seamless-sliding-01",
+      "retrieval_priority": 20,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrModelGeneratedSeamlessSliding01.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrModelGeneratedSeamlessSliding01_ps.hlsl"
+      ],
+      "style_hints": [
+        "generated-seamless-sliding",
+        "seamless_slide",
+        "sliding"
+      ]
     }
   ],
-  "registration_count": 25,
+  "registration_count": 26,
   "retrieval_index": {
     "app-swipe": "builtin-ui-app-swipe",
     "blur": "builtin-blur",
@@ -538,7 +558,7 @@
     "upgrow": "builtin-blur-upgrow"
   },
   "source_manifest": "harness/configs/effect_catalog_sources.json",
-  "source_manifest_sha256": "10a4363fc5794cf7016b939064bdd33721d47cc7c7f2b08c373339ec1ba618c5",
+  "source_manifest_sha256": "63d17619dcad83d67bc68c30a6e0c6bbefcb869128eb57bc917a8ce2558ce3e9",
   "source_manifest_version": 1,
   "source_root": "harness"
 }
