@@ -308,6 +308,7 @@ def score_optical_flow_motion(
     total_vector_error = 0.0
     total_direction_agreement = 0.0
     total_region_iou = 0.0
+    total_reliable_coverage = 0.0
     for offset in range(1, len(candidate_gray)):
         candidate_flow = cv2_module.calcOpticalFlowFarneback(
             candidate_gray[offset - 1], candidate_gray[offset], None, 0.5, 3, 21, 3, 5, 1.2, 0
@@ -315,7 +316,21 @@ def score_optical_flow_motion(
         reference_flow = cv2_module.calcOpticalFlowFarneback(
             reference_gray[offset - 1], reference_gray[offset], None, 0.5, 3, 21, 3, 5, 1.2, 0
         )
-        pair = _score_flow_pair(candidate_flow, reference_flow, motion_threshold, cv2_module, numpy_module)
+        candidate_backward_flow = cv2_module.calcOpticalFlowFarneback(
+            candidate_gray[offset], candidate_gray[offset - 1], None, 0.5, 3, 21, 3, 5, 1.2, 0
+        )
+        reference_backward_flow = cv2_module.calcOpticalFlowFarneback(
+            reference_gray[offset], reference_gray[offset - 1], None, 0.5, 3, 21, 3, 5, 1.2, 0
+        )
+        pair = _score_flow_pair(
+            candidate_flow,
+            reference_flow,
+            motion_threshold,
+            cv2_module,
+            numpy_module,
+            candidate_reliable=_flow_reliability_mask(candidate_flow, candidate_backward_flow, cv2_module, numpy_module),
+            reference_reliable=_flow_reliability_mask(reference_flow, reference_backward_flow, cv2_module, numpy_module),
+        )
         pair["from_frame"] = frame_start + offset - 1
         pair["to_frame"] = frame_start + offset
         pairs.append(pair)
@@ -324,6 +339,7 @@ def score_optical_flow_motion(
         total_vector_error += float(pair["vector_mae"]) * active_pixels
         total_direction_agreement += float(pair["direction_agreement"]) * active_pixels
         total_region_iou += float(pair["motion_region_iou"])
+        total_reliable_coverage += float(pair["reliable_motion_coverage"])
 
     if total_active_pixels:
         vector_mae = total_vector_error / total_active_pixels
@@ -342,8 +358,80 @@ def score_optical_flow_motion(
         "flow_vector_mae": vector_mae,
         "direction_agreement": direction_agreement,
         "motion_region_iou": region_iou,
+        "reliable_motion_coverage": total_reliable_coverage / len(pairs),
         "motion_similarity": motion_similarity,
         "pairs": pairs,
+    }
+
+
+def create_motion_visualizations(
+    candidate: Path,
+    reference: Path,
+    output_dir: Path,
+    width: int,
+    height: int,
+    frame_start: int,
+    frame_end: int,
+    ffmpeg_path: str | None = None,
+    analysis_width: int = 320,
+    analysis_height: int = 180,
+) -> dict[str, Any]:
+    """Write reference, candidate, and vector-error flow panels for review."""
+    try:
+        import cv2  # type: ignore[import-not-found]
+        import numpy  # type: ignore[import-not-found]
+    except ImportError:
+        return {"status": "skipped", "message": "OpenCV and NumPy are required for motion visualizations"}
+    if frame_start < 0 or frame_end <= frame_start:
+        raise ValueError("motion visualization requires a window containing at least two frames")
+
+    candidate_frames = discover_frames(candidate)
+    reference_frames = discover_frames(reference)
+    if frame_end >= len(candidate_frames) or frame_end >= len(reference_frames):
+        raise ValueError("motion visualization window exceeds candidate or reference frame count")
+    resolved_width = min(width, analysis_width)
+    resolved_height = min(height, analysis_height)
+    ffmpeg_executable = ffmpeg_path or shutil.which("ffmpeg")
+    candidate_gray = _decode_grayscale_frames(
+        candidate_frames, frame_start, frame_end, resolved_width, resolved_height, ffmpeg_executable, cv2, numpy
+    )
+    reference_gray = _decode_grayscale_frames(
+        reference_frames, frame_start, frame_end, resolved_width, resolved_height, ffmpeg_executable, cv2, numpy
+    )
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for frame in output_dir.glob("frame_*.png"):
+        frame.unlink()
+    frames: list[str] = []
+    for offset in range(1, len(candidate_gray)):
+        candidate_flow = cv2.calcOpticalFlowFarneback(
+            candidate_gray[offset - 1], candidate_gray[offset], None, 0.5, 3, 21, 3, 5, 1.2, 0
+        )
+        reference_flow = cv2.calcOpticalFlowFarneback(
+            reference_gray[offset - 1], reference_gray[offset], None, 0.5, 3, 21, 3, 5, 1.2, 0
+        )
+        panel = numpy.hstack(
+            (
+                _flow_to_rgb(reference_flow, cv2, numpy),
+                _flow_to_rgb(candidate_flow, cv2, numpy),
+                _flow_error_to_rgb(candidate_flow, reference_flow, cv2, numpy),
+            )
+        )
+        cv2.putText(panel, "Reference flow", (8, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+        cv2.putText(panel, "Candidate flow", (resolved_width + 8, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+        cv2.putText(panel, "Vector error", (resolved_width * 2 + 8, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+        frame_file = output_dir / f"frame_{offset - 1:04d}.png"
+        if not cv2.imwrite(str(frame_file), cv2.cvtColor(panel, cv2.COLOR_RGB2BGR)):
+            raise RuntimeError(f"could not write motion visualization: {frame_file}")
+        frames.append(str(frame_file))
+    return {
+        "status": "succeeded",
+        "scorer": "opencv_farneback_dense_flow",
+        "output_dir": str(output_dir),
+        "frame_count": len(frames),
+        "analysis_width": resolved_width,
+        "analysis_height": resolved_height,
+        "frames": frames,
     }
 
 
@@ -371,11 +459,17 @@ def _score_flow_pair(
     motion_threshold: float,
     cv2_module: Any,
     numpy_module: Any,
+    candidate_reliable: Any | None = None,
+    reference_reliable: Any | None = None,
 ) -> dict[str, Any]:
     candidate_magnitude, _ = cv2_module.cartToPolar(candidate_flow[..., 0], candidate_flow[..., 1])
     reference_magnitude, _ = cv2_module.cartToPolar(reference_flow[..., 0], reference_flow[..., 1])
     candidate_active = candidate_magnitude >= motion_threshold
     reference_active = reference_magnitude >= motion_threshold
+    if candidate_reliable is not None:
+        candidate_active = numpy_module.logical_and(candidate_active, candidate_reliable)
+    if reference_reliable is not None:
+        reference_active = numpy_module.logical_and(reference_active, reference_reliable)
     active = numpy_module.logical_or(candidate_active, reference_active)
     active_pixel_count = int(numpy_module.count_nonzero(active))
     pixel_count = int(active.size)
@@ -383,6 +477,7 @@ def _score_flow_pair(
         return {
             "active_pixel_count": 0,
             "active_motion_coverage": 0.0,
+            "reliable_motion_coverage": 0.0,
             "vector_mae": 0.0,
             "direction_agreement": 1.0,
             "motion_region_iou": 1.0,
@@ -408,6 +503,7 @@ def _score_flow_pair(
     return {
         "active_pixel_count": active_pixel_count,
         "active_motion_coverage": active_pixel_count / pixel_count,
+        "reliable_motion_coverage": active_pixel_count / pixel_count,
         "vector_mae": vector_mae,
         "direction_agreement": direction_agreement,
         "motion_region_iou": motion_region_iou,
@@ -416,12 +512,47 @@ def _score_flow_pair(
     }
 
 
+def _flow_reliability_mask(forward_flow: Any, backward_flow: Any, cv2_module: Any, numpy_module: Any) -> Any:
+    height, width = forward_flow.shape[:2]
+    grid_x, grid_y = numpy_module.meshgrid(
+        numpy_module.arange(width, dtype=numpy_module.float32),
+        numpy_module.arange(height, dtype=numpy_module.float32),
+    )
+    backward_at_destination = cv2_module.remap(
+        backward_flow,
+        grid_x + forward_flow[..., 0],
+        grid_y + forward_flow[..., 1],
+        cv2_module.INTER_LINEAR,
+        borderMode=cv2_module.BORDER_CONSTANT,
+    )
+    consistency_error = numpy_module.linalg.norm(forward_flow + backward_at_destination, axis=2)
+    magnitude = numpy_module.linalg.norm(forward_flow, axis=2)
+    return consistency_error <= (0.5 + 0.15 * magnitude)
+
+
 def _count_motion_regions(mask: Any, cv2_module: Any, numpy_module: Any) -> int:
     labels, _, stats, _ = cv2_module.connectedComponentsWithStats(
         mask.astype(numpy_module.uint8), connectivity=8
     )
     minimum_area = max(4, int(mask.size * 0.0025))
     return sum(int(area) >= minimum_area for area in stats[1:, cv2_module.CC_STAT_AREA])
+
+
+def _flow_to_rgb(flow: Any, cv2_module: Any, numpy_module: Any) -> Any:
+    magnitude, angle = cv2_module.cartToPolar(flow[..., 0], flow[..., 1], angleInDegrees=True)
+    maximum = max(float(numpy_module.percentile(magnitude, 95)), 1.0)
+    hsv = numpy_module.zeros((*magnitude.shape, 3), dtype=numpy_module.uint8)
+    hsv[..., 0] = (angle / 2).astype(numpy_module.uint8)
+    hsv[..., 1] = 255
+    hsv[..., 2] = numpy_module.clip(magnitude * (255.0 / maximum), 0, 255).astype(numpy_module.uint8)
+    return cv2_module.cvtColor(hsv, cv2_module.COLOR_HSV2RGB)
+
+
+def _flow_error_to_rgb(candidate_flow: Any, reference_flow: Any, cv2_module: Any, numpy_module: Any) -> Any:
+    error = numpy_module.linalg.norm(candidate_flow - reference_flow, axis=2)
+    maximum = max(float(numpy_module.percentile(error, 95)), 1.0)
+    normalized = numpy_module.clip(error * (255.0 / maximum), 0, 255).astype(numpy_module.uint8)
+    return cv2_module.cvtColor(cv2_module.applyColorMap(normalized, cv2_module.COLORMAP_TURBO), cv2_module.COLOR_BGR2RGB)
 
 
 def discover_frames(path: Path) -> list[Path]:
@@ -443,6 +574,10 @@ def discover_frames(path: Path) -> list[Path]:
 def decode_frame_rgb(ffmpeg_executable: str | None, frame_path: Path, width: int, height: int) -> bytes:
     if frame_path.suffix.lower() == ".bmp":
         return decode_bmp_rgb(frame_path, width, height)
+
+    decoded_with_opencv = _decode_frame_rgb_opencv(frame_path, width, height)
+    if decoded_with_opencv is not None:
+        return decoded_with_opencv
 
     if not ffmpeg_executable:
         raise RuntimeError("ffmpeg is required for scoring non-BMP frames but was not found on PATH")
@@ -476,6 +611,20 @@ def decode_frame_rgb(ffmpeg_executable: str | None, frame_path: Path, width: int
         )
 
     return completed.stdout
+
+
+def _decode_frame_rgb_opencv(frame_path: Path, width: int, height: int) -> bytes | None:
+    """Use in-process decoding when OpenCV is available; retain FFmpeg fallback."""
+    try:
+        import cv2  # type: ignore[import-not-found]
+    except ImportError:
+        return None
+    image = cv2.imread(str(frame_path), cv2.IMREAD_COLOR)
+    if image is None:
+        return None
+    if image.shape[1] != width or image.shape[0] != height:
+        image = cv2.resize(image, (width, height), interpolation=cv2.INTER_AREA)
+    return cv2.cvtColor(image, cv2.COLOR_BGR2RGB).tobytes()
 
 
 def decode_bmp_rgb(frame_path: Path, width: int, height: int) -> bytes:
@@ -566,6 +715,12 @@ def _motion_direction(shift: int) -> int:
 def score_rgb_buffers(candidate_rgb: bytes, reference_rgb: bytes, width: int, height: int) -> dict[str, float | int | None]:
     if len(candidate_rgb) != len(reference_rgb):
         raise ValueError("candidate and reference buffers must have the same size")
+    try:
+        import numpy  # type: ignore[import-not-found]
+    except ImportError:
+        numpy = None
+    if numpy is not None:
+        return _score_rgb_buffers_numpy(candidate_rgb, reference_rgb, width, height, numpy)
 
     squared_error = 0
     absolute_error = 0
@@ -599,6 +754,49 @@ def score_rgb_buffers(candidate_rgb: bytes, reference_rgb: bytes, width: int, he
         reference_luma_sq_sum,
         product_sum,
         pixel_count,
+    )
+    return {
+        "squared_error": squared_error,
+        "absolute_error": absolute_error,
+        "mse": mse,
+        "mae": mae,
+        "psnr_db": calculate_psnr(mse),
+        "ssim": ssim,
+    }
+
+
+def _score_rgb_buffers_numpy(
+    candidate_rgb: bytes,
+    reference_rgb: bytes,
+    width: int,
+    height: int,
+    numpy_module: Any,
+) -> dict[str, float | int | None]:
+    candidate = numpy_module.frombuffer(candidate_rgb, dtype=numpy_module.uint8).reshape((-1, 3)).astype(numpy_module.float64)
+    reference = numpy_module.frombuffer(reference_rgb, dtype=numpy_module.uint8).reshape((-1, 3)).astype(numpy_module.float64)
+    delta = candidate - reference
+    squared_error = float(numpy_module.square(delta).sum())
+    absolute_error = float(numpy_module.abs(delta).sum())
+    candidate_luma = candidate @ numpy_module.array((0.299, 0.587, 0.114))
+    reference_luma = reference @ numpy_module.array((0.299, 0.587, 0.114))
+    pixel_count = width * height
+    sample_count = pixel_count * 3
+    mse = squared_error / sample_count
+    mae = absolute_error / sample_count
+    candidate_mean = float(candidate_luma.mean())
+    reference_mean = float(reference_luma.mean())
+    candidate_variance = float(numpy_module.mean(numpy_module.square(candidate_luma)) - candidate_mean * candidate_mean)
+    reference_variance = float(numpy_module.mean(numpy_module.square(reference_luma)) - reference_mean * reference_mean)
+    covariance = float(numpy_module.mean(candidate_luma * reference_luma) - candidate_mean * reference_mean)
+    c1 = 6.5025
+    c2 = 58.5225
+    denominator = (candidate_mean * candidate_mean + reference_mean * reference_mean + c1) * (
+        candidate_variance + reference_variance + c2
+    )
+    ssim = (
+        ((2 * candidate_mean * reference_mean + c1) * (2 * covariance + c2)) / denominator
+        if denominator
+        else None
     )
     return {
         "squared_error": squared_error,
