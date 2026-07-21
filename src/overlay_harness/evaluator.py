@@ -130,6 +130,97 @@ def score_frame_sequences(
     )
 
 
+def score_horizontal_band_motion(
+    candidate: Path,
+    reference: Path,
+    width: int,
+    height: int,
+    frame_start: int,
+    frame_end: int,
+    ffmpeg_path: str | None = None,
+    analysis_width: int = 160,
+    analysis_height: int = 90,
+    band_count: int = 4,
+    max_shift: int = 12,
+) -> dict[str, Any]:
+    """Compare local horizontal motion without external vision dependencies.
+
+    Each vertical band uses exhaustive low-resolution matching between adjacent
+    luma frames. The output measures whether the candidate's horizontal shift
+    follows the reference's direction and magnitude during the transition.
+    """
+    if frame_start < 0 or frame_end <= frame_start:
+        raise ValueError("motion scoring requires a window containing at least two frames")
+    if analysis_width < 8 or analysis_height < band_count or max_shift < 1:
+        raise ValueError("motion scoring has invalid analysis dimensions")
+
+    candidate_frames = discover_frames(candidate)
+    reference_frames = discover_frames(reference)
+    if frame_end >= len(candidate_frames) or frame_end >= len(reference_frames):
+        raise ValueError("motion score window exceeds candidate or reference frame count")
+    ffmpeg_executable = ffmpeg_path or shutil.which("ffmpeg")
+    resolved_width = min(width, analysis_width)
+    resolved_height = min(height, analysis_height)
+    resolved_max_shift = min(max_shift, max(1, (resolved_width - 4) // 2))
+
+    candidate_luma = [
+        _rgb_to_luma_buffer(
+            decode_frame_rgb(ffmpeg_executable, candidate_frames[index], resolved_width, resolved_height)
+        )
+        for index in range(frame_start, frame_end + 1)
+    ]
+    reference_luma = [
+        _rgb_to_luma_buffer(
+            decode_frame_rgb(ffmpeg_executable, reference_frames[index], resolved_width, resolved_height)
+        )
+        for index in range(frame_start, frame_end + 1)
+    ]
+
+    pairs: list[dict[str, Any]] = []
+    total_shift_error = 0.0
+    total_direction_matches = 0
+    total_band_pairs = 0
+    for offset in range(1, len(candidate_luma)):
+        candidate_shifts = _estimate_band_shifts(
+            candidate_luma[offset - 1], candidate_luma[offset], resolved_width, resolved_height, band_count, resolved_max_shift
+        )
+        reference_shifts = _estimate_band_shifts(
+            reference_luma[offset - 1], reference_luma[offset], resolved_width, resolved_height, band_count, resolved_max_shift
+        )
+        shift_errors = [abs(candidate_shift - reference_shift) for candidate_shift, reference_shift in zip(candidate_shifts, reference_shifts)]
+        direction_matches = [
+            _motion_direction(candidate_shift) == _motion_direction(reference_shift)
+            for candidate_shift, reference_shift in zip(candidate_shifts, reference_shifts)
+        ]
+        total_shift_error += sum(shift_errors)
+        total_direction_matches += sum(direction_matches)
+        total_band_pairs += len(shift_errors)
+        pairs.append(
+            {
+                "from_frame": frame_start + offset - 1,
+                "to_frame": frame_start + offset,
+                "candidate_horizontal_shifts": candidate_shifts,
+                "reference_horizontal_shifts": reference_shifts,
+                "mean_shift_error": sum(shift_errors) / len(shift_errors),
+                "direction_agreement": sum(direction_matches) / len(direction_matches),
+            }
+        )
+
+    shift_mae = total_shift_error / total_band_pairs
+    direction_agreement = total_direction_matches / total_band_pairs
+    return {
+        "analysis_width": resolved_width,
+        "analysis_height": resolved_height,
+        "band_count": band_count,
+        "max_shift": resolved_max_shift,
+        "pair_count": len(pairs),
+        "horizontal_shift_mae": shift_mae,
+        "direction_agreement": direction_agreement,
+        "motion_similarity": max(0.0, 1.0 - shift_mae / (2.0 * resolved_max_shift)),
+        "pairs": pairs,
+    }
+
+
 def discover_frames(path: Path) -> list[Path]:
     if path.is_file():
         if path.suffix.lower() not in SUPPORTED_FRAME_EXTENSIONS:
@@ -220,6 +311,53 @@ def decode_bmp_rgb(frame_path: Path, width: int, height: int) -> bytes:
             rgb.extend((red, green, blue))
 
     return bytes(rgb)
+
+
+def _rgb_to_luma_buffer(rgb: bytes) -> list[float]:
+    return [
+        _rgb_to_luma(rgb[index], rgb[index + 1], rgb[index + 2])
+        for index in range(0, len(rgb), 3)
+    ]
+
+
+def _estimate_band_shifts(
+    previous: list[float],
+    current: list[float],
+    width: int,
+    height: int,
+    band_count: int,
+    max_shift: int,
+) -> list[int]:
+    shifts: list[int] = []
+    for band_index in range(band_count):
+        y_start = band_index * height // band_count
+        y_end = (band_index + 1) * height // band_count
+        best_shift = 0
+        best_error: float | None = None
+        for shift in range(-max_shift, max_shift + 1):
+            error = 0.0
+            sample_count = 0
+            x_start = max(0, -shift)
+            x_end = min(width, width - shift)
+            for y in range(y_start, y_end, 2):
+                row_offset = y * width
+                for x in range(x_start, x_end, 2):
+                    error += abs(previous[row_offset + x] - current[row_offset + x + shift])
+                    sample_count += 1
+            mean_error = error / sample_count
+            if best_error is None or mean_error < best_error:
+                best_shift = shift
+                best_error = mean_error
+        shifts.append(best_shift)
+    return shifts
+
+
+def _motion_direction(shift: int) -> int:
+    if shift > 0:
+        return 1
+    if shift < 0:
+        return -1
+    return 0
 
 
 def score_rgb_buffers(candidate_rgb: bytes, reference_rgb: bytes, width: int, height: int) -> dict[str, float | int | None]:

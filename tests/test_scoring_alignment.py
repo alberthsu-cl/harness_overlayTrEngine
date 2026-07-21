@@ -47,7 +47,7 @@ from overlay_harness.analyzer import analyze_transition_video
 from overlay_harness.analyzer import build_transition_analysis_artifact
 from overlay_harness.analyzer import resolve_transition_analysis_provider
 from overlay_harness.analyzer import derive_analyzer_inputs_from_metadata
-from overlay_harness.evaluator import score_frame_sequences
+from overlay_harness.evaluator import _estimate_band_shifts, score_frame_sequences
 from overlay_harness.models import EffectSpec, InputSpec, RenderJob, RenderSettings
 from overlay_harness.planner import build_recommended_plan
 from overlay_harness.planner import GENERATED_EFFECT_GRAMMAR
@@ -105,6 +105,27 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(report["score"]["reference_frame_count"], 3)
         self.assertEqual(report["score"]["mse"], 0.0)
         self.assertEqual(report["score"]["mae"], 0.0)
+
+    def test_horizontal_band_shift_estimator_detects_consistent_motion(self) -> None:
+        width = 24
+        height = 8
+        previous = [float((x * x + y * 19) % 251) for y in range(height) for x in range(width)]
+        current = []
+        for y in range(height):
+            row_offset = y * width
+            for x in range(width):
+                current.append(previous[row_offset + x - 2] if x >= 2 else 0.0)
+
+        shifts = _estimate_band_shifts(
+            previous,
+            current,
+            width=width,
+            height=height,
+            band_count=4,
+            max_shift=4,
+        )
+
+        self.assertEqual(shifts, [2, 2, 2, 2])
 
     def test_prepared_reference_manifest_count_mismatch_fails(self) -> None:
         candidate_dir = self.root / "candidate"
