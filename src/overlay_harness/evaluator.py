@@ -209,6 +209,7 @@ def score_horizontal_band_motion(
     shift_mae = total_shift_error / total_band_pairs
     direction_agreement = total_direction_matches / total_band_pairs
     return {
+        "scorer": "horizontal_band_fallback",
         "analysis_width": resolved_width,
         "analysis_height": resolved_height,
         "band_count": band_count,
@@ -219,6 +220,208 @@ def score_horizontal_band_motion(
         "motion_similarity": max(0.0, 1.0 - shift_mae / (2.0 * resolved_max_shift)),
         "pairs": pairs,
     }
+
+
+def score_motion(
+    candidate: Path,
+    reference: Path,
+    width: int,
+    height: int,
+    frame_start: int,
+    frame_end: int,
+    ffmpeg_path: str | None = None,
+    analysis_width: int = 320,
+    analysis_height: int = 180,
+) -> dict[str, Any]:
+    """Score general 2D transition motion, with a dependency-free fallback."""
+    try:
+        import cv2  # type: ignore[import-not-found]
+        import numpy  # type: ignore[import-not-found]
+    except ImportError:
+        return score_horizontal_band_motion(
+            candidate=candidate,
+            reference=reference,
+            width=width,
+            height=height,
+            frame_start=frame_start,
+            frame_end=frame_end,
+            ffmpeg_path=ffmpeg_path,
+        )
+    return score_optical_flow_motion(
+        candidate=candidate,
+        reference=reference,
+        width=width,
+        height=height,
+        frame_start=frame_start,
+        frame_end=frame_end,
+        ffmpeg_path=ffmpeg_path,
+        analysis_width=analysis_width,
+        analysis_height=analysis_height,
+        cv2_module=cv2,
+        numpy_module=numpy,
+    )
+
+
+def score_optical_flow_motion(
+    candidate: Path,
+    reference: Path,
+    width: int,
+    height: int,
+    frame_start: int,
+    frame_end: int,
+    ffmpeg_path: str | None = None,
+    analysis_width: int = 320,
+    analysis_height: int = 180,
+    motion_threshold: float = 0.75,
+    cv2_module: Any | None = None,
+    numpy_module: Any | None = None,
+) -> dict[str, Any]:
+    """Compare dense 2D optical flow and dynamically derived motion regions."""
+    if frame_start < 0 or frame_end <= frame_start:
+        raise ValueError("motion scoring requires a window containing at least two frames")
+    if analysis_width < 16 or analysis_height < 16 or motion_threshold <= 0:
+        raise ValueError("motion scoring has invalid analysis parameters")
+    if cv2_module is None or numpy_module is None:
+        try:
+            import cv2 as cv2_module  # type: ignore[import-not-found]
+            import numpy as numpy_module  # type: ignore[import-not-found]
+        except ImportError as error:
+            raise RuntimeError("OpenCV and NumPy are required for optical-flow scoring") from error
+
+    candidate_frames = discover_frames(candidate)
+    reference_frames = discover_frames(reference)
+    if frame_end >= len(candidate_frames) or frame_end >= len(reference_frames):
+        raise ValueError("motion score window exceeds candidate or reference frame count")
+    resolved_width = min(width, analysis_width)
+    resolved_height = min(height, analysis_height)
+    ffmpeg_executable = ffmpeg_path or shutil.which("ffmpeg")
+
+    candidate_gray = _decode_grayscale_frames(
+        candidate_frames, frame_start, frame_end, resolved_width, resolved_height, ffmpeg_executable, cv2_module, numpy_module
+    )
+    reference_gray = _decode_grayscale_frames(
+        reference_frames, frame_start, frame_end, resolved_width, resolved_height, ffmpeg_executable, cv2_module, numpy_module
+    )
+
+    pairs: list[dict[str, Any]] = []
+    total_active_pixels = 0
+    total_vector_error = 0.0
+    total_direction_agreement = 0.0
+    total_region_iou = 0.0
+    for offset in range(1, len(candidate_gray)):
+        candidate_flow = cv2_module.calcOpticalFlowFarneback(
+            candidate_gray[offset - 1], candidate_gray[offset], None, 0.5, 3, 21, 3, 5, 1.2, 0
+        )
+        reference_flow = cv2_module.calcOpticalFlowFarneback(
+            reference_gray[offset - 1], reference_gray[offset], None, 0.5, 3, 21, 3, 5, 1.2, 0
+        )
+        pair = _score_flow_pair(candidate_flow, reference_flow, motion_threshold, cv2_module, numpy_module)
+        pair["from_frame"] = frame_start + offset - 1
+        pair["to_frame"] = frame_start + offset
+        pairs.append(pair)
+        active_pixels = int(pair["active_pixel_count"])
+        total_active_pixels += active_pixels
+        total_vector_error += float(pair["vector_mae"]) * active_pixels
+        total_direction_agreement += float(pair["direction_agreement"]) * active_pixels
+        total_region_iou += float(pair["motion_region_iou"])
+
+    if total_active_pixels:
+        vector_mae = total_vector_error / total_active_pixels
+        direction_agreement = total_direction_agreement / total_active_pixels
+    else:
+        vector_mae = 0.0
+        direction_agreement = 1.0
+    region_iou = total_region_iou / len(pairs)
+    motion_similarity = 1.0 / (1.0 + vector_mae / 4.0)
+    return {
+        "scorer": "opencv_farneback_dense_flow",
+        "analysis_width": resolved_width,
+        "analysis_height": resolved_height,
+        "motion_threshold": motion_threshold,
+        "pair_count": len(pairs),
+        "flow_vector_mae": vector_mae,
+        "direction_agreement": direction_agreement,
+        "motion_region_iou": region_iou,
+        "motion_similarity": motion_similarity,
+        "pairs": pairs,
+    }
+
+
+def _decode_grayscale_frames(
+    frames: list[Path],
+    frame_start: int,
+    frame_end: int,
+    width: int,
+    height: int,
+    ffmpeg_executable: str | None,
+    cv2_module: Any,
+    numpy_module: Any,
+) -> list[Any]:
+    grayscale_frames: list[Any] = []
+    for index in range(frame_start, frame_end + 1):
+        rgb = decode_frame_rgb(ffmpeg_executable, frames[index], width, height)
+        image = numpy_module.frombuffer(rgb, dtype=numpy_module.uint8).reshape((height, width, 3))
+        grayscale_frames.append(cv2_module.cvtColor(image, cv2_module.COLOR_RGB2GRAY))
+    return grayscale_frames
+
+
+def _score_flow_pair(
+    candidate_flow: Any,
+    reference_flow: Any,
+    motion_threshold: float,
+    cv2_module: Any,
+    numpy_module: Any,
+) -> dict[str, Any]:
+    candidate_magnitude, _ = cv2_module.cartToPolar(candidate_flow[..., 0], candidate_flow[..., 1])
+    reference_magnitude, _ = cv2_module.cartToPolar(reference_flow[..., 0], reference_flow[..., 1])
+    candidate_active = candidate_magnitude >= motion_threshold
+    reference_active = reference_magnitude >= motion_threshold
+    active = numpy_module.logical_or(candidate_active, reference_active)
+    active_pixel_count = int(numpy_module.count_nonzero(active))
+    pixel_count = int(active.size)
+    if not active_pixel_count:
+        return {
+            "active_pixel_count": 0,
+            "active_motion_coverage": 0.0,
+            "vector_mae": 0.0,
+            "direction_agreement": 1.0,
+            "motion_region_iou": 1.0,
+            "reference_motion_region_count": 0,
+            "candidate_motion_region_count": 0,
+        }
+
+    vector_error = numpy_module.linalg.norm(candidate_flow - reference_flow, axis=2)
+    vector_mae = float(vector_error[active].mean())
+    both_active = numpy_module.logical_and(candidate_active, reference_active)
+    dot_product = (candidate_flow * reference_flow).sum(axis=2)
+    denominator = candidate_magnitude * reference_magnitude
+    cosine = numpy_module.divide(
+        dot_product,
+        denominator,
+        out=numpy_module.zeros_like(dot_product),
+        where=denominator > 1e-6,
+    )
+    direction_matches = numpy_module.logical_and(both_active, cosine >= 0.5)
+    direction_agreement = float(numpy_module.count_nonzero(direction_matches) / active_pixel_count)
+    intersection = int(numpy_module.count_nonzero(numpy_module.logical_and(candidate_active, reference_active)))
+    motion_region_iou = intersection / active_pixel_count
+    return {
+        "active_pixel_count": active_pixel_count,
+        "active_motion_coverage": active_pixel_count / pixel_count,
+        "vector_mae": vector_mae,
+        "direction_agreement": direction_agreement,
+        "motion_region_iou": motion_region_iou,
+        "reference_motion_region_count": _count_motion_regions(reference_active, cv2_module, numpy_module),
+        "candidate_motion_region_count": _count_motion_regions(candidate_active, cv2_module, numpy_module),
+    }
+
+
+def _count_motion_regions(mask: Any, cv2_module: Any, numpy_module: Any) -> int:
+    labels, _, stats, _ = cv2_module.connectedComponentsWithStats(
+        mask.astype(numpy_module.uint8), connectivity=8
+    )
+    minimum_area = max(4, int(mask.size * 0.0025))
+    return sum(int(area) >= minimum_area for area in stats[1:, cv2_module.CC_STAT_AREA])
 
 
 def discover_frames(path: Path) -> list[Path]:

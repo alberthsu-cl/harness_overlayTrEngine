@@ -47,7 +47,7 @@ from overlay_harness.analyzer import analyze_transition_video
 from overlay_harness.analyzer import build_transition_analysis_artifact
 from overlay_harness.analyzer import resolve_transition_analysis_provider
 from overlay_harness.analyzer import derive_analyzer_inputs_from_metadata
-from overlay_harness.evaluator import _estimate_band_shifts, score_frame_sequences
+from overlay_harness.evaluator import _estimate_band_shifts, _score_flow_pair, score_frame_sequences
 from overlay_harness.models import EffectSpec, InputSpec, RenderJob, RenderSettings
 from overlay_harness.planner import build_recommended_plan
 from overlay_harness.planner import GENERATED_EFFECT_GRAMMAR
@@ -126,6 +126,28 @@ class ScoringAlignmentTests(unittest.TestCase):
         )
 
         self.assertEqual(shifts, [2, 2, 2, 2])
+
+    def test_optical_flow_pair_scores_two_dimensional_motion_and_regions(self) -> None:
+        import cv2
+        import numpy
+
+        reference = numpy.zeros((32, 32, 2), dtype=numpy.float32)
+        candidate = numpy.zeros_like(reference)
+        reference[8:24, 8:24, 0] = 3.0
+        reference[8:24, 8:24, 1] = -2.0
+        candidate[:] = reference
+
+        matching = _score_flow_pair(candidate, reference, 0.75, cv2, numpy)
+        self.assertEqual(matching["reference_motion_region_count"], 1)
+        self.assertEqual(matching["candidate_motion_region_count"], 1)
+        self.assertEqual(matching["vector_mae"], 0.0)
+        self.assertEqual(matching["direction_agreement"], 1.0)
+        self.assertEqual(matching["motion_region_iou"], 1.0)
+
+        candidate[8:24, 8:24] *= -1.0
+        opposing = _score_flow_pair(candidate, reference, 0.75, cv2, numpy)
+        self.assertGreater(opposing["vector_mae"], 0.0)
+        self.assertEqual(opposing["direction_agreement"], 0.0)
 
     def test_prepared_reference_manifest_count_mismatch_fails(self) -> None:
         candidate_dir = self.root / "candidate"
