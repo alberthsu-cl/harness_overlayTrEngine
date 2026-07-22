@@ -171,6 +171,8 @@ def prepare_reference_transition(
     ffmpeg_path: str | None = None,
     analysis_width: int = 64,
     analysis_height: int = 36,
+    start_frame: int | None = None,
+    end_frame: int | None = None,
 ) -> PrepareReferenceTransitionResult:
     ffmpeg_executable = ffmpeg_path or shutil.which("ffmpeg")
     if not ffmpeg_executable:
@@ -181,6 +183,8 @@ def prepare_reference_transition(
         raise FileNotFoundError(f"source video does not exist: {source_video}")
     if target_frame_count < 2:
         raise ValueError("target_frame_count must be at least 2")
+    if (start_frame is None) != (end_frame is None):
+        raise ValueError("start_frame and end_frame must be supplied together")
 
     output_dir.mkdir(parents=True, exist_ok=True)
     _clear_reference_transition_output(output_dir)
@@ -192,10 +196,19 @@ def prepare_reference_transition(
         width=analysis_width,
         height=analysis_height,
     )
-    detected_start_frame, detected_end_frame = detect_transition_window(
-        analysis_frames=analysis_frames,
-        target_frame_count=target_frame_count,
-    )
+    if start_frame is None:
+        detected_start_frame, detected_end_frame = detect_transition_window(
+            analysis_frames=analysis_frames,
+            target_frame_count=target_frame_count,
+        )
+        mode = "detected_transition_window"
+    else:
+        if start_frame < 0 or end_frame < start_frame or end_frame >= len(analysis_frames):
+            raise ValueError(
+                f"manual transition window must be within normalized frames 0 through {len(analysis_frames) - 1}"
+            )
+        detected_start_frame, detected_end_frame = start_frame, end_frame
+        mode = "manual_transition_window"
     detected_frame_count = detected_end_frame - detected_start_frame + 1
     output_frame_count = min(target_frame_count, detected_frame_count)
     sampled_indexes = _resample_frame_indexes(detected_frame_count, output_frame_count)
@@ -216,7 +229,7 @@ def prepare_reference_transition(
     manifest = {
         "artifact_type": "reference_transition",
         "artifact_version": 1,
-        "mode": "detected_transition_window",
+        "mode": mode,
         "source_video": str(source_video),
         "fps": fps,
         "width": width,

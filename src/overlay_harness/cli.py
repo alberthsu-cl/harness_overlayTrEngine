@@ -202,8 +202,10 @@ def _build_parser() -> argparse.ArgumentParser:
         "--target-frame-count",
         type=int,
         default=30,
-        help="Exact number of normalized reference frames to produce",
+        help="Maximum number of normalized reference frames to produce",
     )
+    prepare_reference_transition_cmd.add_argument("--start-frame", type=int)
+    prepare_reference_transition_cmd.add_argument("--end-frame", type=int)
     prepare_reference_transition_cmd.add_argument(
         "--analysis-width",
         type=int,
@@ -1013,6 +1015,8 @@ def _handle_prepare_reference_transition(args, repo_root: Path) -> int:
             ffmpeg_path=args.ffmpeg,
             analysis_width=args.analysis_width,
             analysis_height=args.analysis_height,
+            start_frame=getattr(args, "start_frame", None),
+            end_frame=getattr(args, "end_frame", None),
         )
     except Exception as exc:
         print(f"prepare-reference-transition failed: {exc}")
