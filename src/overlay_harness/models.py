@@ -50,7 +50,10 @@ class RenderJob:
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        payload = asdict(self)
+        if payload["render"].get("progress_schedule") is None:
+            payload["render"].pop("progress_schedule")
+        return payload
 
 
 @dataclass(slots=True)
