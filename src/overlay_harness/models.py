@@ -28,6 +28,7 @@ class RenderSettings:
     fps: int
     frame_count: int
     output_format: str
+    progress_schedule: list[float] | None = None
 
 
 @dataclass(slots=True)

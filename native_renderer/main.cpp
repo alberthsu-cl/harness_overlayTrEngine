@@ -35,6 +35,7 @@ struct RenderRequest
     UINT height = 0;
     UINT fps = 0;
     UINT frameCount = 0;
+    std::vector<float> progressSchedule;
 };
 
 struct EffectResolution
@@ -259,6 +260,37 @@ HRESULT ParseRenderRequest(const fs::path& requestPath, RenderRequest& request, 
     {
         errorField = "job.render.frame_count";
         return hr;
+    }
+    if (render.HasMember("progress_schedule"))
+    {
+        const rapidjson::Value& schedule = render["progress_schedule"];
+        if (!schedule.IsArray() || schedule.Size() != request.frameCount)
+            return FailValidation(
+                "job.render.progress_schedule",
+                "progress_schedule must contain one numeric value per rendered frame",
+                errorField,
+                errorDetail);
+
+        request.progressSchedule.reserve(request.frameCount);
+        float previous = 0.0f;
+        for (rapidjson::SizeType index = 0; index < schedule.Size(); ++index)
+        {
+            if (!schedule[index].IsNumber())
+                return FailValidation(
+                    "job.render.progress_schedule",
+                    "progress_schedule values must be numeric",
+                    errorField,
+                    errorDetail);
+            const double value = schedule[index].GetDouble();
+            if (value < 0.0 || value > 1.0 || (index > 0 && value < previous))
+                return FailValidation(
+                    "job.render.progress_schedule",
+                    "progress_schedule values must be non-decreasing numbers from 0 through 1",
+                    errorField,
+                    errorDetail);
+            previous = static_cast<float>(value);
+            request.progressSchedule.push_back(previous);
+        }
     }
 
     request.repoRoot = fs::path(Utf8ToWide(repoRoot));
@@ -893,9 +925,11 @@ int wmain(int argc, wchar_t* argv[])
                 goto cleanup;
             }
 
-            const float progress = request.frameCount > 1
-                ? static_cast<float>(frameIndex) / static_cast<float>(request.frameCount - 1)
-                : 1.0f;
+            const float progress = request.progressSchedule.empty()
+                ? (request.frameCount > 1
+                    ? static_cast<float>(frameIndex) / static_cast<float>(request.frameCount - 1)
+                    : 1.0f)
+                : request.progressSchedule[frameIndex];
 
             wchar_t fileName[64]{};
             swprintf_s(fileName, L"frame_%04u.png", frameIndex);

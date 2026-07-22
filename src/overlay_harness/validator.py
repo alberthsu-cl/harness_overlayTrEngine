@@ -95,6 +95,33 @@ def _validate_reference_transition(job: RenderJob, resolved_reference: Path, res
                 f"prepared reference manifest is invalid: {exc}",
             )
         )
+
+    schedule = job.render.progress_schedule
+    if schedule is not None:
+        if len(schedule) != job.render.frame_count:
+            result.issues.append(
+                ValidationIssue(
+                    "render.progress_schedule",
+                    "progress_schedule must contain one value per rendered frame",
+                )
+            )
+        elif any(
+            isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= 1
+            for value in schedule
+        ):
+            result.issues.append(
+                ValidationIssue(
+                    "render.progress_schedule",
+                    "progress_schedule values must be numbers from 0 through 1",
+                )
+            )
+        elif any(schedule[index] < schedule[index - 1] for index in range(1, len(schedule))):
+            result.issues.append(
+                ValidationIssue(
+                    "render.progress_schedule",
+                    "progress_schedule must be non-decreasing",
+                )
+            )
         return
 
     if manifest is None:
