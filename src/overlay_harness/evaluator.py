@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, asdict
 from math import log10
+import math
 from pathlib import Path
 import shutil
 import struct
@@ -432,6 +433,194 @@ def create_motion_visualizations(
         "analysis_width": resolved_width,
         "analysis_height": resolved_height,
         "frames": frames,
+    }
+
+
+def analyze_reference_motion(
+    reference: Path,
+    output_dir: Path,
+    width: int,
+    height: int,
+    frame_start: int = 0,
+    frame_end: int | None = None,
+    ffmpeg_path: str | None = None,
+    analysis_width: int = 320,
+    analysis_height: int = 180,
+    motion_threshold: float = 0.75,
+) -> dict[str, Any]:
+    """Produce confidence-aware, reference-only optical-flow evidence.
+
+    This is deliberately descriptive: it proposes motion evidence for Codex,
+    but does not classify an effect or decide source boundaries.
+    """
+    try:
+        import cv2  # type: ignore[import-not-found]
+        import numpy  # type: ignore[import-not-found]
+    except ImportError as error:
+        raise RuntimeError("OpenCV and NumPy are required for reference motion diagnostics") from error
+    if frame_start < 0 or motion_threshold <= 0:
+        raise ValueError("reference motion diagnostics has invalid frame range or motion threshold")
+
+    frames = discover_frames(reference)
+    resolved_end = len(frames) - 1 if frame_end is None else frame_end
+    if resolved_end <= frame_start or resolved_end >= len(frames):
+        raise ValueError("reference motion diagnostics requires at least two in-range frames")
+    resolved_width = min(width, analysis_width)
+    resolved_height = min(height, analysis_height)
+    ffmpeg_executable = ffmpeg_path or shutil.which("ffmpeg")
+    grayscale = _decode_grayscale_frames(
+        frames, frame_start, resolved_end, resolved_width, resolved_height, ffmpeg_executable, cv2, numpy
+    )
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for frame in output_dir.glob("frame_*.png"):
+        frame.unlink()
+    pairs: list[dict[str, Any]] = []
+    energies: list[float] = []
+    for offset in range(1, len(grayscale)):
+        flow = cv2.calcOpticalFlowFarneback(
+            grayscale[offset - 1], grayscale[offset], None, 0.5, 3, 21, 3, 5, 1.2, 0
+        )
+        backward = cv2.calcOpticalFlowFarneback(
+            grayscale[offset], grayscale[offset - 1], None, 0.5, 3, 21, 3, 5, 1.2, 0
+        )
+        reliable = _flow_reliability_mask(flow, backward, cv2, numpy)
+        magnitude, _ = cv2.cartToPolar(flow[..., 0], flow[..., 1], angleInDegrees=True)
+        active = numpy.logical_and(magnitude >= motion_threshold, reliable)
+        regions = _describe_motion_regions(flow, magnitude, active, reliable, cv2, numpy)
+        active_coverage = float(numpy.count_nonzero(active) / active.size)
+        reliable_coverage = float(numpy.count_nonzero(reliable) / reliable.size)
+        mean_magnitude = float(magnitude[active].mean()) if numpy.count_nonzero(active) else 0.0
+        energy = active_coverage * mean_magnitude
+        energies.append(energy)
+        from_frame = frame_start + offset - 1
+        to_frame = frame_start + offset
+        pairs.append(
+            {
+                "from_frame": from_frame,
+                "to_frame": to_frame,
+                "motion_energy": energy,
+                "mean_active_magnitude": mean_magnitude,
+                "active_motion_coverage": active_coverage,
+                "reliable_motion_coverage": reliable_coverage,
+                "regions": regions,
+            }
+        )
+        panel = _reference_motion_panel(flow, active, reliable, regions, cv2, numpy)
+        frame_file = output_dir / f"frame_{offset - 1:04d}.png"
+        if not cv2.imwrite(str(frame_file), cv2.cvtColor(panel, cv2.COLOR_RGB2BGR)):
+            raise RuntimeError(f"could not write reference motion diagnostic: {frame_file}")
+
+    summary = _summarize_reference_motion(pairs, energies, motion_threshold, numpy)
+    return {
+        "artifact_type": "reference_motion_diagnostics",
+        "artifact_version": 1,
+        "status": "succeeded",
+        "scorer": "opencv_farneback_dense_flow",
+        "reference": str(reference),
+        "frame_range": {"start": frame_start, "end": resolved_end},
+        "analysis_width": resolved_width,
+        "analysis_height": resolved_height,
+        "motion_threshold": motion_threshold,
+        "output_dir": str(output_dir),
+        "pairs": pairs,
+        "summary": summary,
+    }
+
+
+def _describe_motion_regions(
+    flow: Any, magnitude: Any, active: Any, reliable: Any, cv2_module: Any, numpy_module: Any
+) -> list[dict[str, Any]]:
+    label_count, labels, stats, centroids = cv2_module.connectedComponentsWithStats(
+        active.astype(numpy_module.uint8), connectivity=8
+    )
+    minimum_area = max(4, int(active.size * 0.0025))
+    regions: list[dict[str, Any]] = []
+    for label in range(1, label_count):
+        area = int(stats[label, cv2_module.CC_STAT_AREA])
+        if area < minimum_area:
+            continue
+        mask = labels == label
+        mean_dx = float(flow[..., 0][mask].mean())
+        mean_dy = float(flow[..., 1][mask].mean())
+        direction = math.degrees(math.atan2(mean_dy, mean_dx)) % 360.0
+        x = int(stats[label, cv2_module.CC_STAT_LEFT])
+        y = int(stats[label, cv2_module.CC_STAT_TOP])
+        region_width = int(stats[label, cv2_module.CC_STAT_WIDTH])
+        region_height = int(stats[label, cv2_module.CC_STAT_HEIGHT])
+        regions.append(
+            {
+                "bbox": {"x": x, "y": y, "width": region_width, "height": region_height},
+                "area": area,
+                "area_ratio": area / int(active.size),
+                "centroid": {"x": float(centroids[label][0]), "y": float(centroids[label][1])},
+                "mean_dx": mean_dx,
+                "mean_dy": mean_dy,
+                "mean_magnitude": float(magnitude[mask].mean()),
+                "direction_degrees": direction,
+                "reliable_fraction": float(reliable[mask].mean()),
+            }
+        )
+    return sorted(regions, key=lambda region: float(region["area_ratio"]), reverse=True)
+
+
+def _reference_motion_panel(
+    flow: Any, active: Any, reliable: Any, regions: list[dict[str, Any]], cv2_module: Any, numpy_module: Any
+) -> Any:
+    flow_panel = _flow_to_rgb(flow, cv2_module, numpy_module)
+    region_panel = flow_panel.copy()
+    for index, region in enumerate(regions, start=1):
+        bbox = region["bbox"]
+        color = ((67 * index) % 255, (151 * index) % 255, (229 * index) % 255)
+        cv2_module.rectangle(
+            region_panel,
+            (int(bbox["x"]), int(bbox["y"])),
+            (int(bbox["x"] + bbox["width"]), int(bbox["y"] + bbox["height"])),
+            color,
+            1,
+        )
+        cv2_module.putText(region_panel, str(index), (int(bbox["x"]), max(12, int(bbox["y"]) + 12)), cv2_module.FONT_HERSHEY_SIMPLEX, 0.4, color, 1, cv2_module.LINE_AA)
+    reliability_panel = cv2_module.cvtColor((reliable.astype(numpy_module.uint8) * 255), cv2_module.COLOR_GRAY2RGB)
+    cv2_module.putText(flow_panel, "Reference flow", (8, 20), cv2_module.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2_module.LINE_AA)
+    cv2_module.putText(region_panel, "Dynamic regions", (8, 20), cv2_module.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2_module.LINE_AA)
+    cv2_module.putText(reliability_panel, "Flow confidence", (8, 20), cv2_module.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2_module.LINE_AA)
+    return numpy_module.hstack((flow_panel, region_panel, reliability_panel))
+
+
+def _summarize_reference_motion(
+    pairs: list[dict[str, Any]], energies: list[float], motion_threshold: float, numpy_module: Any
+) -> dict[str, Any]:
+    if not pairs:
+        return {"status": "needs_review", "reason": "no frame pairs were available"}
+    peak_index = int(numpy_module.argmax(energies))
+    peak_energy = float(energies[peak_index])
+    significance = max(0.02, peak_energy * 0.1)
+    significant = [index for index, energy in enumerate(energies) if energy >= significance]
+    if not significant or peak_energy <= 0.0:
+        return {
+            "status": "needs_review",
+            "reason": "no reliable motion energy exceeded the provisional threshold",
+            "motion_energy_threshold": significance,
+            "peak_motion_pair": pairs[peak_index],
+        }
+    first, last = significant[0], significant[-1]
+    region_counts = [len(pair["regions"]) for pair in pairs[first : last + 1]]
+    return {
+        "status": "provisional",
+        "reason": "motion-only evidence; verify timing and visual interpretation against the sample video",
+        "motion_energy_threshold": significance,
+        "provisional_active_window": {
+            "start_frame": pairs[first]["from_frame"],
+            "end_frame": pairs[last]["to_frame"],
+        },
+        "peak_motion_pair": pairs[peak_index],
+        "peak_motion_frame": pairs[peak_index]["to_frame"],
+        "dynamic_region_count": {
+            "min": min(region_counts),
+            "max": max(region_counts),
+            "median": float(numpy_module.median(region_counts)),
+        },
+        "motion_threshold": motion_threshold,
     }
 
 

@@ -47,7 +47,13 @@ from overlay_harness.analyzer import analyze_transition_video
 from overlay_harness.analyzer import build_transition_analysis_artifact
 from overlay_harness.analyzer import resolve_transition_analysis_provider
 from overlay_harness.analyzer import derive_analyzer_inputs_from_metadata
-from overlay_harness.evaluator import _estimate_band_shifts, _score_flow_pair, score_frame_sequences
+from overlay_harness.evaluator import (
+    _describe_motion_regions,
+    _estimate_band_shifts,
+    _score_flow_pair,
+    _summarize_reference_motion,
+    score_frame_sequences,
+)
 from overlay_harness.models import EffectSpec, InputSpec, RenderJob, RenderSettings
 from overlay_harness.planner import build_recommended_plan
 from overlay_harness.planner import GENERATED_EFFECT_GRAMMAR
@@ -148,6 +154,27 @@ class ScoringAlignmentTests(unittest.TestCase):
         opposing = _score_flow_pair(candidate, reference, 0.75, cv2, numpy)
         self.assertGreater(opposing["vector_mae"], 0.0)
         self.assertEqual(opposing["direction_agreement"], 0.0)
+
+    def test_reference_motion_regions_support_multiple_directions(self) -> None:
+        import cv2
+        import numpy
+
+        flow = numpy.zeros((32, 32, 2), dtype=numpy.float32)
+        flow[:15, :, 0] = 3.0
+        flow[17:, :, 0] = -4.0
+        magnitude = numpy.linalg.norm(flow, axis=2)
+        active = magnitude >= 0.75
+        reliable = numpy.ones_like(active, dtype=bool)
+        regions = _describe_motion_regions(flow, magnitude, active, reliable, cv2, numpy)
+
+        self.assertEqual(len(regions), 2)
+        self.assertLess(regions[0]["direction_degrees"], 1.0)
+        self.assertGreater(regions[1]["direction_degrees"], 179.0)
+        summary = _summarize_reference_motion(
+            [{"from_frame": 0, "to_frame": 1, "regions": regions}], [3.0], 0.75, numpy
+        )
+        self.assertEqual(summary["status"], "provisional")
+        self.assertEqual(summary["dynamic_region_count"]["max"], 2)
 
     def test_prepared_reference_manifest_count_mismatch_fails(self) -> None:
         candidate_dir = self.root / "candidate"
