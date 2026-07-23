@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import json
 import hashlib
+import re
 from typing import Any
 
 
@@ -483,6 +484,238 @@ def build_effect_catalog_audit(
         "missing_effect_ids": missing_effect_ids,
         "extra_effect_ids": extra_effect_ids,
     }
+
+
+def sync_effect_catalog_sources(
+    repo_root: Path,
+    source_manifest_path: Path | None = None,
+) -> dict[str, Any]:
+    """Reconcile the source manifest with FX registrations in OverlayTrPlugInFx."""
+    manifest_path = _resolve_source_manifest_path(repo_root, source_manifest_path)
+    existing = _load_raw_source_manifest(manifest_path)
+    existing_registrations = existing.get("registrations", [])
+    if not isinstance(existing_registrations, list):
+        raise ValueError("effect catalog source manifest registrations must be a list")
+
+    existing_by_fx: dict[str, list[dict[str, Any]]] = {}
+    for registration in existing_registrations:
+        if not isinstance(registration, dict):
+            raise ValueError("effect catalog source manifest registrations must contain objects")
+        fx_id = registration.get("fx_id")
+        if not isinstance(fx_id, str) or not fx_id:
+            raise ValueError("effect catalog source manifest registrations must include a non-empty fx_id")
+        existing_by_fx.setdefault(fx_id, []).append(registration)
+
+    discovered = _discover_engine_effects(repo_root)
+    discovered_fx_ids = {item["fx_id"] for item in discovered}
+    blueprints_by_fx: dict[str, list[dict[str, Any]]] = {}
+    for blueprint in _EFFECT_BLUEPRINTS:
+        blueprints_by_fx.setdefault(str(blueprint["fx_id"]), []).append(blueprint)
+    registrations: list[dict[str, Any]] = []
+    added_fx_ids: list[str] = []
+    preserved_fx_ids: list[str] = []
+    used_effect_ids: set[str] = set()
+
+    for discovery in discovered:
+        fx_id = discovery["fx_id"]
+        prior = [
+            registration
+            for registration in existing_by_fx.get(fx_id, [])
+            if not str(registration.get("mode", "")).endswith("placeholder")
+        ]
+        blueprints = [
+            blueprint
+            for blueprint in blueprints_by_fx.get(fx_id, [])
+            if not str(blueprint["mode"]).endswith("placeholder")
+        ]
+        if prior:
+            source_registrations = [dict(registration) for registration in prior]
+            preserved_fx_ids.append(fx_id)
+        elif blueprints:
+            source_registrations = [_build_effect_record(repo_root, blueprint) for blueprint in blueprints]
+            preserved_fx_ids.append(fx_id)
+        else:
+            source_registrations = [_new_discovered_registration(discovery, used_effect_ids)]
+            added_fx_ids.append(fx_id)
+
+        for registration in source_registrations:
+            registration["fx_id"] = fx_id
+            registration["source_documents"] = _reconcile_source_documents(
+                repo_root,
+                registration.get("source_documents"),
+                discovery["source_documents"],
+            )
+            used_effect_ids.add(str(registration["effect_id"]))
+            registrations.append(registration)
+
+    # Placeholder entries are retrieval fallbacks, not engine registrations.
+    for blueprint in _EFFECT_BLUEPRINTS:
+        if not str(blueprint["mode"]).endswith("placeholder"):
+            continue
+        prior = next(
+            (
+                registration
+                for registration in existing_by_fx.get(str(blueprint["fx_id"]), [])
+                if registration.get("effect_id") == blueprint["effect_id"]
+            ),
+            None,
+        )
+        registration = dict(prior) if prior is not None else _build_effect_record(repo_root, blueprint)
+        if str(registration["effect_id"]) in used_effect_ids:
+            continue
+        registration["source_documents"] = _reconcile_source_documents(
+            repo_root,
+            registration.get("source_documents"),
+            [],
+        )
+        used_effect_ids.add(str(registration["effect_id"]))
+        registrations.append(registration)
+
+    removed_fx_ids = sorted(
+        fx_id
+        for fx_id in existing_by_fx
+        if fx_id not in discovered_fx_ids
+        and not all(str(registration.get("mode", "")).endswith("placeholder") for registration in existing_by_fx[fx_id])
+    )
+    manifest = {
+        "catalog_type": "effect_catalog_sources",
+        "catalog_version": int(existing.get("catalog_version", 1)),
+        "registrations": registrations,
+    }
+    return {
+        "manifest": manifest,
+        "source_manifest_path": manifest_path,
+        "discovered_fx_ids": [item["fx_id"] for item in discovered],
+        "added_fx_ids": sorted(added_fx_ids),
+        "preserved_fx_ids": sorted(preserved_fx_ids),
+        "removed_fx_ids": removed_fx_ids,
+    }
+
+
+def _resolve_source_manifest_path(repo_root: Path, source_manifest_path: Path | None) -> Path:
+    if source_manifest_path is None:
+        return (repo_root / DEFAULT_EFFECT_CATALOG_SOURCE_RELATIVE_PATH).resolve()
+    return source_manifest_path.resolve() if source_manifest_path.is_absolute() else (repo_root / source_manifest_path).resolve()
+
+
+def _load_raw_source_manifest(source_manifest_path: Path) -> dict[str, Any]:
+    if not source_manifest_path.exists():
+        return {"catalog_type": "effect_catalog_sources", "catalog_version": 1, "registrations": []}
+    with source_manifest_path.open("r", encoding="utf-8") as handle:
+        source_manifest = json.load(handle)
+    if source_manifest.get("catalog_type") != "effect_catalog_sources":
+        raise ValueError(f"effect catalog source manifest is invalid: {source_manifest_path}")
+    return source_manifest
+
+
+def _discover_engine_effects(repo_root: Path) -> list[dict[str, Any]]:
+    plugin_root = repo_root / "overlaytrengine" / "OverlayTrPlugInFx"
+    fxinfo_path = plugin_root / "FxInfo.h"
+    project_path = plugin_root / "OverlayTrPlugInFx.vcxproj"
+    if not fxinfo_path.exists():
+        raise FileNotFoundError(f"engine FX registration file was not found: {fxinfo_path}")
+    if not project_path.exists():
+        raise FileNotFoundError(f"engine project file was not found: {project_path}")
+
+    project_documents = _project_source_documents(repo_root, plugin_root, project_path)
+    text = fxinfo_path.read_text(encoding="utf-8", errors="ignore")
+    entry_pattern = re.compile(
+        r'\{\s*(?P<comment>(?://[^\r\n]*\s*)*)\s*"(?P<fx_id>[^"]+)"\s*,\s*"(?P<name>[^"]+)"\s*,\s*\d+\s*\}',
+        re.MULTILINE,
+    )
+    discoveries: list[dict[str, Any]] = []
+    for match in entry_pattern.finditer(text):
+        comment = match.group("comment")
+        wrapper_match = re.search(r"\b(Tr[A-Za-z0-9_]+)\b", comment)
+        wrapper_hint = wrapper_match.group(1) if wrapper_match else None
+        documents = [
+            "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+            "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        ]
+        if wrapper_hint:
+            documents.extend(
+                document
+                for document in project_documents
+                if Path(document).stem.startswith(wrapper_hint)
+            )
+        discoveries.append(
+            {
+                "fx_id": _unescape_cpp_string(match.group("fx_id")),
+                "display_name": match.group("name"),
+                "wrapper_hint": wrapper_hint,
+                "source_documents": _unique_strings(documents),
+            }
+        )
+    if not discoveries:
+        raise ValueError(f"no FX registrations were discovered in {fxinfo_path}")
+    return discoveries
+
+
+def _project_source_documents(repo_root: Path, plugin_root: Path, project_path: Path) -> list[str]:
+    project_text = project_path.read_text(encoding="utf-8", errors="ignore")
+    matches = re.findall(r'<(?:ClCompile|ClInclude|FxCompile)\s+Include="([^"]+)"', project_text)
+    documents: list[str] = []
+    for value in matches:
+        candidate = (plugin_root / value).resolve()
+        if candidate.exists():
+            documents.append(_format_repo_path(candidate, repo_root))
+    return _unique_strings(documents)
+
+
+def _new_discovered_registration(discovery: dict[str, Any], used_effect_ids: set[str]) -> dict[str, Any]:
+    fx_id = str(discovery["fx_id"])
+    generated = fx_id.startswith("ModelGenerated\\")
+    slug = _slugify(fx_id)
+    effect_id = f"engine-{slug}"
+    suffix = 2
+    while effect_id in used_effect_ids:
+        effect_id = f"engine-{slug}-{suffix}"
+        suffix += 1
+    registration: dict[str, Any] = {
+        "effect_id": effect_id,
+        "mode": f"engine-discovered-{slug}",
+        "effect_source": "generated" if generated else "builtin",
+        "family": "unknown",
+        "fx_id": fx_id,
+        "style_hints": ["engine-discovered", slug],
+        "retrieval_priority": 100,
+        "source_documents": list(discovery["source_documents"]),
+        "display_name": discovery["display_name"],
+        "metadata_status": "discovered",
+    }
+    if discovery.get("wrapper_hint"):
+        registration["wrapper_hint"] = discovery["wrapper_hint"]
+    if generated:
+        registration["fallback_fx_id"] = fx_id
+    return registration
+
+
+def _reconcile_source_documents(
+    repo_root: Path,
+    existing_documents: Any,
+    discovered_documents: list[str],
+) -> list[str]:
+    if not isinstance(existing_documents, list):
+        existing_documents = []
+    retained = [
+        document
+        for document in existing_documents
+        if isinstance(document, str) and (repo_root / document).resolve().exists()
+    ]
+    return _unique_strings([*retained, *discovered_documents])
+
+
+def _unique_strings(values: list[str]) -> list[str]:
+    return list(dict.fromkeys(value for value in values if value))
+
+
+def _slugify(value: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+    return slug or "unknown"
+
+
+def _unescape_cpp_string(value: str) -> str:
+    return value.replace("\\\\", "\\")
 
 
 def load_effect_catalog(file_path: Path) -> dict[str, Any]:

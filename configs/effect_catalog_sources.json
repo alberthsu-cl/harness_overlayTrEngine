@@ -4,16 +4,10 @@
   "registrations": [
     {
       "effect_id": "builtin-seamless",
-      "mode": "builtin-seamless",
       "effect_source": "builtin",
       "family": "seamless",
       "fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
-      "style_hints": [
-        "seamless",
-        "slide-07",
-        "smooth",
-        "generated-seamless"
-      ],
+      "mode": "builtin-seamless",
       "retrieval_priority": 0,
       "source_documents": [
         "harness/examples/effect_specs/builtin_seamless_sliding.json",
@@ -21,41 +15,23 @@
         "harness/examples/render_job.sample.real.json",
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
         "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
-        "overlaytrengine/OverlayTrPlugInFx/TrSeamlessSliding.cpp"
-      ]
-    },
-    {
-      "effect_id": "builtin-glitch",
-      "mode": "builtin-glitch",
-      "effect_source": "builtin",
-      "family": "glitch",
-      "fx_id": "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4",
-      "style_hints": [
-        "glitch",
-        "glitch-04",
-        "generated-glitch"
+        "overlaytrengine/OverlayTrPlugInFx/TrSeamlessSliding.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrSeamlessSliding.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrSeamlessSliding_ps.hlsl"
       ],
-      "retrieval_priority": 0,
-      "source_documents": [
-        "harness/examples/render_job.effect_spec.sample.json",
-        "harness/examples/render_job.effect_spec.sample.real.json",
-        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
-        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
-        "overlaytrengine/OverlayTrPlugInFx/TrGlitch.cpp",
-        "overlaytrengine/OverlayTrPlugInFx/TrGlitchInfoManager.cpp"
+      "style_hints": [
+        "seamless",
+        "slide-07",
+        "smooth",
+        "generated-seamless"
       ]
     },
     {
       "effect_id": "builtin-camcorder",
-      "mode": "builtin-camcorder",
       "effect_source": "builtin",
       "family": "camera",
       "fx_id": "CES_PlugIn_Camera.dll\\DSP_TR_Camera_Camcorder",
-      "style_hints": [
-        "camera",
-        "camera-02",
-        "camcorder"
-      ],
+      "mode": "builtin-camcorder",
       "retrieval_priority": 0,
       "source_documents": [
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
@@ -63,21 +39,21 @@
         "overlaytrengine/OverlayTrPlugInFx/TrCamcorder.cpp",
         "overlaytrengine/OverlayTrPlugInFx/TrCamcorder_ps.hlsl",
         "overlaytrengine/OverlayTrPlugInFx/TrCamcorder_Blur_ps.hlsl",
-        "overlaytrengine/OverlayTrPlugInFx/TrCamcorder_Overlay_ps.hlsl"
+        "overlaytrengine/OverlayTrPlugInFx/TrCamcorder_Overlay_ps.hlsl",
+        "overlaytrengine/OverlayTrPlugInFx/TrCamcorder.h"
+      ],
+      "style_hints": [
+        "camera",
+        "camera-02",
+        "camcorder"
       ]
     },
     {
       "effect_id": "builtin-particle-spray",
-      "mode": "builtin-particle-spray",
       "effect_source": "builtin",
       "family": "particle",
       "fx_id": "CES_PlugIn_ParticleSpray.dll\\DSP_TR_Sparkle_01",
-      "style_hints": [
-        "particle",
-        "sparkle-01",
-        "sparkle",
-        "spray"
-      ],
+      "mode": "builtin-particle-spray",
       "retrieval_priority": 0,
       "source_documents": [
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
@@ -86,368 +62,398 @@
         "overlaytrengine/OverlayTrPlugInFx/TrParticleSprayInfoManager.cpp",
         "overlaytrengine/OverlayTrPlugInFx/TrParticleSpray_ps.hlsl",
         "overlaytrengine/OverlayTrPlugInFx/TrParticleSpray_Particle_ps.hlsl",
-        "overlaytrengine/OverlayTrPlugInFx/TrParticleSpray_Particle_vs.hlsl"
+        "overlaytrengine/OverlayTrPlugInFx/TrParticleSpray_Particle_vs.hlsl",
+        "overlaytrengine/OverlayTrPlugInFx/TrParticleSpray.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrParticleSprayInfoManager.h"
+      ],
+      "style_hints": [
+        "particle",
+        "sparkle-01",
+        "sparkle",
+        "spray"
       ]
     },
     {
       "effect_id": "builtin-frame-overlay",
-      "mode": "builtin-frame-overlay",
       "effect_source": "builtin",
       "family": "overlay",
       "fx_id": "CES_PlugIn_FrameOverlay.dll\\DSP_TR_FrameOverlay_01",
-      "style_hints": [
-        "frame-overlay",
-        "film-roll-01",
-        "film-roll",
-        "overlay"
-      ],
+      "mode": "builtin-frame-overlay",
       "retrieval_priority": 0,
       "source_documents": [
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
         "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
         "overlaytrengine/OverlayTrPlugInFx/TrFrameOverlay.cpp",
         "overlaytrengine/OverlayTrPlugInFx/TrFrameOverlay_ps.hlsl",
-        "overlaytrengine/OverlayTrPlugInFx/TrFrameOverlay_Noise_ps.hlsl"
+        "overlaytrengine/OverlayTrPlugInFx/TrFrameOverlay_Noise_ps.hlsl",
+        "overlaytrengine/OverlayTrPlugInFx/TrFrameOverlay.h"
+      ],
+      "style_hints": [
+        "frame-overlay",
+        "film-roll-01",
+        "film-roll",
+        "overlay"
+      ]
+    },
+    {
+      "effect_id": "builtin-glitch",
+      "effect_source": "builtin",
+      "family": "glitch",
+      "fx_id": "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4",
+      "mode": "builtin-glitch",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "harness/examples/render_job.effect_spec.sample.json",
+        "harness/examples/render_job.effect_spec.sample.real.json",
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrGlitch.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrGlitchInfoManager.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrGlitch.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrGlitchInfoManager.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrGlitch_ps.hlsl"
+      ],
+      "style_hints": [
+        "glitch",
+        "glitch-04",
+        "generated-glitch"
       ]
     },
     {
       "effect_id": "builtin-blur",
-      "mode": "builtin-blur",
       "effect_source": "builtin",
       "family": "blur",
       "fx_id": "Blur_DollarBokeh",
+      "mode": "builtin-blur",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
       "style_hints": [
         "blur-dollarbokeh",
         "blur",
         "bokeh"
-      ],
-      "retrieval_priority": 0,
-      "source_documents": [
-        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
-        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
-        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
-        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
       ]
     },
     {
       "effect_id": "builtin-blur-upgrow",
-      "mode": "builtin-blur-upgrow",
       "effect_source": "builtin",
       "family": "blur",
       "fx_id": "Blur_UpGrow",
-      "style_hints": [
-        "blur-upgrow",
-        "upgrow"
-      ],
+      "mode": "builtin-blur-upgrow",
       "retrieval_priority": 0,
       "source_documents": [
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
         "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
         "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
         "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "blur-upgrow",
+        "upgrow"
       ]
     },
     {
       "effect_id": "builtin-blur-shakezoom",
-      "mode": "builtin-blur-shakezoom",
       "effect_source": "builtin",
       "family": "blur",
       "fx_id": "Blur_ShakeZoom",
-      "style_hints": [
-        "blur-shakezoom",
-        "shakezoom"
-      ],
+      "mode": "builtin-blur-shakezoom",
       "retrieval_priority": 0,
       "source_documents": [
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
         "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
         "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
         "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "blur-shakezoom",
+        "shakezoom"
       ]
     },
     {
       "effect_id": "builtin-blur-diagblur",
-      "mode": "builtin-blur-diagblur",
       "effect_source": "builtin",
       "family": "blur",
       "fx_id": "Blur_DiagBlur",
-      "style_hints": [
-        "blur-diagblur",
-        "diagblur"
-      ],
+      "mode": "builtin-blur-diagblur",
       "retrieval_priority": 0,
       "source_documents": [
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
         "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
         "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
         "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "blur-diagblur",
+        "diagblur"
       ]
     },
     {
       "effect_id": "builtin-blur-hexbokeh",
-      "mode": "builtin-blur-hexbokeh",
       "effect_source": "builtin",
       "family": "blur",
       "fx_id": "Blur_HexBokeh",
-      "style_hints": [
-        "blur-hexbokeh",
-        "hexbokeh"
-      ],
+      "mode": "builtin-blur-hexbokeh",
       "retrieval_priority": 0,
       "source_documents": [
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
         "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
         "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
         "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "blur-hexbokeh",
+        "hexbokeh"
       ]
     },
     {
       "effect_id": "builtin-blur-diamondbokeh",
-      "mode": "builtin-blur-diamondbokeh",
       "effect_source": "builtin",
       "family": "blur",
       "fx_id": "Blur_DiamondBokeh",
-      "style_hints": [
-        "blur-diamondbokeh",
-        "diamondbokeh"
-      ],
+      "mode": "builtin-blur-diamondbokeh",
       "retrieval_priority": 0,
       "source_documents": [
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
         "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
         "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
         "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "blur-diamondbokeh",
+        "diamondbokeh"
       ]
     },
     {
       "effect_id": "builtin-blur-fadeblur",
-      "mode": "builtin-blur-fadeblur",
       "effect_source": "builtin",
       "family": "blur",
       "fx_id": "Blur_FadeBlur",
-      "style_hints": [
-        "blur-fadeblur",
-        "fadeblur"
-      ],
+      "mode": "builtin-blur-fadeblur",
       "retrieval_priority": 0,
       "source_documents": [
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
         "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
         "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
         "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "blur-fadeblur",
+        "fadeblur"
       ]
     },
     {
       "effect_id": "builtin-blur-rotateblur",
-      "mode": "builtin-blur-rotateblur",
       "effect_source": "builtin",
       "family": "blur",
       "fx_id": "Blur_RotateBlur",
-      "style_hints": [
-        "blur-rotateblur",
-        "rotateblur"
-      ],
+      "mode": "builtin-blur-rotateblur",
       "retrieval_priority": 0,
       "source_documents": [
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
         "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
         "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
         "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "blur-rotateblur",
+        "rotateblur"
       ]
     },
     {
       "effect_id": "builtin-blur-dimfade",
-      "mode": "builtin-blur-dimfade",
       "effect_source": "builtin",
       "family": "blur",
       "fx_id": "Blur_DimFade",
+      "mode": "builtin-blur-dimfade",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
       "style_hints": [
         "blur-dimfade",
         "dimfade"
-      ],
-      "retrieval_priority": 0,
-      "source_documents": [
-        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
-        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
-        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
-        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
-      ]
-    },
-    {
-      "effect_id": "builtin-ui-snapshot",
-      "mode": "builtin-ui-snapshot",
-      "effect_source": "builtin",
-      "family": "ui",
-      "fx_id": "UI_Snapshot",
-      "style_hints": [
-        "ui-snapshot",
-        "ui",
-        "snapshot"
-      ],
-      "retrieval_priority": 0,
-      "source_documents": [
-        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
-        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
-        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
-        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
-      ]
-    },
-    {
-      "effect_id": "builtin-ui-app-swipe",
-      "mode": "builtin-ui-app-swipe",
-      "effect_source": "builtin",
-      "family": "ui",
-      "fx_id": "UI_AppSwipe",
-      "style_hints": [
-        "ui-app-swipe",
-        "app-swipe"
-      ],
-      "retrieval_priority": 0,
-      "source_documents": [
-        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
-        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
-        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
-        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
-      ]
-    },
-    {
-      "effect_id": "builtin-ui-rotate-face",
-      "mode": "builtin-ui-rotate-face",
-      "effect_source": "builtin",
-      "family": "ui",
-      "fx_id": "UI_RotateFace",
-      "style_hints": [
-        "ui-rotate-face",
-        "rotate-face"
-      ],
-      "retrieval_priority": 0,
-      "source_documents": [
-        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
-        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
-        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
-        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
       ]
     },
     {
       "effect_id": "builtin-glitch-hdistortion",
-      "mode": "builtin-glitch-hdistortion",
       "effect_source": "builtin",
       "family": "glitch",
       "fx_id": "Glitch_HDistor1",
+      "mode": "builtin-glitch-hdistortion",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
       "style_hints": [
         "glitch-hdistor1",
         "glitch-hdistortion",
         "hdistortion"
-      ],
-      "retrieval_priority": 0,
-      "source_documents": [
-        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
-        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
-        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
-        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
-      ]
-    },
-    {
-      "effect_id": "builtin-glitch-stretch-swipe",
-      "mode": "builtin-glitch-stretch-swipe",
-      "effect_source": "builtin",
-      "family": "glitch",
-      "fx_id": "Glitch_StretchSwipe",
-      "style_hints": [
-        "glitch-stretch-swipe",
-        "stretch-swipe"
-      ],
-      "retrieval_priority": 0,
-      "source_documents": [
-        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
-        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
-        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
-        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
-      ]
-    },
-    {
-      "effect_id": "builtin-glitch-hdistortion2",
-      "mode": "builtin-glitch-hdistortion2",
-      "effect_source": "builtin",
-      "family": "glitch",
-      "fx_id": "Glitch_HDistor2",
-      "style_hints": [
-        "glitch-hdistortion2",
-        "hdistortion2"
-      ],
-      "retrieval_priority": 0,
-      "source_documents": [
-        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
-        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
-        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
-        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
-      ]
-    },
-    {
-      "effect_id": "builtin-glitch-tunewave",
-      "mode": "builtin-glitch-tunewave",
-      "effect_source": "builtin",
-      "family": "glitch",
-      "fx_id": "Glitch_TuneWave",
-      "style_hints": [
-        "glitch-tunewave",
-        "tunewave"
-      ],
-      "retrieval_priority": 0,
-      "source_documents": [
-        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
-        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
-        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
-        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
       ]
     },
     {
       "effect_id": "builtin-glitch-distortion",
-      "mode": "builtin-glitch-distortion",
       "effect_source": "builtin",
       "family": "glitch",
       "fx_id": "Glitch_HDistor1",
-      "style_hints": [
-        "distortion",
-        "glitch-distortion",
-        "glitch2"
-      ],
+      "mode": "builtin-glitch-distortion",
       "retrieval_priority": 0,
       "source_documents": [
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
         "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
         "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
         "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "distortion",
+        "glitch-distortion",
+        "glitch2"
+      ]
+    },
+    {
+      "effect_id": "builtin-glitch-hdistortion2",
+      "effect_source": "builtin",
+      "family": "glitch",
+      "fx_id": "Glitch_HDistor2",
+      "mode": "builtin-glitch-hdistortion2",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "glitch-hdistortion2",
+        "hdistortion2"
+      ]
+    },
+    {
+      "effect_id": "builtin-glitch-stretch-swipe",
+      "effect_source": "builtin",
+      "family": "glitch",
+      "fx_id": "Glitch_StretchSwipe",
+      "mode": "builtin-glitch-stretch-swipe",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "glitch-stretch-swipe",
+        "stretch-swipe"
+      ]
+    },
+    {
+      "effect_id": "builtin-glitch-tunewave",
+      "effect_source": "builtin",
+      "family": "glitch",
+      "fx_id": "Glitch_TuneWave",
+      "mode": "builtin-glitch-tunewave",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "glitch-tunewave",
+        "tunewave"
+      ]
+    },
+    {
+      "effect_id": "builtin-ui-snapshot",
+      "effect_source": "builtin",
+      "family": "ui",
+      "fx_id": "UI_Snapshot",
+      "mode": "builtin-ui-snapshot",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "ui-snapshot",
+        "ui",
+        "snapshot"
+      ]
+    },
+    {
+      "effect_id": "builtin-ui-app-swipe",
+      "effect_source": "builtin",
+      "family": "ui",
+      "fx_id": "UI_AppSwipe",
+      "mode": "builtin-ui-app-swipe",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "ui-app-swipe",
+        "app-swipe"
+      ]
+    },
+    {
+      "effect_id": "builtin-ui-rotate-face",
+      "effect_source": "builtin",
+      "family": "ui",
+      "fx_id": "UI_RotateFace",
+      "mode": "builtin-ui-rotate-face",
+      "retrieval_priority": 0,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.h",
+        "overlaytrengine/OverlayTrPlugInFx/TrAsWindLib.cpp"
+      ],
+      "style_hints": [
+        "ui-rotate-face",
+        "rotate-face"
       ]
     },
     {
       "effect_id": "generated-seamless-placeholder",
-      "mode": "generated-seamless-placeholder",
       "effect_source": "generated",
+      "fallback_fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
       "family": "seamless",
       "fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
-      "fallback_fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
-      "style_hints": [
-        "generated-seamless"
-      ],
+      "mode": "generated-seamless-placeholder",
       "retrieval_priority": 10,
       "source_documents": [
         "harness/examples/effect_specs/generated_SeamlessSliding_placeholder.json",
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
         "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
         "overlaytrengine/OverlayTrPlugInFx/TrSeamlessSliding.cpp"
+      ],
+      "style_hints": [
+        "generated-seamless"
       ]
     },
     {
       "effect_id": "generated-glitch-placeholder",
-      "mode": "generated-glitch-placeholder",
       "effect_source": "generated",
+      "fallback_fx_id": "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4",
       "family": "glitch",
       "fx_id": "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4",
-      "fallback_fx_id": "CES_PlugIn_Glitch.dll\\DSP_TR_04_Bad Signal_4",
-      "style_hints": [
-        "generated-glitch"
-      ],
+      "mode": "generated-glitch-placeholder",
       "retrieval_priority": 10,
       "source_documents": [
         "harness/examples/effect_specs/generated_glitch_placeholder.json",
@@ -455,46 +461,9 @@
         "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
         "overlaytrengine/OverlayTrPlugInFx/TrGlitch.cpp",
         "overlaytrengine/OverlayTrPlugInFx/TrGlitchInfoManager.cpp"
-      ]
-    },
-    {
-      "effect_id": "generated-dissolve-01",
-      "mode": "generated-dissolve-01",
-      "effect_source": "generated",
-      "family": "seamless",
-      "fx_id": "ModelGenerated\\Dissolve_01",
-      "fallback_fx_id": "ModelGenerated\\Dissolve_01",
-      "style_hints": [
-        "generated-dissolve",
-        "dissolve",
-        "crossfade"
       ],
-      "retrieval_priority": 20,
-      "source_documents": [
-        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
-        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
-        "overlaytrengine/OverlayTrPlugInFx/TrGeneratedDissolve.cpp",
-        "overlaytrengine/OverlayTrPlugInFx/TrGeneratedDissolve_ps.hlsl"
-      ]
-    },
-    {
-      "effect_id": "generated-seamless-sliding-01",
-      "mode": "generated-seamless-sliding-01",
-      "effect_source": "generated",
-      "family": "seamless_slide",
-      "fx_id": "ModelGenerated\\SeamlessSliding_01",
-      "fallback_fx_id": "ModelGenerated\\SeamlessSliding_01",
       "style_hints": [
-        "generated-seamless-sliding",
-        "seamless_slide",
-        "sliding"
-      ],
-      "retrieval_priority": 20,
-      "source_documents": [
-        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
-        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
-        "overlaytrengine/OverlayTrPlugInFx/TrModelGeneratedSeamlessSliding01.cpp",
-        "overlaytrengine/OverlayTrPlugInFx/TrModelGeneratedSeamlessSliding01_ps.hlsl"
+        "generated-glitch"
       ]
     }
   ]

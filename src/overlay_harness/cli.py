@@ -14,6 +14,7 @@ from .effect_catalog import build_effect_catalog
 from .effect_catalog import build_effect_catalog_audit
 from .effect_catalog import load_effect_catalog
 from .effect_catalog import select_effect_candidate
+from .effect_catalog import sync_effect_catalog_sources
 from .evaluator import score_frame_sequences
 from .models import load_render_job
 from .analyzer import ANALYSIS_ENGINE
@@ -103,6 +104,8 @@ def main(argv: list[str] | None = None) -> int:
         return _handle_score(args, repo_root)
     if args.command == "index-effects":
         return _handle_index_effects(args, repo_root)
+    if args.command == "sync-effect-catalog-sources":
+        return _handle_sync_effect_catalog_sources(args, repo_root)
     if args.command == "audit-effects":
         return _handle_audit_effects(args, repo_root)
 
@@ -509,6 +512,21 @@ def _build_parser() -> argparse.ArgumentParser:
             "Output path for the effect catalog JSON; defaults to "
             "harness/configs/effect_catalog.json"
         ),
+    )
+
+    sync_effects_cmd = subparsers.add_parser(
+        "sync-effect-catalog-sources",
+        help="synchronize effect catalog sources from current OverlayTrPlugInFx FX registrations",
+    )
+    sync_effects_cmd.add_argument(
+        "--output",
+        required=False,
+        help="Output path for effect_catalog_sources.json; defaults to harness/configs/effect_catalog_sources.json",
+    )
+    sync_effects_cmd.add_argument(
+        "--catalog-output",
+        required=False,
+        help="Output path for the regenerated effect_catalog.json; defaults to harness/configs/effect_catalog.json",
     )
     index_effects_cmd.add_argument(
         "--source-manifest",
@@ -973,6 +991,42 @@ def _handle_index_effects(args, repo_root: Path) -> int:
                 "source_manifest_sha256": catalog.get("source_manifest_sha256"),
                 "registration_count": catalog.get("registration_count"),
                 "effect_count": len(catalog.get("effects", [])),
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
+def _handle_sync_effect_catalog_sources(args, repo_root: Path) -> int:
+    output = (
+        _resolve_path_argument(args.output, repo_root)
+        if args.output
+        else (repo_root / "harness" / "configs" / "effect_catalog_sources.json").resolve()
+    )
+    catalog_output = (
+        _resolve_path_argument(args.catalog_output, repo_root)
+        if args.catalog_output
+        else (repo_root / "harness" / "configs" / "effect_catalog.json").resolve()
+    )
+    try:
+        result = sync_effect_catalog_sources(repo_root, source_manifest_path=output)
+        write_json(output, result["manifest"])
+        catalog = build_effect_catalog(repo_root, source_manifest_path=output)
+        write_json(catalog_output, catalog)
+    except Exception as exc:
+        print(f"sync-effect-catalog-sources failed: {exc}")
+        return 1
+
+    print(
+        json.dumps(
+            {
+                "source_manifest": str(output),
+                "catalog": str(catalog_output),
+                "discovered_fx_count": len(result["discovered_fx_ids"]),
+                "added_fx_ids": result["added_fx_ids"],
+                "removed_fx_ids": result["removed_fx_ids"],
+                "registration_count": catalog.get("registration_count"),
             },
             indent=2,
         )

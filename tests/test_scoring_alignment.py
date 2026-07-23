@@ -37,6 +37,7 @@ from overlay_harness.effect_catalog import build_effect_catalog
 from overlay_harness.effect_catalog import build_effect_catalog_audit
 from overlay_harness.effect_catalog import load_effect_catalog
 from overlay_harness.effect_catalog import select_effect_candidate
+from overlay_harness.effect_catalog import sync_effect_catalog_sources
 from overlay_harness.config import load_analysis_provider_config
 from overlay_harness.analyzer import build_transition_analysis_provider_adapter
 from overlay_harness.analyzer import build_transition_analysis_provider_runtime
@@ -3076,6 +3077,101 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(catalog["retrieval_index"]["seamless"], "custom-builtin-seamless")
         self.assertEqual(catalog["source_manifest"], source_manifest.relative_to(HARNESS_ROOT.parent).as_posix())
         self.assertEqual(len(catalog["source_manifest_sha256"]), 64)
+
+    def test_sync_effect_catalog_sources_reconciles_engine_registrations(self) -> None:
+        source_manifest = self.root / "synced_effect_catalog_sources.json"
+        manifest = json.loads(
+            (HARNESS_ROOT / "configs" / "effect_catalog_sources.json").read_text(encoding="utf-8")
+        )
+        manifest["registrations"].append(
+            {
+                "effect_id": "generated-retired",
+                "mode": "generated-retired",
+                "effect_source": "generated",
+                "family": "unknown",
+                "fx_id": "ModelGenerated\\Retired",
+                "fallback_fx_id": "ModelGenerated\\Retired",
+                "style_hints": ["retired"],
+                "retrieval_priority": 100,
+                "source_documents": ["overlaytrengine/OverlayTrPlugInFx/FxInfo.h"],
+            }
+        )
+        source_manifest.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+        synced = sync_effect_catalog_sources(HARNESS_ROOT.parent, source_manifest_path=source_manifest)
+        source_manifest.write_text(json.dumps(synced["manifest"], indent=2), encoding="utf-8")
+
+        registrations = synced["manifest"]["registrations"]
+        builtin_fx_ids = {
+            registration["fx_id"]
+            for registration in registrations
+            if registration["effect_source"] == "builtin"
+        }
+        fxinfo_content = (
+            HARNESS_ROOT.parent / "overlaytrengine" / "OverlayTrPlugInFx" / "FxInfo.h"
+        ).read_text(encoding="utf-8")
+        fxinfo_fx_ids = {
+            match.replace("\\\\", "\\")
+            for match in re.findall(r'^\s*"([^"]+)"\s*,\s*"[^"]+"\s*,\s*\d+\s*$', fxinfo_content, re.MULTILINE)
+        }
+
+        self.assertEqual(builtin_fx_ids, fxinfo_fx_ids)
+        self.assertIn("ModelGenerated\\Retired", synced["removed_fx_ids"])
+        self.assertTrue(
+            any(registration["effect_id"] == "generated-seamless-placeholder" for registration in registrations)
+        )
+
+        catalog = build_effect_catalog(HARNESS_ROOT.parent, source_manifest_path=source_manifest)
+        self.assertEqual(catalog["registration_count"], len(registrations))
+        self.assertEqual(
+            build_effect_catalog_audit(HARNESS_ROOT.parent, source_manifest_path=source_manifest)["status"],
+            "ok",
+        )
+
+    def test_sync_effect_catalog_sources_adds_new_model_generated_effect(self) -> None:
+        repo_root = self.root / "sync_engine_repo"
+        plugin_root = repo_root / "overlaytrengine" / "OverlayTrPlugInFx"
+        source_manifest = repo_root / "harness" / "configs" / "effect_catalog_sources.json"
+        plugin_root.mkdir(parents=True)
+        source_manifest.parent.mkdir(parents=True)
+        (plugin_root / "FxInfo.h").write_text(
+            '''static FxInfo g_FxInfoList[] =
+{
+    {
+        // TrModelGeneratedResearch01
+        "ModelGenerated\\\\Research_01",
+        "Research 01",
+        1
+    }
+};
+''',
+            encoding="utf-8",
+        )
+        (plugin_root / "OverlayTrPlugInFx.cpp").write_text("", encoding="utf-8")
+        (plugin_root / "TrModelGeneratedResearch01.cpp").write_text("", encoding="utf-8")
+        (plugin_root / "TrModelGeneratedResearch01_ps.hlsl").write_text("", encoding="utf-8")
+        (plugin_root / "OverlayTrPlugInFx.vcxproj").write_text(
+            '''<Project>
+  <ItemGroup>
+    <ClCompile Include="TrModelGeneratedResearch01.cpp" />
+    <FxCompile Include="TrModelGeneratedResearch01_ps.hlsl" />
+  </ItemGroup>
+</Project>
+''',
+            encoding="utf-8",
+        )
+
+        synced = sync_effect_catalog_sources(repo_root, source_manifest_path=source_manifest)
+        registration = synced["manifest"]["registrations"][0]
+
+        self.assertEqual(synced["added_fx_ids"], ["ModelGenerated\\Research_01"])
+        self.assertEqual(registration["effect_source"], "generated")
+        self.assertEqual(registration["family"], "unknown")
+        self.assertEqual(registration["metadata_status"], "discovered")
+        self.assertEqual(registration["wrapper_hint"], "TrModelGeneratedResearch01")
+        self.assertIn(
+            "overlaytrengine/OverlayTrPlugInFx/TrModelGeneratedResearch01_ps.hlsl",
+            registration["source_documents"],
+        )
 
     def test_effect_catalog_source_manifest_is_loaded(self) -> None:
         catalog = build_effect_catalog(HARNESS_ROOT.parent)
