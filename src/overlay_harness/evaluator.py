@@ -727,6 +727,7 @@ def _score_flow_pair(
             "candidate_regions": candidate_regions,
             "reference_has_distinct_direction_groups": False,
             "candidate_has_distinct_direction_groups": False,
+            "matched_direction_region_count": 0,
         }
 
     vector_error = numpy_module.linalg.norm(candidate_flow - reference_flow, axis=2)
@@ -757,6 +758,7 @@ def _score_flow_pair(
         "candidate_regions": candidate_regions,
         "reference_has_distinct_direction_groups": _has_distinct_direction_groups(reference_regions),
         "candidate_has_distinct_direction_groups": _has_distinct_direction_groups(candidate_regions),
+        "matched_direction_region_count": _match_motion_regions(reference_regions, candidate_regions),
     }
 
 
@@ -779,6 +781,66 @@ def _has_distinct_direction_groups(regions: list[dict[str, Any]]) -> bool:
             if second_length > 1e-6 and (first_x * second_x + first_y * second_y) / (first_length * second_length) <= 0.5:
                 return True
     return False
+
+
+def _match_motion_regions(
+    reference_regions: list[dict[str, Any]], candidate_regions: list[dict[str, Any]]
+) -> int:
+    """Count reliable reference regions with a spatially and directionally matching candidate."""
+    reference_regions = [
+        region for region in reference_regions if float(region.get("area_ratio", 0.0)) >= 0.02
+    ]
+    candidate_regions = [
+        region for region in candidate_regions if float(region.get("area_ratio", 0.0)) >= 0.01
+    ]
+    used_candidates: set[int] = set()
+    matched = 0
+    for reference in reference_regions:
+        best_index = None
+        best_score = 0.0
+        for index, candidate in enumerate(candidate_regions):
+            if index in used_candidates:
+                continue
+            overlap = _bbox_iou(reference.get("bbox"), candidate.get("bbox"))
+            reference_dx = float(reference.get("mean_dx", 0.0))
+            reference_dy = float(reference.get("mean_dy", 0.0))
+            candidate_dx = float(candidate.get("mean_dx", 0.0))
+            candidate_dy = float(candidate.get("mean_dy", 0.0))
+            reference_length = math.hypot(reference_dx, reference_dy)
+            candidate_length = math.hypot(candidate_dx, candidate_dy)
+            direction = (
+                (reference_dx * candidate_dx + reference_dy * candidate_dy)
+                / (reference_length * candidate_length)
+                if reference_length > 1e-6 and candidate_length > 1e-6
+                else 0.0
+            )
+            if overlap >= 0.1 and direction >= 0.5 and overlap * direction > best_score:
+                best_index = index
+                best_score = overlap * direction
+        if best_index is not None:
+            used_candidates.add(best_index)
+            matched += 1
+    return matched
+
+
+def _bbox_iou(first: Any, second: Any) -> float:
+    if not isinstance(first, dict) or not isinstance(second, dict):
+        return 0.0
+    first_left = float(first.get("x", 0.0))
+    first_top = float(first.get("y", 0.0))
+    first_right = first_left + float(first.get("width", 0.0))
+    first_bottom = first_top + float(first.get("height", 0.0))
+    second_left = float(second.get("x", 0.0))
+    second_top = float(second.get("y", 0.0))
+    second_right = second_left + float(second.get("width", 0.0))
+    second_bottom = second_top + float(second.get("height", 0.0))
+    intersection = max(0.0, min(first_right, second_right) - max(first_left, second_left)) * max(
+        0.0, min(first_bottom, second_bottom) - max(first_top, second_top)
+    )
+    first_area = max(0.0, first_right - first_left) * max(0.0, first_bottom - first_top)
+    second_area = max(0.0, second_right - second_left) * max(0.0, second_bottom - second_top)
+    union = first_area + second_area - intersection
+    return intersection / union if union > 0.0 else 0.0
 
 
 def _flow_reliability_mask(forward_flow: Any, backward_flow: Any, cv2_module: Any, numpy_module: Any) -> Any:

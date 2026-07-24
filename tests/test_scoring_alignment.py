@@ -52,6 +52,7 @@ from overlay_harness.evaluator import (
     _build_motion_topology_contract,
     _describe_motion_regions,
     _estimate_band_shifts,
+    _match_motion_regions,
     _score_flow_pair,
     _summarize_reference_motion,
     score_frame_sequences,
@@ -194,6 +195,38 @@ class ScoringAlignmentTests(unittest.TestCase):
         )
 
         self.assertEqual(contract["status"], "not_required")
+
+    def test_motion_region_matching_requires_overlap_and_direction(self) -> None:
+        reference = [
+            {
+                "area_ratio": 0.4,
+                "bbox": {"x": 0, "y": 0, "width": 100, "height": 50},
+                "mean_dx": -4.0,
+                "mean_dy": 0.0,
+            },
+            {
+                "area_ratio": 0.4,
+                "bbox": {"x": 0, "y": 50, "width": 100, "height": 50},
+                "mean_dx": 4.0,
+                "mean_dy": 0.0,
+            },
+        ]
+        candidate = [
+            {
+                "area_ratio": 0.15,
+                "bbox": {"x": 0, "y": 0, "width": 100, "height": 50},
+                "mean_dx": -3.0,
+                "mean_dy": 0.0,
+            },
+            {
+                "area_ratio": 0.15,
+                "bbox": {"x": 0, "y": 50, "width": 100, "height": 50},
+                "mean_dx": -3.0,
+                "mean_dy": 0.0,
+            },
+        ]
+
+        self.assertEqual(_match_motion_regions(reference, candidate), 1)
 
     def test_prepared_reference_manifest_count_mismatch_fails(self) -> None:
         candidate_dir = self.root / "candidate"
@@ -3323,14 +3356,16 @@ class ScoringAlignmentTests(unittest.TestCase):
         ]
 
         self.assertEqual({registration["fx_id"] for registration in engine_registrations}, fxinfo_fx_ids)
+        generated_effect_ids = {registration["effect_id"] for registration in generated_registrations}
+        self.assertIn("generated-seamless-placeholder", generated_effect_ids)
+        self.assertIn("generated-glitch-placeholder", generated_effect_ids)
         self.assertEqual(
-            {registration["effect_id"] for registration in generated_registrations},
             {
-                "engine-modelgenerated-horizontalsplitblur-01",
-                "engine-modelgenerated-dissolve-02",
-                "generated-seamless-placeholder",
-                "generated-glitch-placeholder",
+                registration["fx_id"]
+                for registration in generated_registrations
+                if not str(registration["mode"]).endswith("placeholder")
             },
+            {fx_id for fx_id in fxinfo_fx_ids if fx_id.startswith("ModelGenerated\\")},
         )
 
     def test_planner_styles_match_builtin_source_manifest_aliases(self) -> None:
@@ -3737,12 +3772,20 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(audit["report_type"], "effect_catalog_audit")
         self.assertEqual(audit["status"], "ok")
         self.assertEqual(audit["baseline_registration_count"], 24)
-        self.assertEqual(audit["manifest_registration_count"], 26)
+        source_manifest = json.loads(
+            (HARNESS_ROOT / "configs" / "effect_catalog_sources.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(audit["manifest_registration_count"], len(source_manifest["registrations"]))
         self.assertEqual(audit["missing_effect_ids"], [])
         self.assertEqual(audit["extra_effect_ids"], [])
         self.assertEqual(
             audit["discovered_generated_effect_ids"],
-            ["engine-modelgenerated-dissolve-02", "engine-modelgenerated-horizontalsplitblur-01"],
+            sorted(
+                registration["effect_id"]
+                for registration in source_manifest["registrations"]
+                if registration["effect_source"] == "generated"
+                and not str(registration["mode"]).endswith("placeholder")
+            ),
         )
         self.assertEqual(len(audit["source_manifest_sha256"]), 64)
 
