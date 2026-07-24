@@ -621,6 +621,41 @@ def _summarize_reference_motion(
             "median": float(numpy_module.median(region_counts)),
         },
         "motion_threshold": motion_threshold,
+        "topology_contract": _build_motion_topology_contract(pairs[first : last + 1]),
+    }
+
+
+def _build_motion_topology_contract(pairs: list[dict[str, Any]]) -> dict[str, Any]:
+    """Extract recurring directional topology without assuming a fixed region count or axis."""
+    evidence: list[dict[str, Any]] = []
+    for pair in pairs:
+        regions = [
+            region
+            for region in pair.get("regions", [])
+            if float(region.get("area_ratio", 0.0)) >= 0.02
+            and float(region.get("reliable_fraction", 0.0)) >= 0.5
+        ]
+        if len(regions) < 2:
+            continue
+        if _has_distinct_direction_groups(regions):
+            evidence.append({
+                "from_frame": pair["from_frame"],
+                "to_frame": pair["to_frame"],
+                "reference_region_count": len(regions),
+            })
+    if not evidence:
+        return {
+            "status": "not_required",
+            "reason": "reference flow has no persistent multi-direction evidence",
+            "evidence_pairs": [],
+        }
+    return {
+        "status": "required",
+        "reason": "reliable reference flow contains multiple spatial regions with distinct directions",
+        "minimum_concurrent_regions": 2,
+        "requires_distinct_direction_groups": True,
+        "evidence_pairs": evidence,
+        "confidence": min(1.0, len(evidence) / max(2, len(pairs) * 0.25)),
     }
 
 
@@ -662,6 +697,22 @@ def _score_flow_pair(
     active = numpy_module.logical_or(candidate_active, reference_active)
     active_pixel_count = int(numpy_module.count_nonzero(active))
     pixel_count = int(active.size)
+    candidate_regions = _describe_motion_regions(
+        candidate_flow,
+        candidate_magnitude,
+        candidate_active,
+        candidate_reliable if candidate_reliable is not None else numpy_module.ones_like(candidate_active),
+        cv2_module,
+        numpy_module,
+    )
+    reference_regions = _describe_motion_regions(
+        reference_flow,
+        reference_magnitude,
+        reference_active,
+        reference_reliable if reference_reliable is not None else numpy_module.ones_like(reference_active),
+        cv2_module,
+        numpy_module,
+    )
     if not active_pixel_count:
         return {
             "active_pixel_count": 0,
@@ -672,6 +723,10 @@ def _score_flow_pair(
             "motion_region_iou": 1.0,
             "reference_motion_region_count": 0,
             "candidate_motion_region_count": 0,
+            "reference_regions": reference_regions,
+            "candidate_regions": candidate_regions,
+            "reference_has_distinct_direction_groups": False,
+            "candidate_has_distinct_direction_groups": False,
         }
 
     vector_error = numpy_module.linalg.norm(candidate_flow - reference_flow, axis=2)
@@ -696,9 +751,34 @@ def _score_flow_pair(
         "vector_mae": vector_mae,
         "direction_agreement": direction_agreement,
         "motion_region_iou": motion_region_iou,
-        "reference_motion_region_count": _count_motion_regions(reference_active, cv2_module, numpy_module),
-        "candidate_motion_region_count": _count_motion_regions(candidate_active, cv2_module, numpy_module),
+        "reference_motion_region_count": len(reference_regions),
+        "candidate_motion_region_count": len(candidate_regions),
+        "reference_regions": reference_regions,
+        "candidate_regions": candidate_regions,
+        "reference_has_distinct_direction_groups": _has_distinct_direction_groups(reference_regions),
+        "candidate_has_distinct_direction_groups": _has_distinct_direction_groups(candidate_regions),
     }
+
+
+def _has_distinct_direction_groups(regions: list[dict[str, Any]]) -> bool:
+    """Return whether reliable regions contain non-parallel motion directions."""
+    reliable_regions = [
+        region
+        for region in regions
+        if float(region.get("area_ratio", 0.0)) >= 0.02
+        and float(region.get("reliable_fraction", 0.0)) >= 0.5
+    ]
+    for index, first_region in enumerate(reliable_regions):
+        first_x, first_y = float(first_region["mean_dx"]), float(first_region["mean_dy"])
+        first_length = math.hypot(first_x, first_y)
+        if first_length <= 1e-6:
+            continue
+        for second_region in reliable_regions[index + 1 :]:
+            second_x, second_y = float(second_region["mean_dx"]), float(second_region["mean_dy"])
+            second_length = math.hypot(second_x, second_y)
+            if second_length > 1e-6 and (first_x * second_x + first_y * second_y) / (first_length * second_length) <= 0.5:
+                return True
+    return False
 
 
 def _flow_reliability_mask(forward_flow: Any, backward_flow: Any, cv2_module: Any, numpy_module: Any) -> Any:

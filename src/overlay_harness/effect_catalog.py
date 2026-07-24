@@ -457,7 +457,19 @@ def build_effect_catalog_audit(
     }
 
     missing_effect_ids = sorted(baseline_effect_ids - manifest_effect_ids)
-    extra_effect_ids = sorted(manifest_effect_ids - baseline_effect_ids)
+    discovered_generated_effect_ids = sorted(
+        registration["effect_id"]
+        for registration in manifest_registrations
+        if isinstance(registration, dict)
+        and registration.get("effect_source") == "generated"
+        and not str(registration.get("mode", "")).endswith("placeholder")
+        and isinstance(registration.get("effect_id"), str)
+    )
+    extra_effect_ids = sorted(
+        effect_id
+        for effect_id in manifest_effect_ids - baseline_effect_ids
+        if effect_id not in discovered_generated_effect_ids
+    )
 
     audit_status = "ok"
     if source_manifest is None:
@@ -483,6 +495,7 @@ def build_effect_catalog_audit(
         "manifest_registration_count": len(manifest_registrations),
         "missing_effect_ids": missing_effect_ids,
         "extra_effect_ids": extra_effect_ids,
+        "discovered_generated_effect_ids": discovered_generated_effect_ids,
     }
 
 
