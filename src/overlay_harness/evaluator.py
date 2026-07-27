@@ -361,6 +361,12 @@ def score_optical_flow_motion(
         "motion_region_iou": region_iou,
         "reliable_motion_coverage": total_reliable_coverage / len(pairs),
         "motion_similarity": motion_similarity,
+        "motion_geometry": _summarize_motion_geometry(
+            [pair["candidate_motion_geometry"] for pair in pairs], numpy_module
+        ),
+        "reference_motion_geometry": _summarize_motion_geometry(
+            [pair["reference_motion_geometry"] for pair in pairs], numpy_module
+        ),
         "pairs": pairs,
     }
 
@@ -488,6 +494,7 @@ def analyze_reference_motion(
         magnitude, _ = cv2.cartToPolar(flow[..., 0], flow[..., 1], angleInDegrees=True)
         active = numpy.logical_and(magnitude >= motion_threshold, reliable)
         regions = _describe_motion_regions(flow, magnitude, active, reliable, cv2, numpy)
+        motion_geometry = _estimate_motion_geometry(flow, reliable, motion_threshold, cv2, numpy)
         active_coverage = float(numpy.count_nonzero(active) / active.size)
         reliable_coverage = float(numpy.count_nonzero(reliable) / reliable.size)
         mean_magnitude = float(magnitude[active].mean()) if numpy.count_nonzero(active) else 0.0
@@ -504,6 +511,7 @@ def analyze_reference_motion(
                 "active_motion_coverage": active_coverage,
                 "reliable_motion_coverage": reliable_coverage,
                 "regions": regions,
+                "motion_geometry": motion_geometry,
             }
         )
         panel = _reference_motion_panel(flow, active, reliable, regions, cv2, numpy)
@@ -512,6 +520,9 @@ def analyze_reference_motion(
             raise RuntimeError(f"could not write reference motion diagnostic: {frame_file}")
 
     summary = _summarize_reference_motion(pairs, energies, motion_threshold, numpy)
+    summary["motion_geometry"] = _summarize_motion_geometry(
+        [pair["motion_geometry"] for pair in pairs], numpy
+    )
     return {
         "artifact_type": "reference_motion_diagnostics",
         "artifact_version": 1,
@@ -562,6 +573,179 @@ def _describe_motion_regions(
             }
         )
     return sorted(regions, key=lambda region: float(region["area_ratio"]), reverse=True)
+
+
+def _estimate_motion_geometry(
+    flow: Any,
+    reliable: Any,
+    motion_threshold: float,
+    cv2_module: Any,
+    numpy_module: Any,
+) -> dict[str, Any]:
+    """Estimate global and local transformation cues from one reliable flow pair."""
+    magnitude = numpy_module.linalg.norm(flow, axis=2)
+    valid = numpy_module.logical_and(reliable, magnitude >= motion_threshold)
+    ys, xs = numpy_module.nonzero(valid)
+    if len(xs) < 12:
+        return {
+            "status": "low_confidence",
+            "reason": "insufficient reliable motion correspondences",
+            "confidence": 0.0,
+            "valid_coverage": float(numpy_module.count_nonzero(valid) / valid.size),
+        }
+
+    sample_step = max(1, len(xs) // 2000)
+    source = numpy_module.column_stack((xs[::sample_step], ys[::sample_step])).astype(numpy_module.float32)
+    vectors = flow[ys[::sample_step], xs[::sample_step]].astype(numpy_module.float32)
+    destination = source + vectors
+    similarity, similarity_inliers = _estimate_affine(
+        cv2_module.estimateAffinePartial2D, source, destination, cv2_module
+    )
+    affine, affine_inliers = _estimate_affine(
+        cv2_module.estimateAffine2D, source, destination, cv2_module
+    )
+    similarity_error = _transform_residual(similarity, source, destination, numpy_module)
+    affine_error = _transform_residual(affine, source, destination, numpy_module)
+    matrix = affine if affine is not None and affine_error + 0.05 < similarity_error else similarity
+    model = "affine_transform" if matrix is affine else "similarity_transform"
+    if matrix is None:
+        model = "spatial_displacement"
+
+    transform = _transform_properties(matrix, numpy_module)
+    height, width = flow.shape[:2]
+    center = numpy_module.array([width / 2.0, height / 2.0], dtype=numpy_module.float32)
+    relative = source - center
+    radius = numpy_module.linalg.norm(relative, axis=1)
+    nonzero_radius = radius > 1.0
+    residual_flow = vectors.copy()
+    if matrix is not None:
+        predicted = _apply_transform(matrix, source, numpy_module)
+        residual_flow = destination - predicted
+    radial = numpy_module.sum(residual_flow * relative, axis=1) / numpy_module.maximum(radius * radius, 1.0)
+    tangential = (relative[:, 0] * residual_flow[:, 1] - relative[:, 1] * residual_flow[:, 0]) / numpy_module.maximum(radius * radius, 1.0)
+    radial = radial[nonzero_radius]
+    tangential = tangential[nonzero_radius]
+    residual_magnitude = numpy_module.linalg.norm(residual_flow, axis=1)
+    inlier_values = [similarity_inliers, affine_inliers]
+    inlier_ratio = max(
+        float(numpy_module.count_nonzero(value) / len(value))
+        for value in inlier_values
+        if value is not None and len(value)
+    ) if any(value is not None and len(value) for value in inlier_values) else 0.0
+    confidence = min(1.0, len(source) / 500.0) * max(0.0, min(1.0, inlier_ratio))
+    return {
+        "status": "estimated",
+        "dominant_model": model,
+        "confidence": confidence,
+        "valid_coverage": float(numpy_module.count_nonzero(valid) / valid.size),
+        "rotation_field": {
+            "mean_degrees": transform["rotation_degrees"],
+            "variation_degrees": float(numpy_module.degrees(numpy_module.std(tangential))) if len(tangential) else 0.0,
+            "confidence": confidence,
+        },
+        "radial_scale_field": {
+            "mean_ratio": 1.0 + float(numpy_module.median(radial)) if len(radial) else 1.0,
+            "variation_ratio": float(numpy_module.std(radial)) if len(radial) else 0.0,
+            "confidence": confidence,
+        },
+        "reflection_or_flip": {
+            "detected": transform["reflection_detected"],
+            "confidence": confidence,
+        },
+        "spatial_displacement": {
+            "residual_energy": float(numpy_module.mean(residual_magnitude)),
+            "confidence": confidence,
+        },
+        "scale": {
+            "uniform_ratio": transform["uniform_scale"],
+            "axis_ratios": transform["axis_scales"],
+        },
+    }
+
+
+def _estimate_affine(estimator: Any, source: Any, destination: Any, cv2_module: Any) -> tuple[Any | None, Any | None]:
+    try:
+        matrix, inliers = estimator(
+            source,
+            destination,
+            method=cv2_module.RANSAC,
+            ransacReprojThreshold=2.5,
+            maxIters=300,
+            confidence=0.99,
+        )
+    except (cv2_module.error, TypeError, ValueError):
+        return None, None
+    return matrix, inliers
+
+
+def _apply_transform(matrix: Any, points: Any, numpy_module: Any) -> Any:
+    return points @ matrix[:, :2].T + matrix[:, 2]
+
+
+def _transform_residual(matrix: Any, source: Any, destination: Any, numpy_module: Any) -> float:
+    if matrix is None:
+        return float("inf")
+    return float(numpy_module.linalg.norm(_apply_transform(matrix, source, numpy_module) - destination, axis=1).mean())
+
+
+def _transform_properties(matrix: Any, numpy_module: Any) -> dict[str, Any]:
+    if matrix is None:
+        return {
+            "rotation_degrees": 0.0,
+            "uniform_scale": 1.0,
+            "axis_scales": [1.0, 1.0],
+            "reflection_detected": False,
+        }
+    linear = matrix[:, :2]
+    _, singular_values, _ = numpy_module.linalg.svd(linear)
+    determinant = float(numpy_module.linalg.det(linear))
+    rotation_part, _, _ = numpy_module.linalg.svd(linear)
+    u, _, vt = numpy_module.linalg.svd(linear)
+    rotation = u @ vt
+    if numpy_module.linalg.det(rotation) < 0:
+        u[:, -1] *= -1
+        rotation = u @ vt
+    rotation_degrees = float(numpy_module.degrees(numpy_module.arctan2(rotation[1, 0], rotation[0, 0])))
+    return {
+        "rotation_degrees": rotation_degrees,
+        "uniform_scale": float(numpy_module.sqrt(abs(determinant))),
+        "axis_scales": [float(value) for value in singular_values],
+        "reflection_detected": determinant < 0.0,
+    }
+
+
+def _summarize_motion_geometry(geometries: list[dict[str, Any]], numpy_module: Any) -> dict[str, Any]:
+    valid = [item for item in geometries if item.get("status") == "estimated"]
+    if not valid:
+        return {"status": "needs_review", "reason": "no reliable transformation estimate", "confidence": 0.0}
+    rotations = [float(item["rotation_field"]["mean_degrees"]) for item in valid]
+    scales = [float(item["radial_scale_field"]["mean_ratio"]) for item in valid]
+    residuals = [float(item["spatial_displacement"]["residual_energy"]) for item in valid]
+    reflections = [bool(item["reflection_or_flip"]["detected"]) for item in valid]
+    return {
+        "status": "estimated",
+        "dominant_model": max(
+            (str(item.get("dominant_model")) for item in valid),
+            key=lambda model: sum(item.get("dominant_model") == model for item in valid),
+        ),
+        "pair_count": len(valid),
+        "confidence": float(numpy_module.mean([float(item.get("confidence", 0.0)) for item in valid])),
+        "rotation_field": {
+            "mean_degrees": float(numpy_module.mean(rotations)),
+            "variation_degrees": float(numpy_module.std(rotations)),
+        },
+        "radial_scale_field": {
+            "mean_ratio": float(numpy_module.mean(scales)),
+            "variation_ratio": float(numpy_module.std(scales)),
+        },
+        "reflection_or_flip": {
+            "detected": sum(reflections) > len(reflections) / 2,
+            "confidence": max(sum(reflections), len(reflections) - sum(reflections)) / len(reflections),
+        },
+        "spatial_displacement": {
+            "residual_energy": float(numpy_module.mean(residuals)),
+        },
+    }
 
 
 def _reference_motion_panel(
@@ -713,6 +897,20 @@ def _score_flow_pair(
         cv2_module,
         numpy_module,
     )
+    candidate_geometry = _estimate_motion_geometry(
+        candidate_flow,
+        candidate_reliable if candidate_reliable is not None else numpy_module.ones_like(candidate_active),
+        motion_threshold,
+        cv2_module,
+        numpy_module,
+    )
+    reference_geometry = _estimate_motion_geometry(
+        reference_flow,
+        reference_reliable if reference_reliable is not None else numpy_module.ones_like(reference_active),
+        motion_threshold,
+        cv2_module,
+        numpy_module,
+    )
     if not active_pixel_count:
         return {
             "active_pixel_count": 0,
@@ -728,6 +926,8 @@ def _score_flow_pair(
             "reference_has_distinct_direction_groups": False,
             "candidate_has_distinct_direction_groups": False,
             "matched_direction_region_count": 0,
+            "candidate_motion_geometry": candidate_geometry,
+            "reference_motion_geometry": reference_geometry,
         }
 
     vector_error = numpy_module.linalg.norm(candidate_flow - reference_flow, axis=2)
@@ -759,6 +959,8 @@ def _score_flow_pair(
         "reference_has_distinct_direction_groups": _has_distinct_direction_groups(reference_regions),
         "candidate_has_distinct_direction_groups": _has_distinct_direction_groups(candidate_regions),
         "matched_direction_region_count": _match_motion_regions(reference_regions, candidate_regions),
+        "candidate_motion_geometry": candidate_geometry,
+        "reference_motion_geometry": reference_geometry,
     }
 
 

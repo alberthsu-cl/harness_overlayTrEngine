@@ -51,6 +51,7 @@ from overlay_harness.analyzer import derive_analyzer_inputs_from_metadata
 from overlay_harness.evaluator import (
     _build_motion_topology_contract,
     _describe_motion_regions,
+    _estimate_motion_geometry,
     _estimate_band_shifts,
     _match_motion_regions,
     _score_flow_pair,
@@ -84,6 +85,72 @@ class ScoringAlignmentTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         shutil.rmtree(self.root, ignore_errors=True)
+
+    def test_motion_geometry_detects_combined_rotation_and_scale(self) -> None:
+        import cv2
+        import numpy
+
+        height, width = 64, 64
+        y, x = numpy.mgrid[0:height, 0:width].astype(numpy.float32)
+        points = numpy.stack((x, y), axis=-1)
+        center = numpy.array([width / 2.0, height / 2.0], dtype=numpy.float32)
+        angle = numpy.deg2rad(15.0)
+        transform = numpy.array(
+            [[1.2 * numpy.cos(angle), -1.2 * numpy.sin(angle)],
+             [1.2 * numpy.sin(angle), 1.2 * numpy.cos(angle)]],
+            dtype=numpy.float32,
+        )
+        destination = (points - center) @ transform.T + center
+        flow = destination - points
+        geometry = _estimate_motion_geometry(
+            flow,
+            numpy.ones((height, width), dtype=bool),
+            0.75,
+            cv2,
+            numpy,
+        )
+
+        self.assertEqual(geometry["status"], "estimated")
+        self.assertAlmostEqual(geometry["scale"]["uniform_ratio"], 1.2, delta=0.05)
+        self.assertAlmostEqual(geometry["rotation_field"]["mean_degrees"], 15.0, delta=2.0)
+        self.assertFalse(geometry["reflection_or_flip"]["detected"])
+
+    def test_motion_geometry_detects_reflection(self) -> None:
+        import cv2
+        import numpy
+
+        height, width = 64, 64
+        y, x = numpy.mgrid[0:height, 0:width].astype(numpy.float32)
+        flow = numpy.stack((width - 1.0 - 2.0 * x, numpy.zeros_like(y)), axis=-1)
+        geometry = _estimate_motion_geometry(
+            flow,
+            numpy.ones((height, width), dtype=bool),
+            0.75,
+            cv2,
+            numpy,
+        )
+
+        self.assertEqual(geometry["status"], "estimated")
+        self.assertTrue(geometry["reflection_or_flip"]["detected"])
+
+    def test_motion_geometry_reports_regional_displacement_residual(self) -> None:
+        import cv2
+        import numpy
+
+        height, width = 64, 64
+        flow = numpy.zeros((height, width, 2), dtype=numpy.float32)
+        flow[: height // 2, :, 0] = 8.0
+        flow[height // 2 :, :, 0] = -8.0
+        geometry = _estimate_motion_geometry(
+            flow,
+            numpy.ones((height, width), dtype=bool),
+            0.75,
+            cv2,
+            numpy,
+        )
+
+        self.assertEqual(geometry["status"], "estimated")
+        self.assertGreater(geometry["spatial_displacement"]["residual_energy"], 1.0)
 
     def test_prepared_reference_report_includes_manifest_alignment(self) -> None:
         candidate_dir = self.root / "candidate"
