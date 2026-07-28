@@ -55,6 +55,7 @@ from overlay_harness.evaluator import (
     _estimate_band_shifts,
     _match_motion_regions,
     _score_flow_pair,
+    _summarize_regional_motion,
     _summarize_reference_motion,
     score_frame_sequences,
 )
@@ -151,6 +152,26 @@ class ScoringAlignmentTests(unittest.TestCase):
 
         self.assertEqual(geometry["status"], "estimated")
         self.assertGreater(geometry["spatial_displacement"]["residual_energy"], 1.0)
+
+    def test_regional_motion_preserves_continuous_signed_direction(self) -> None:
+        import numpy
+
+        summary = _summarize_regional_motion(
+            [
+                {
+                    "regions": [
+                        {"mean_dx": 2.0, "mean_dy": -7.0, "area_ratio": 0.4, "reliable_fraction": 0.9},
+                        {"mean_dx": -1.0, "mean_dy": 8.0, "area_ratio": 0.4, "reliable_fraction": 0.9},
+                    ]
+                }
+            ],
+            numpy,
+        )
+
+        self.assertEqual(summary["status"], "estimated")
+        self.assertEqual(summary["dominant_axis"], "vertical")
+        self.assertGreater(summary["direction_degrees"], 0.0)
+        self.assertLess(summary["direction_degrees"], 360.0)
 
     def test_prepared_reference_report_includes_manifest_alignment(self) -> None:
         candidate_dir = self.root / "candidate"

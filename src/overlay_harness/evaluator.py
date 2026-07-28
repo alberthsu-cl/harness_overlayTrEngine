@@ -367,6 +367,7 @@ def score_optical_flow_motion(
         "reference_motion_geometry": _summarize_motion_geometry(
             [pair["reference_motion_geometry"] for pair in pairs], numpy_module
         ),
+        "regional_motion": _summarize_regional_motion(pairs, numpy_module, region_key="candidate_regions"),
         "pairs": pairs,
     }
 
@@ -523,6 +524,7 @@ def analyze_reference_motion(
     summary["motion_geometry"] = _summarize_motion_geometry(
         [pair["motion_geometry"] for pair in pairs], numpy
     )
+    summary["regional_motion"] = _summarize_regional_motion(pairs, numpy)
     return {
         "artifact_type": "reference_motion_diagnostics",
         "artifact_version": 1,
@@ -745,6 +747,43 @@ def _summarize_motion_geometry(geometries: list[dict[str, Any]], numpy_module: A
         "spatial_displacement": {
             "residual_energy": float(numpy_module.mean(residuals)),
         },
+    }
+
+
+def _summarize_regional_motion(
+    pairs: list[dict[str, Any]], numpy_module: Any, region_key: str = "regions"
+) -> dict[str, Any]:
+    """Summarize continuous signed direction without quantizing to direction buckets."""
+    observations: list[tuple[float, float, float]] = []
+    for pair in pairs:
+        for region in pair.get(region_key, []):
+            area = float(region.get("area_ratio", 0.0))
+            reliability = float(region.get("reliable_fraction", 0.0))
+            if area < 0.01 or reliability < 0.5:
+                continue
+            observations.append((float(region.get("mean_dx", 0.0)), float(region.get("mean_dy", 0.0)), area * reliability))
+    if not observations:
+        return {"status": "needs_review", "reason": "no reliable regional motion", "confidence": 0.0}
+    weights = numpy_module.array([item[2] for item in observations], dtype=numpy_module.float32)
+    dx = numpy_module.array([item[0] for item in observations], dtype=numpy_module.float32)
+    dy = numpy_module.array([item[1] for item in observations], dtype=numpy_module.float32)
+    total_weight = float(weights.sum())
+    mean_dx = float((dx * weights).sum() / max(total_weight, 1e-6))
+    mean_dy = float((dy * weights).sum() / max(total_weight, 1e-6))
+    magnitude = math.hypot(mean_dx, mean_dy)
+    angle = math.degrees(math.atan2(mean_dy, mean_dx)) % 360.0
+    horizontal = float(numpy_module.mean(numpy_module.abs(dx)))
+    vertical = float(numpy_module.mean(numpy_module.abs(dy)))
+    dominant_axis = "horizontal" if horizontal > vertical * 1.25 else "vertical" if vertical > horizontal * 1.25 else "mixed"
+    return {
+        "status": "estimated",
+        "region_observation_count": len(observations),
+        "mean_dx": mean_dx,
+        "mean_dy": mean_dy,
+        "magnitude": magnitude,
+        "direction_degrees": angle,
+        "dominant_axis": dominant_axis,
+        "axis_confidence": abs(horizontal - vertical) / max(horizontal + vertical, 1e-6),
     }
 
 
