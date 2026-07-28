@@ -94,8 +94,10 @@ class ScoringAlignmentTests(unittest.TestCase):
         )
         sampler = self.root / "FxBase.cpp"
         sampler.write_text(
-            "sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_MIRROR;\n"
-            "sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_MIRROR;\n",
+            "D3D11_TEXTURE_ADDRESS_MODE textureAddressMode;\n"
+            "textureAddressMode = D3D11_TEXTURE_ADDRESS_MIRROR;\n"
+            "sampDesc.AddressU = textureAddressMode;\n"
+            "sampDesc.AddressV = textureAddressMode;\n",
             encoding="utf-8",
         )
 
@@ -104,6 +106,7 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(result["status"], "advisory")
         self.assertEqual(result["risk"], "elevated")
         self.assertEqual(result["repetition_capable_address_modes"], ["MIRROR"])
+        self.assertEqual(result["address_modes"], {"U": "MIRROR", "V": "MIRROR"})
         self.assertEqual(result["uv_wrapping_construct_count"], 1)
 
     def tearDown(self) -> None:

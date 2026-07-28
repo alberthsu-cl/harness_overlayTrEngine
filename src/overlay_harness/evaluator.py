@@ -28,6 +28,7 @@ def analyze_sampler_repetition(
         files.append(sampler_source)
 
     address_modes: dict[str, str] = {}
+    address_mode_variables: dict[str, str] = {}
     uv_constructs: list[dict[str, Any]] = []
     for path in files:
         try:
@@ -38,6 +39,18 @@ def analyze_sampler_repetition(
             r"Address([UVW])\s*=\s*D3D11_TEXTURE_ADDRESS_([A-Z]+)", text, re.IGNORECASE
         ):
             address_modes[match.group(1)] = match.group(2).upper()
+        for match in re.finditer(
+            r"\b([A-Za-z_][A-Za-z0-9_]*)\s*=\s*D3D11_TEXTURE_ADDRESS_([A-Z]+)",
+            text,
+            re.IGNORECASE,
+        ):
+            address_mode_variables[match.group(1)] = match.group(2).upper()
+        for match in re.finditer(
+            r"Address([UVW])\s*=\s*([A-Za-z_][A-Za-z0-9_]*)", text, re.IGNORECASE
+        ):
+            mode = address_mode_variables.get(match.group(2))
+            if mode is not None:
+                address_modes[match.group(1)] = mode
         if path.suffix.lower() not in {".hlsl", ".h", ".cpp", ".cxx"}:
             continue
         for line_number, line in enumerate(text.splitlines(), start=1):
@@ -67,6 +80,7 @@ def analyze_sampler_repetition(
         "risk": risk,
         "reason": reason,
         "address_modes": address_modes,
+        "address_mode_variables": address_mode_variables,
         "repetition_capable_address_modes": repeated_address_modes,
         "uv_wrapping_constructs": uv_constructs[:20],
         "uv_wrapping_construct_count": len(uv_constructs),
