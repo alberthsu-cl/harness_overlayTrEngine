@@ -430,6 +430,44 @@
       ]
     },
     {
+      "display_name": "Generated HorizontalSplitBlur 02",
+      "effect_id": "engine-modelgenerated-horizontalsplitblur-02",
+      "effect_source": "generated",
+      "fallback_fx_id": "ModelGenerated\\HorizontalSplitBlur_02",
+      "family": "unknown",
+      "fx_id": "ModelGenerated\\HorizontalSplitBlur_02",
+      "metadata_status": "discovered",
+      "mode": "engine-discovered-modelgenerated-horizontalsplitblur-02",
+      "retrieval_priority": 100,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp"
+      ],
+      "style_hints": [
+        "engine-discovered",
+        "modelgenerated-horizontalsplitblur-02"
+      ]
+    },
+    {
+      "display_name": "Generated QuadrantSplitBlur 01",
+      "effect_id": "engine-modelgenerated-quadrantsplitblur-01",
+      "effect_source": "generated",
+      "fallback_fx_id": "ModelGenerated\\QuadrantSplitBlur_01",
+      "family": "unknown",
+      "fx_id": "ModelGenerated\\QuadrantSplitBlur_01",
+      "metadata_status": "discovered",
+      "mode": "engine-discovered-modelgenerated-quadrantsplitblur-01",
+      "retrieval_priority": 100,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp"
+      ],
+      "style_hints": [
+        "engine-discovered",
+        "modelgenerated-quadrantsplitblur-01"
+      ]
+    },
+    {
       "effect_id": "generated-seamless-placeholder",
       "effect_source": "generated",
       "fallback_fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
@@ -467,7 +505,7 @@
       ]
     }
   ],
-  "registration_count": 24,
+  "registration_count": 26,
   "retrieval_index": {
     "app-swipe": "builtin-ui-app-swipe",
     "blur": "builtin-blur",
@@ -527,7 +565,7 @@
     "upgrow": "builtin-blur-upgrow"
   },
   "source_manifest": "harness/configs/effect_catalog_sources.json",
-  "source_manifest_sha256": "e42650ad874d42b80ff23f2edc81571cd1743a2f6a912539745dfbbf713d4283",
+  "source_manifest_sha256": "3213c96128b2ff2e8ae29c96a56e5b42f732d45ec826b9827051dee3702c4fa9",
   "source_manifest_version": 1,
   "source_root": "harness"
 }

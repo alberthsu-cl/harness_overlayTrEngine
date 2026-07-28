@@ -57,6 +57,7 @@ from overlay_harness.evaluator import (
     _score_flow_pair,
     _summarize_regional_motion,
     _summarize_reference_motion,
+    analyze_sampler_repetition,
     score_frame_sequences,
 )
 from overlay_harness.models import EffectSpec, InputSpec, RenderJob, RenderSettings
@@ -83,6 +84,27 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.root.mkdir(parents=True, exist_ok=False)
         self.width = 2
         self.height = 2
+
+    def test_sampler_repetition_reports_mirror_and_uv_constructs(self) -> None:
+        shader = self.root / "candidate_ps.hlsl"
+        shader.write_text(
+            "float2 uv = frac(input.Tex + offset);\n"
+            "TextureA.Sample(samLinear, uv);\n",
+            encoding="utf-8",
+        )
+        sampler = self.root / "FxBase.cpp"
+        sampler.write_text(
+            "sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_MIRROR;\n"
+            "sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_MIRROR;\n",
+            encoding="utf-8",
+        )
+
+        result = analyze_sampler_repetition([shader], sampler)
+
+        self.assertEqual(result["status"], "advisory")
+        self.assertEqual(result["risk"], "elevated")
+        self.assertEqual(result["repetition_capable_address_modes"], ["MIRROR"])
+        self.assertEqual(result["uv_wrapping_construct_count"], 1)
 
     def tearDown(self) -> None:
         shutil.rmtree(self.root, ignore_errors=True)

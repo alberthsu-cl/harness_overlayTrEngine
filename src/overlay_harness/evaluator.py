@@ -4,6 +4,7 @@ from dataclasses import dataclass, asdict
 from math import log10
 import math
 from pathlib import Path
+import re
 import shutil
 import struct
 import subprocess
@@ -11,6 +12,65 @@ from typing import Any
 
 
 SUPPORTED_FRAME_EXTENSIONS = {".bmp", ".png", ".jpg", ".jpeg"}
+
+
+def analyze_sampler_repetition(
+    source_files: list[Path] | None = None,
+    sampler_source: Path | None = None,
+) -> dict[str, Any]:
+    """Report source-level evidence for out-of-range UV repetition.
+
+    This is intentionally advisory: the rendered pixels do not expose the
+    sampler state, and ``frac`` may be used for noise rather than UV wrapping.
+    """
+    files = [path for path in (source_files or []) if path.is_file()]
+    if sampler_source is not None and sampler_source.is_file() and sampler_source not in files:
+        files.append(sampler_source)
+
+    address_modes: dict[str, str] = {}
+    uv_constructs: list[dict[str, Any]] = []
+    for path in files:
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for match in re.finditer(
+            r"Address([UVW])\s*=\s*D3D11_TEXTURE_ADDRESS_([A-Z]+)", text, re.IGNORECASE
+        ):
+            address_modes[match.group(1)] = match.group(2).upper()
+        if path.suffix.lower() not in {".hlsl", ".h", ".cpp", ".cxx"}:
+            continue
+        for line_number, line in enumerate(text.splitlines(), start=1):
+            if re.search(r"\b(?:frac|fmod|mod)\s*\(", line, re.IGNORECASE):
+                uv_constructs.append(
+                    {"file": str(path), "line": line_number, "text": line.strip()[:240]}
+                )
+
+    repeated_address_modes = sorted(
+        mode for mode in set(address_modes.values()) if mode in {"WRAP", "MIRROR"}
+    )
+    if repeated_address_modes and uv_constructs:
+        risk = "elevated"
+        reason = "shared sampler permits repetition and shader contains modulo-like coordinate constructs"
+    elif repeated_address_modes:
+        risk = "possible"
+        reason = "shared sampler permits repetition when transformed UVs leave the normalized range"
+    elif uv_constructs:
+        risk = "possible"
+        reason = "shader contains modulo-like coordinate constructs; sampler mode was not found"
+    else:
+        risk = "not_observed"
+        reason = "no sampler repetition mode or modulo-like coordinate construct was found"
+    return {
+        "artifact_type": "sampler_repetition_diagnostics",
+        "status": "advisory",
+        "risk": risk,
+        "reason": reason,
+        "address_modes": address_modes,
+        "repetition_capable_address_modes": repeated_address_modes,
+        "uv_wrapping_constructs": uv_constructs[:20],
+        "uv_wrapping_construct_count": len(uv_constructs),
+    }
 
 
 @dataclass(slots=True)
