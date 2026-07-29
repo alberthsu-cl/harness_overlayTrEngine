@@ -49,6 +49,8 @@ from overlay_harness.analyzer import build_transition_analysis_artifact
 from overlay_harness.analyzer import resolve_transition_analysis_provider
 from overlay_harness.analyzer import derive_analyzer_inputs_from_metadata
 from overlay_harness.evaluator import (
+    _edge_prediction,
+    _edge_similarity,
     _build_motion_topology_contract,
     _describe_motion_regions,
     _estimate_motion_geometry,
@@ -108,6 +110,19 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(result["repetition_capable_address_modes"], ["MIRROR"])
         self.assertEqual(result["address_modes"], {"U": "MIRROR", "V": "MIRROR"})
         self.assertEqual(result["uv_wrapping_construct_count"], 1)
+
+    def test_edge_policy_repeat_uses_the_opposite_source_edge(self) -> None:
+        import numpy
+
+        source = numpy.zeros((24, 24, 3), dtype=numpy.uint8)
+        source[:, :4] = (10, 20, 30)
+        source[:, -4:] = (210, 220, 230)
+
+        repeat = _edge_prediction(source, "left", "repeat", numpy)
+        clamp = _edge_prediction(source, "left", "clamp", numpy)
+
+        self.assertGreater(_edge_similarity(repeat, repeat, numpy), 0.99)
+        self.assertLess(_edge_similarity(repeat, clamp, numpy), 0.5)
 
     def tearDown(self) -> None:
         shutil.rmtree(self.root, ignore_errors=True)

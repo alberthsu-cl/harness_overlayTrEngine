@@ -14,6 +14,193 @@ from typing import Any
 SUPPORTED_FRAME_EXTENSIONS = {".bmp", ".png", ".jpg", ".jpeg"}
 
 
+def analyze_edge_content_policy(
+    reference: Path,
+    source_directories: list[Path],
+    width: int,
+    height: int,
+    frame_start: int = 0,
+    frame_end: int | None = None,
+    ffmpeg_path: str | None = None,
+    analysis_width: int = 160,
+    analysis_height: int = 90,
+    output_dir: Path | None = None,
+) -> dict[str, Any]:
+    """Estimate source-edge continuation policy from prepared sources and reference frames.
+
+    The classifier compares transition-frame screen-edge strips against source
+    edge predictions for clamp, mirror, and repeat. It is deliberately
+    conservative: a policy is selected only when repeated evidence separates it
+    from the alternatives. It does not assume a transition uses displacement.
+    """
+    try:
+        import cv2  # type: ignore[import-not-found]
+        import numpy  # type: ignore[import-not-found]
+    except ImportError as error:
+        raise RuntimeError("OpenCV and NumPy are required for edge-content diagnostics") from error
+
+    reference_frames = discover_frames(reference)
+    source_frames = [
+        _representative_source_frame(directory)
+        for directory in source_directories
+        if directory.is_dir()
+    ]
+    source_frames = [frame for frame in source_frames if frame is not None]
+    if not reference_frames or not source_frames:
+        return {
+            "artifact_type": "edge_content_policy_diagnostics",
+            "status": "not_applicable",
+            "reason": "prepared reference frames and at least one prepared source are required",
+        }
+    resolved_end = len(reference_frames) - 1 if frame_end is None else min(frame_end, len(reference_frames) - 1)
+    if frame_start < 0 or resolved_end <= frame_start:
+        return {
+            "artifact_type": "edge_content_policy_diagnostics",
+            "status": "not_applicable",
+            "reason": "edge-content analysis requires at least two transition frames",
+        }
+
+    resolved_width = min(width, analysis_width)
+    resolved_height = min(height, analysis_height)
+    ffmpeg_executable = ffmpeg_path or shutil.which("ffmpeg")
+    source_images = [
+        _decode_rgb_array(frame, resolved_width, resolved_height, ffmpeg_executable, cv2, numpy)
+        for frame in source_frames
+    ]
+    evidence: list[dict[str, Any]] = []
+    visual_evidence: dict[tuple[int, str], tuple[Any, Any]] = {}
+    policy_scores: dict[str, list[float]] = {"clamp": [], "mirror": [], "repeat": []}
+    for index in range(frame_start, resolved_end + 1):
+        frame = _decode_rgb_array(reference_frames[index], resolved_width, resolved_height, ffmpeg_executable, cv2, numpy)
+        for edge in ("left", "right", "top", "bottom"):
+            observed = _edge_strip(frame, edge, numpy)
+            predictions = {
+                policy: [
+                    (_edge_similarity(observed, _edge_prediction(source, edge, policy, numpy), numpy), _edge_prediction(source, edge, policy, numpy))
+                    for source in source_images
+                ]
+                for policy in policy_scores
+            }
+            scores = {policy: max(matches, key=lambda match: match[0])[0] for policy, matches in predictions.items()}
+            for policy, score in scores.items():
+                policy_scores[policy].append(score)
+            ordered = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+            if ordered[0][1] - ordered[1][1] >= 0.04:
+                item = {
+                    "frame_index": index,
+                    "edge": edge,
+                    "best_policy": ordered[0][0],
+                    "best_similarity": ordered[0][1],
+                    "margin": ordered[0][1] - ordered[1][1],
+                }
+                evidence.append(item)
+                visual_evidence[(index, edge)] = (observed, max(predictions[ordered[0][0]], key=lambda match: match[0])[1])
+
+    medians = {
+        policy: float(numpy.median(values)) if values else 0.0
+        for policy, values in policy_scores.items()
+    }
+    ranked = sorted(medians.items(), key=lambda item: item[1], reverse=True)
+    best_policy, best_score = ranked[0]
+    second_score = ranked[1][1]
+    supporting = [item for item in evidence if item["best_policy"] == best_policy]
+    confidence = min(1.0, max(0.0, (best_score - second_score) / 0.12)) * min(1.0, len(supporting) / 6.0)
+    selected = best_policy if confidence >= 0.55 and best_score >= 0.55 else "unknown"
+    if output_dir is not None:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        for frame in output_dir.glob("edge_*.png"):
+            frame.unlink()
+        for item in sorted(supporting, key=lambda entry: float(entry["margin"]), reverse=True)[:12]:
+            observed, predicted = visual_evidence[(item["frame_index"], item["edge"])]
+            output_file = output_dir / f"edge_{item['frame_index']:04d}_{item['edge']}.png"
+            _write_edge_policy_panel(observed, predicted, item, output_file, cv2, numpy)
+            item["visualization"] = str(output_file)
+    return {
+        "artifact_type": "edge_content_policy_diagnostics",
+        "status": "estimated" if selected != "unknown" else "unknown",
+        "recommended_policy": selected,
+        "confidence": confidence,
+        "reason": (
+            "source-edge continuation evidence favors the selected policy"
+            if selected != "unknown"
+            else "source-edge evidence does not separate clamp, mirror, and repeat reliably"
+        ),
+        "analysis_width": resolved_width,
+        "analysis_height": resolved_height,
+        "frame_range": {"start": frame_start, "end": resolved_end},
+        "policy_similarity": medians,
+        "evidence_count": len(supporting),
+        "evidence": supporting[:12],
+        "source_frames": [str(frame) for frame in source_frames],
+        "output_dir": str(output_dir) if output_dir is not None else None,
+    }
+
+
+def _representative_source_frame(directory: Path) -> Path | None:
+    frames = discover_frames(directory)
+    return frames[len(frames) // 2] if frames else None
+
+
+def _decode_rgb_array(
+    frame: Path,
+    width: int,
+    height: int,
+    ffmpeg_executable: str | None,
+    cv2_module: Any,
+    numpy_module: Any,
+) -> Any:
+    rgb = decode_frame_rgb(ffmpeg_executable, frame, width, height)
+    return numpy_module.frombuffer(rgb, dtype=numpy_module.uint8).reshape((height, width, 3))
+
+
+def _edge_strip(image: Any, edge: str, numpy_module: Any) -> Any:
+    height, width = image.shape[:2]
+    thickness = max(4, min(height, width) // 12)
+    if edge == "left":
+        return image[:, :thickness]
+    if edge == "right":
+        return image[:, width - thickness :]
+    if edge == "top":
+        return image[:thickness, :]
+    return image[height - thickness :, :]
+
+
+def _edge_prediction(source: Any, edge: str, policy: str, numpy_module: Any) -> Any:
+    strip = _edge_strip(source, edge, numpy_module)
+    if policy == "repeat":
+        opposite = {"left": "right", "right": "left", "top": "bottom", "bottom": "top"}[edge]
+        return _edge_strip(source, opposite, numpy_module)
+    if policy == "mirror":
+        axis = 1 if edge in {"left", "right"} else 0
+        return numpy_module.flip(strip, axis=axis)
+    if edge in {"left", "right"}:
+        return numpy_module.repeat(strip[:, :1] if edge == "left" else strip[:, -1:], strip.shape[1], axis=1)
+    return numpy_module.repeat(strip[:1, :] if edge == "top" else strip[-1:, :], strip.shape[0], axis=0)
+
+
+def _edge_similarity(observed: Any, predicted: Any, numpy_module: Any) -> float:
+    difference = numpy_module.mean(numpy_module.abs(observed.astype(numpy_module.float32) - predicted.astype(numpy_module.float32)))
+    return max(0.0, 1.0 - float(difference) / 255.0)
+
+
+def _write_edge_policy_panel(
+    observed: Any,
+    predicted: Any,
+    evidence: dict[str, Any],
+    output_file: Path,
+    cv2_module: Any,
+    numpy_module: Any,
+) -> None:
+    panel_height, panel_width = 90, 160
+    observed_panel = cv2_module.resize(observed, (panel_width, panel_height), interpolation=cv2_module.INTER_NEAREST)
+    predicted_panel = cv2_module.resize(predicted, (panel_width, panel_height), interpolation=cv2_module.INTER_NEAREST)
+    panel = numpy_module.hstack((observed_panel, predicted_panel))
+    cv2_module.putText(panel, "Reference edge", (6, 18), cv2_module.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1)
+    cv2_module.putText(panel, str(evidence["best_policy"]), (panel_width + 6, 18), cv2_module.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1)
+    if not cv2_module.imwrite(str(output_file), cv2_module.cvtColor(panel, cv2_module.COLOR_RGB2BGR)):
+        raise RuntimeError(f"could not write edge-content visualization: {output_file}")
+
+
 def analyze_sampler_repetition(
     source_files: list[Path] | None = None,
     sampler_source: Path | None = None,
