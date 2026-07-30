@@ -628,6 +628,14 @@ def score_optical_flow_motion(
         "reference_motion_geometry": _summarize_motion_geometry(
             [pair["reference_motion_geometry"] for pair in pairs], numpy_module
         ),
+        "angular_motion": _summarize_angular_motion(
+            [pair["candidate_angular_motion"] for pair in pairs], numpy_module
+        ),
+        "reference_angular_motion": _summarize_angular_motion(
+            [pair["reference_angular_motion"] for pair in pairs], numpy_module
+        ),
+        "angular_motion_phases": _summarize_angular_phases(pairs, "candidate_angular_motion", numpy_module),
+        "reference_angular_motion_phases": _summarize_angular_phases(pairs, "reference_angular_motion", numpy_module),
         "regional_motion": _summarize_regional_motion(pairs, numpy_module, region_key="candidate_regions"),
         "pairs": pairs,
     }
@@ -679,6 +687,18 @@ def create_motion_visualizations(
         reference_flow = cv2.calcOpticalFlowFarneback(
             reference_gray[offset - 1], reference_gray[offset], None, 0.5, 3, 21, 3, 5, 1.2, 0
         )
+        candidate_backward = cv2.calcOpticalFlowFarneback(
+            candidate_gray[offset], candidate_gray[offset - 1], None, 0.5, 3, 21, 3, 5, 1.2, 0
+        )
+        reference_backward = cv2.calcOpticalFlowFarneback(
+            reference_gray[offset], reference_gray[offset - 1], None, 0.5, 3, 21, 3, 5, 1.2, 0
+        )
+        candidate_angular = _estimate_signed_angular_motion(
+            candidate_flow, _flow_reliability_mask(candidate_flow, candidate_backward, cv2, numpy), 0.75, numpy
+        )
+        reference_angular = _estimate_signed_angular_motion(
+            reference_flow, _flow_reliability_mask(reference_flow, reference_backward, cv2, numpy), 0.75, numpy
+        )
         panel = numpy.hstack(
             (
                 _flow_to_rgb(reference_flow, cv2, numpy),
@@ -689,6 +709,8 @@ def create_motion_visualizations(
         cv2.putText(panel, "Reference flow", (8, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
         cv2.putText(panel, "Candidate flow", (resolved_width + 8, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
         cv2.putText(panel, "Vector error", (resolved_width * 2 + 8, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+        _draw_angular_motion_overlay(panel[:, :resolved_width], reference_angular, cv2)
+        _draw_angular_motion_overlay(panel[:, resolved_width : resolved_width * 2], candidate_angular, cv2)
         frame_file = output_dir / f"frame_{offset - 1:04d}.png"
         if not cv2.imwrite(str(frame_file), cv2.cvtColor(panel, cv2.COLOR_RGB2BGR)):
             raise RuntimeError(f"could not write motion visualization: {frame_file}")
@@ -702,6 +724,20 @@ def create_motion_visualizations(
         "analysis_height": resolved_height,
         "frames": frames,
     }
+
+
+def _draw_angular_motion_overlay(panel: Any, observation: dict[str, Any], cv2_module: Any) -> None:
+    if observation.get("status") != "estimated":
+        cv2_module.putText(panel, "angular: indeterminate", (8, 38), cv2_module.FONT_HERSHEY_SIMPLEX, 0.38, (210, 210, 210), 1, cv2_module.LINE_AA)
+        return
+    pivot = observation.get("pivot")
+    if not isinstance(pivot, dict):
+        return
+    point = (int(round(float(pivot["x"]))), int(round(float(pivot["y"]))))
+    color = (70, 230, 70) if observation.get("direction") == "clockwise" else (70, 180, 255)
+    cv2_module.drawMarker(panel, point, color, cv2_module.MARKER_CROSS, 12, 1, cv2_module.LINE_AA)
+    label = f"angular: {observation['direction']} {float(observation['angular_velocity_degrees']):+.1f} deg"
+    cv2_module.putText(panel, label, (8, 38), cv2_module.FONT_HERSHEY_SIMPLEX, 0.38, color, 1, cv2_module.LINE_AA)
 
 
 def analyze_reference_motion(
@@ -757,6 +793,7 @@ def analyze_reference_motion(
         active = numpy.logical_and(magnitude >= motion_threshold, reliable)
         regions = _describe_motion_regions(flow, magnitude, active, reliable, cv2, numpy)
         motion_geometry = _estimate_motion_geometry(flow, reliable, motion_threshold, cv2, numpy)
+        angular_motion = _estimate_signed_angular_motion(flow, reliable, motion_threshold, numpy)
         active_coverage = float(numpy.count_nonzero(active) / active.size)
         reliable_coverage = float(numpy.count_nonzero(reliable) / reliable.size)
         mean_magnitude = float(magnitude[active].mean()) if numpy.count_nonzero(active) else 0.0
@@ -774,9 +811,10 @@ def analyze_reference_motion(
                 "reliable_motion_coverage": reliable_coverage,
                 "regions": regions,
                 "motion_geometry": motion_geometry,
+                "angular_motion": angular_motion,
             }
         )
-        panel = _reference_motion_panel(flow, active, reliable, regions, cv2, numpy)
+        panel = _reference_motion_panel(flow, active, reliable, regions, angular_motion, cv2, numpy)
         frame_file = output_dir / f"frame_{offset - 1:04d}.png"
         if not cv2.imwrite(str(frame_file), cv2.cvtColor(panel, cv2.COLOR_RGB2BGR)):
             raise RuntimeError(f"could not write reference motion diagnostic: {frame_file}")
@@ -786,6 +824,10 @@ def analyze_reference_motion(
         [pair["motion_geometry"] for pair in pairs], numpy
     )
     summary["regional_motion"] = _summarize_regional_motion(pairs, numpy)
+    summary["angular_motion"] = _summarize_angular_motion(
+        [pair["angular_motion"] for pair in pairs], numpy
+    )
+    summary["angular_motion_phases"] = _summarize_angular_phases(pairs, "angular_motion", numpy)
     return {
         "artifact_type": "reference_motion_diagnostics",
         "artifact_version": 1,
@@ -926,6 +968,164 @@ def _estimate_motion_geometry(
     }
 
 
+def _estimate_signed_angular_motion(
+    flow: Any,
+    reliable: Any,
+    motion_threshold: float,
+    numpy_module: Any,
+) -> dict[str, Any]:
+    """Fit v = translation + angular_velocity x position in image coordinates.
+
+    Positive angular velocity is clockwise because image Y increases downward.
+    The fit deliberately declines translation-like or weak/occluded flow.
+    """
+    magnitude = numpy_module.linalg.norm(flow, axis=2)
+    active = numpy_module.logical_and(reliable, magnitude >= motion_threshold)
+    height, width = flow.shape[:2]
+    total_pixels = int(active.size)
+    active_pixels = int(numpy_module.count_nonzero(active))
+    if active_pixels < max(64, total_pixels // 200):
+        return {"status": "indeterminate", "reason": "insufficient reliable angular motion", "confidence": 0.0}
+
+    yy, xx = numpy_module.nonzero(active)
+    vx = flow[..., 0][active].astype(numpy_module.float64)
+    vy = flow[..., 1][active].astype(numpy_module.float64)
+    x = xx.astype(numpy_module.float64) - (width - 1) * 0.5
+    y = yy.astype(numpy_module.float64) - (height - 1) * 0.5
+    # vx = tx - omega*y, vy = ty + omega*x.
+    matrix = numpy_module.zeros((len(x) * 2, 3), dtype=numpy_module.float64)
+    values = numpy_module.empty(len(x) * 2, dtype=numpy_module.float64)
+    matrix[0::2, 0] = 1.0
+    matrix[0::2, 2] = -y
+    matrix[1::2, 1] = 1.0
+    matrix[1::2, 2] = x
+    values[0::2] = vx
+    values[1::2] = vy
+    translation_x, translation_y, omega = numpy_module.linalg.lstsq(matrix, values, rcond=None)[0]
+    omega_degrees = float(omega * 180.0 / math.pi)
+    if abs(omega) < 0.002:
+        return {
+            "status": "indeterminate",
+            "reason": "angular velocity is too small relative to translation",
+            "confidence": 0.0,
+            "angular_velocity_degrees": omega_degrees,
+        }
+
+    pivot_x = float(-translation_y / omega + (width - 1) * 0.5)
+    pivot_y = float(translation_x / omega + (height - 1) * 0.5)
+    radius = numpy_module.hypot(xx - pivot_x, yy - pivot_y)
+    away_from_pivot = radius >= max(8.0, min(width, height) * 0.05)
+    if int(numpy_module.count_nonzero(away_from_pivot)) < 48:
+        return {"status": "indeterminate", "reason": "reliable flow is concentrated at the pivot", "confidence": 0.0}
+
+    x_pivot = xx[away_from_pivot].astype(numpy_module.float64) - pivot_x
+    y_pivot = yy[away_from_pivot].astype(numpy_module.float64) - pivot_y
+    predicted_x = translation_x - omega * (yy[away_from_pivot] - (height - 1) * 0.5)
+    predicted_y = translation_y + omega * (xx[away_from_pivot] - (width - 1) * 0.5)
+    residual = numpy_module.hypot(vx[away_from_pivot] - predicted_x, vy[away_from_pivot] - predicted_y)
+    observed = numpy_module.hypot(vx[away_from_pivot], vy[away_from_pivot])
+    residual_ratio = float(residual.mean() / max(float(observed.mean()), 1e-6))
+    diagonal = math.hypot(width, height)
+    pivot_distance = math.hypot(pivot_x - (width - 1) * 0.5, pivot_y - (height - 1) * 0.5)
+    coverage = active_pixels / total_pixels
+    confidence = max(0.0, min(1.0, coverage * (1.0 - min(residual_ratio, 1.0))))
+    if pivot_distance > diagonal * 1.5 or residual_ratio > 0.75 or confidence < 0.12:
+        return {
+            "status": "indeterminate",
+            "reason": "flow does not support a stable angular fit",
+            "confidence": confidence,
+            "angular_velocity_degrees": omega_degrees,
+            "pivot": {"x": pivot_x, "y": pivot_y},
+            "reliable_motion_coverage": coverage,
+            "residual_ratio": residual_ratio,
+        }
+    direction = "clockwise" if omega_degrees > 0.0 else "counter_clockwise"
+    return {
+        "status": "estimated",
+        "direction": direction,
+        "confidence": confidence,
+        "angular_velocity_degrees": omega_degrees,
+        "pivot": {"x": pivot_x, "y": pivot_y},
+        "reliable_motion_coverage": coverage,
+        "residual_ratio": residual_ratio,
+    }
+
+
+def _summarize_angular_motion(observations: list[dict[str, Any]], numpy_module: Any) -> dict[str, Any]:
+    valid = [item for item in observations if item.get("status") == "estimated"]
+    if not valid:
+        return {"status": "indeterminate", "reason": "no reliable signed angular evidence", "confidence": 0.0, "pair_count": 0}
+    clockwise = [item for item in valid if item.get("direction") == "clockwise"]
+    counter_clockwise = [item for item in valid if item.get("direction") == "counter_clockwise"]
+    dominant = clockwise if len(clockwise) >= len(counter_clockwise) else counter_clockwise
+    direction = "clockwise" if dominant is clockwise else "counter_clockwise"
+    consensus = len(dominant) / len(valid)
+    confidence = float(numpy_module.mean([float(item["confidence"]) for item in dominant])) * consensus
+    if len(valid) < 2 or consensus < 0.65 or confidence < 0.18:
+        return {
+            "status": "indeterminate",
+            "reason": "signed angular evidence is inconsistent across reliable pairs",
+            "confidence": confidence,
+            "pair_count": len(valid),
+            "clockwise_pair_count": len(clockwise),
+            "counter_clockwise_pair_count": len(counter_clockwise),
+        }
+    return {
+        "status": "estimated",
+        "direction": direction,
+        "confidence": confidence,
+        "pair_count": len(valid),
+        "clockwise_pair_count": len(clockwise),
+        "counter_clockwise_pair_count": len(counter_clockwise),
+        "mean_angular_velocity_degrees": float(numpy_module.mean([float(item["angular_velocity_degrees"]) for item in dominant])),
+    }
+
+
+def _summarize_angular_phases(
+    pairs: list[dict[str, Any]], observation_key: str, numpy_module: Any
+) -> list[dict[str, Any]]:
+    """Preserve opposite outgoing/incoming rotations instead of averaging them away."""
+    runs: list[list[dict[str, Any]]] = []
+    current: list[dict[str, Any]] = []
+    current_direction: str | None = None
+    for pair in pairs:
+        observation = pair.get(observation_key)
+        if not isinstance(observation, dict) or observation.get("status") != "estimated":
+            if current:
+                runs.append(current)
+                current = []
+                current_direction = None
+            continue
+        direction = observation.get("direction")
+        if direction not in {"clockwise", "counter_clockwise"}:
+            continue
+        if current and direction != current_direction:
+            runs.append(current)
+            current = []
+        current.append(pair)
+        current_direction = direction
+    if current:
+        runs.append(current)
+
+    significant = [run for run in runs if len(run) >= 2]
+    result: list[dict[str, Any]] = []
+    for index, run in enumerate(significant):
+        summary = _summarize_angular_motion([pair[observation_key] for pair in run], numpy_module)
+        if len(significant) == 2:
+            name = "outgoing" if index == 0 else "incoming"
+        else:
+            name = f"phase_{index + 1:02d}"
+        result.append(
+            {
+                "name": name,
+                "from_frame": run[0].get("from_frame"),
+                "to_frame": run[-1].get("to_frame"),
+                **summary,
+            }
+        )
+    return result
+
+
 def _estimate_affine(estimator: Any, source: Any, destination: Any, cv2_module: Any) -> tuple[Any | None, Any | None]:
     try:
         matrix, inliers = estimator(
@@ -1049,7 +1249,13 @@ def _summarize_regional_motion(
 
 
 def _reference_motion_panel(
-    flow: Any, active: Any, reliable: Any, regions: list[dict[str, Any]], cv2_module: Any, numpy_module: Any
+    flow: Any,
+    active: Any,
+    reliable: Any,
+    regions: list[dict[str, Any]],
+    angular_motion: dict[str, Any],
+    cv2_module: Any,
+    numpy_module: Any,
 ) -> Any:
     flow_panel = _flow_to_rgb(flow, cv2_module, numpy_module)
     region_panel = flow_panel.copy()
@@ -1066,6 +1272,7 @@ def _reference_motion_panel(
         cv2_module.putText(region_panel, str(index), (int(bbox["x"]), max(12, int(bbox["y"]) + 12)), cv2_module.FONT_HERSHEY_SIMPLEX, 0.4, color, 1, cv2_module.LINE_AA)
     reliability_panel = cv2_module.cvtColor((reliable.astype(numpy_module.uint8) * 255), cv2_module.COLOR_GRAY2RGB)
     cv2_module.putText(flow_panel, "Reference flow", (8, 20), cv2_module.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2_module.LINE_AA)
+    _draw_angular_motion_overlay(flow_panel, angular_motion, cv2_module)
     cv2_module.putText(region_panel, "Dynamic regions", (8, 20), cv2_module.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2_module.LINE_AA)
     cv2_module.putText(reliability_panel, "Flow confidence", (8, 20), cv2_module.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2_module.LINE_AA)
     return numpy_module.hstack((flow_panel, region_panel, reliability_panel))
@@ -1211,6 +1418,18 @@ def _score_flow_pair(
         cv2_module,
         numpy_module,
     )
+    candidate_angular_motion = _estimate_signed_angular_motion(
+        candidate_flow,
+        candidate_reliable if candidate_reliable is not None else numpy_module.ones_like(candidate_active),
+        motion_threshold,
+        numpy_module,
+    )
+    reference_angular_motion = _estimate_signed_angular_motion(
+        reference_flow,
+        reference_reliable if reference_reliable is not None else numpy_module.ones_like(reference_active),
+        motion_threshold,
+        numpy_module,
+    )
     if not active_pixel_count:
         return {
             "active_pixel_count": 0,
@@ -1228,6 +1447,8 @@ def _score_flow_pair(
             "matched_direction_region_count": 0,
             "candidate_motion_geometry": candidate_geometry,
             "reference_motion_geometry": reference_geometry,
+            "candidate_angular_motion": candidate_angular_motion,
+            "reference_angular_motion": reference_angular_motion,
         }
 
     vector_error = numpy_module.linalg.norm(candidate_flow - reference_flow, axis=2)
@@ -1261,6 +1482,8 @@ def _score_flow_pair(
         "matched_direction_region_count": _match_motion_regions(reference_regions, candidate_regions),
         "candidate_motion_geometry": candidate_geometry,
         "reference_motion_geometry": reference_geometry,
+        "candidate_angular_motion": candidate_angular_motion,
+        "reference_angular_motion": reference_angular_motion,
     }
 
 

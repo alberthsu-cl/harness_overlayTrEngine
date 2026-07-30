@@ -54,6 +54,7 @@ from overlay_harness.evaluator import (
     _build_motion_topology_contract,
     _describe_motion_regions,
     _estimate_motion_geometry,
+    _estimate_signed_angular_motion,
     _estimate_band_shifts,
     _match_motion_regions,
     _score_flow_pair,
@@ -79,6 +80,30 @@ from overlay_harness.video_prep import write_bmp_frame
 
 
 class ScoringAlignmentTests(unittest.TestCase):
+    def test_signed_angular_motion_distinguishes_rotation_from_translation(self) -> None:
+        import numpy
+
+        height = width = 80
+        yy, xx = numpy.mgrid[:height, :width]
+        omega = 0.03
+        clockwise = numpy.dstack(
+            (-omega * (yy - (height - 1) * 0.5), omega * (xx - (width - 1) * 0.5))
+        ).astype(numpy.float32)
+        reliable = numpy.ones((height, width), dtype=bool)
+        clockwise_result = _estimate_signed_angular_motion(clockwise, reliable, 0.75, numpy)
+        self.assertEqual(clockwise_result["status"], "estimated")
+        self.assertEqual(clockwise_result["direction"], "clockwise")
+
+        counter_clockwise_result = _estimate_signed_angular_motion(-clockwise, reliable, 0.75, numpy)
+        self.assertEqual(counter_clockwise_result["status"], "estimated")
+        self.assertEqual(counter_clockwise_result["direction"], "counter_clockwise")
+
+        translation = numpy.dstack((numpy.full((height, width), 2.0), numpy.zeros((height, width)))).astype(numpy.float32)
+        self.assertEqual(
+            _estimate_signed_angular_motion(translation, reliable, 0.75, numpy)["status"],
+            "indeterminate",
+        )
+
     def setUp(self) -> None:
         work_root = HARNESS_ROOT / "work"
         work_root.mkdir(parents=True, exist_ok=True)
