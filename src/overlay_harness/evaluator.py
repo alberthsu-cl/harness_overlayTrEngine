@@ -919,6 +919,13 @@ def _estimate_motion_geometry(
     transform = _transform_properties(matrix, numpy_module)
     height, width = flow.shape[:2]
     center = numpy_module.array([width / 2.0, height / 2.0], dtype=numpy_module.float32)
+    center_translation = _center_translation(matrix, center, numpy_module)
+    translation_magnitude = float(numpy_module.linalg.norm(center_translation))
+    translation_direction = (
+        float(numpy_module.degrees(numpy_module.arctan2(center_translation[1], center_translation[0])))
+        if translation_magnitude > 1e-6
+        else 0.0
+    )
     relative = source - center
     radius = numpy_module.linalg.norm(relative, axis=1)
     nonzero_radius = radius > 1.0
@@ -951,6 +958,14 @@ def _estimate_motion_geometry(
         "radial_scale_field": {
             "mean_ratio": 1.0 + float(numpy_module.median(radial)) if len(radial) else 1.0,
             "variation_ratio": float(numpy_module.std(radial)) if len(radial) else 0.0,
+            "confidence": confidence,
+        },
+        "translation_field": {
+            "mean_dx_pixels": float(center_translation[0]),
+            "mean_dy_pixels": float(center_translation[1]),
+            "magnitude_pixels": translation_magnitude,
+            "direction_degrees": translation_direction,
+            "normalized_magnitude": translation_magnitude / max(float(numpy_module.hypot(width, height)), 1.0),
             "confidence": confidence,
         },
         "reflection_or_flip": {
@@ -1145,6 +1160,13 @@ def _apply_transform(matrix: Any, points: Any, numpy_module: Any) -> Any:
     return points @ matrix[:, :2].T + matrix[:, 2]
 
 
+def _center_translation(matrix: Any, center: Any, numpy_module: Any) -> Any:
+    """Return translation after expressing an affine transform about image center."""
+    if matrix is None:
+        return numpy_module.zeros(2, dtype=numpy_module.float32)
+    return matrix[:, :2] @ center + matrix[:, 2] - center
+
+
 def _transform_residual(matrix: Any, source: Any, destination: Any, numpy_module: Any) -> float:
     if matrix is None:
         return float("inf")
@@ -1183,6 +1205,8 @@ def _summarize_motion_geometry(geometries: list[dict[str, Any]], numpy_module: A
         return {"status": "needs_review", "reason": "no reliable transformation estimate", "confidence": 0.0}
     rotations = [float(item["rotation_field"]["mean_degrees"]) for item in valid]
     scales = [float(item["radial_scale_field"]["mean_ratio"]) for item in valid]
+    translations_x = [float(item["translation_field"]["mean_dx_pixels"]) for item in valid]
+    translations_y = [float(item["translation_field"]["mean_dy_pixels"]) for item in valid]
     residuals = [float(item["spatial_displacement"]["residual_energy"]) for item in valid]
     reflections = [bool(item["reflection_or_flip"]["detected"]) for item in valid]
     return {
@@ -1200,6 +1224,15 @@ def _summarize_motion_geometry(geometries: list[dict[str, Any]], numpy_module: A
         "radial_scale_field": {
             "mean_ratio": float(numpy_module.mean(scales)),
             "variation_ratio": float(numpy_module.std(scales)),
+        },
+        "translation_field": {
+            "mean_dx_pixels": float(numpy_module.mean(translations_x)),
+            "mean_dy_pixels": float(numpy_module.mean(translations_y)),
+            "magnitude_pixels": float(numpy_module.hypot(numpy_module.mean(translations_x), numpy_module.mean(translations_y))),
+            "variation_pixels": float(numpy_module.mean(numpy_module.hypot(
+                numpy_module.array(translations_x) - numpy_module.mean(translations_x),
+                numpy_module.array(translations_y) - numpy_module.mean(translations_y),
+            ))),
         },
         "reflection_or_flip": {
             "detected": sum(reflections) > len(reflections) / 2,

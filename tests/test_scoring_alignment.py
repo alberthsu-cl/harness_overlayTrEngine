@@ -166,7 +166,8 @@ class ScoringAlignmentTests(unittest.TestCase):
              [1.2 * numpy.sin(angle), 1.2 * numpy.cos(angle)]],
             dtype=numpy.float32,
         )
-        destination = (points - center) @ transform.T + center
+        translation = numpy.array([4.0, -3.0], dtype=numpy.float32)
+        destination = (points - center) @ transform.T + center + translation
         flow = destination - points
         geometry = _estimate_motion_geometry(
             flow,
@@ -179,6 +180,8 @@ class ScoringAlignmentTests(unittest.TestCase):
         self.assertEqual(geometry["status"], "estimated")
         self.assertAlmostEqual(geometry["scale"]["uniform_ratio"], 1.2, delta=0.05)
         self.assertAlmostEqual(geometry["rotation_field"]["mean_degrees"], 15.0, delta=2.0)
+        self.assertAlmostEqual(geometry["translation_field"]["mean_dx_pixels"], 4.0, delta=1.0)
+        self.assertAlmostEqual(geometry["translation_field"]["mean_dy_pixels"], -3.0, delta=1.0)
         self.assertFalse(geometry["reflection_or_flip"]["detected"])
 
     def test_motion_geometry_detects_reflection(self) -> None:
