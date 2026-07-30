@@ -920,6 +920,7 @@ def _estimate_motion_geometry(
     height, width = flow.shape[:2]
     center = numpy_module.array([width / 2.0, height / 2.0], dtype=numpy_module.float32)
     center_translation = _center_translation(matrix, center, numpy_module)
+    pivot = _estimate_transform_pivot(matrix, center, numpy_module)
     translation_magnitude = float(numpy_module.linalg.norm(center_translation))
     translation_direction = (
         float(numpy_module.degrees(numpy_module.arctan2(center_translation[1], center_translation[0])))
@@ -967,6 +968,10 @@ def _estimate_motion_geometry(
             "direction_degrees": translation_direction,
             "normalized_magnitude": translation_magnitude / max(float(numpy_module.hypot(width, height)), 1.0),
             "confidence": confidence,
+        },
+        "pivot_field": {
+            **pivot,
+            "confidence": confidence if pivot.get("status") == "estimated" else 0.0,
         },
         "reflection_or_flip": {
             "detected": transform["reflection_detected"],
@@ -1167,6 +1172,26 @@ def _center_translation(matrix: Any, center: Any, numpy_module: Any) -> Any:
     return matrix[:, :2] @ center + matrix[:, 2] - center
 
 
+def _estimate_transform_pivot(matrix: Any, center: Any, numpy_module: Any) -> dict[str, Any]:
+    """Estimate the fixed point of a rotation/scale transform in image coordinates."""
+    if matrix is None:
+        return {"status": "indeterminate", "reason": "no global transform"}
+    linear = matrix[:, :2].astype(numpy_module.float64)
+    offset = _center_translation(matrix, center, numpy_module).astype(numpy_module.float64)
+    system = numpy_module.eye(2, dtype=numpy_module.float64) - linear
+    if abs(float(numpy_module.linalg.det(system))) < 1e-4:
+        return {"status": "indeterminate", "reason": "transform is too close to pure translation"}
+    relative = numpy_module.linalg.solve(system, offset)
+    pivot = center.astype(numpy_module.float64) + relative
+    return {
+        "status": "estimated",
+        "x_pixels": float(pivot[0]),
+        "y_pixels": float(pivot[1]),
+        "offset_x_pixels": float(relative[0]),
+        "offset_y_pixels": float(relative[1]),
+    }
+
+
 def _transform_residual(matrix: Any, source: Any, destination: Any, numpy_module: Any) -> float:
     if matrix is None:
         return float("inf")
@@ -1207,6 +1232,10 @@ def _summarize_motion_geometry(geometries: list[dict[str, Any]], numpy_module: A
     scales = [float(item["radial_scale_field"]["mean_ratio"]) for item in valid]
     translations_x = [float(item["translation_field"]["mean_dx_pixels"]) for item in valid]
     translations_y = [float(item["translation_field"]["mean_dy_pixels"]) for item in valid]
+    pivots = [
+        item["pivot_field"] for item in valid
+        if isinstance(item.get("pivot_field"), dict) and item["pivot_field"].get("status") == "estimated"
+    ]
     residuals = [float(item["spatial_displacement"]["residual_energy"]) for item in valid]
     reflections = [bool(item["reflection_or_flip"]["detected"]) for item in valid]
     return {
@@ -1234,6 +1263,22 @@ def _summarize_motion_geometry(geometries: list[dict[str, Any]], numpy_module: A
                 numpy_module.array(translations_y) - numpy_module.mean(translations_y),
             ))),
         },
+        "pivot_field": (
+            {
+                "status": "estimated",
+                "x_pixels": float(numpy_module.mean([item["x_pixels"] for item in pivots])),
+                "y_pixels": float(numpy_module.mean([item["y_pixels"] for item in pivots])),
+                "variation_pixels": float(numpy_module.mean(numpy_module.linalg.norm(
+                    numpy_module.array([[item["x_pixels"], item["y_pixels"]] for item in pivots])
+                    - numpy_module.mean(
+                        numpy_module.array([[item["x_pixels"], item["y_pixels"]] for item in pivots]), axis=0
+                    ),
+                    axis=1,
+                ))),
+            }
+            if pivots
+            else {"status": "indeterminate", "reason": "pivot is not identifiable"}
+        ),
         "reflection_or_flip": {
             "detected": sum(reflections) > len(reflections) / 2,
             "confidence": max(sum(reflections), len(reflections) - sum(reflections)) / len(reflections),
