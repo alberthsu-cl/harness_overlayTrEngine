@@ -595,6 +595,12 @@ def score_optical_flow_motion(
         )
         pair["from_frame"] = frame_start + offset - 1
         pair["to_frame"] = frame_start + offset
+        pair["candidate_foreground_body_transform"] = _estimate_foreground_body_transform(
+            candidate_gray[offset - 1], candidate_gray[offset], cv2_module, numpy_module
+        )
+        pair["reference_foreground_body_transform"] = _estimate_foreground_body_transform(
+            reference_gray[offset - 1], reference_gray[offset], cv2_module, numpy_module
+        )
         pairs.append(pair)
         active_pixels = int(pair["active_pixel_count"])
         total_active_pixels += active_pixels
@@ -627,6 +633,18 @@ def score_optical_flow_motion(
         ),
         "reference_motion_geometry": _summarize_motion_geometry(
             [pair["reference_motion_geometry"] for pair in pairs], numpy_module
+        ),
+        "foreground_body_transform": _summarize_feature_transforms(
+            [pair["candidate_foreground_body_transform"] for pair in pairs], numpy_module
+        ),
+        "reference_foreground_body_transform": _summarize_feature_transforms(
+            [pair["reference_foreground_body_transform"] for pair in pairs], numpy_module
+        ),
+        "foreground_body_transform_phases": _summarize_feature_transform_phases(
+            pairs, "candidate_foreground_body_transform", frame_start, frame_end, numpy_module
+        ),
+        "reference_foreground_body_transform_phases": _summarize_feature_transform_phases(
+            pairs, "reference_foreground_body_transform", frame_start, frame_end, numpy_module
         ),
         "angular_motion": _summarize_angular_motion(
             [pair["candidate_angular_motion"] for pair in pairs], numpy_module
@@ -793,6 +811,9 @@ def analyze_reference_motion(
         active = numpy.logical_and(magnitude >= motion_threshold, reliable)
         regions = _describe_motion_regions(flow, magnitude, active, reliable, cv2, numpy)
         motion_geometry = _estimate_motion_geometry(flow, reliable, motion_threshold, cv2, numpy)
+        body_transform = _estimate_foreground_body_transform(
+            grayscale[offset - 1], grayscale[offset], cv2, numpy
+        )
         angular_motion = _estimate_signed_angular_motion(flow, reliable, motion_threshold, numpy)
         active_coverage = float(numpy.count_nonzero(active) / active.size)
         reliable_coverage = float(numpy.count_nonzero(reliable) / reliable.size)
@@ -811,6 +832,7 @@ def analyze_reference_motion(
                 "reliable_motion_coverage": reliable_coverage,
                 "regions": regions,
                 "motion_geometry": motion_geometry,
+                "foreground_body_transform": body_transform,
                 "angular_motion": angular_motion,
             }
         )
@@ -822,6 +844,12 @@ def analyze_reference_motion(
     summary = _summarize_reference_motion(pairs, energies, motion_threshold, numpy)
     summary["motion_geometry"] = _summarize_motion_geometry(
         [pair["motion_geometry"] for pair in pairs], numpy
+    )
+    summary["foreground_body_transform"] = _summarize_feature_transforms(
+        [pair["foreground_body_transform"] for pair in pairs], numpy
+    )
+    summary["foreground_body_transform_phases"] = _summarize_feature_transform_phases(
+        pairs, "foreground_body_transform", frame_start, resolved_end, numpy
     )
     summary["regional_motion"] = _summarize_regional_motion(pairs, numpy)
     summary["angular_motion"] = _summarize_angular_motion(
@@ -878,6 +906,164 @@ def _describe_motion_regions(
             }
         )
     return sorted(regions, key=lambda region: float(region["area_ratio"]), reverse=True)
+
+
+def _estimate_foreground_body_transform(
+    previous: Any,
+    current: Any,
+    cv2_module: Any,
+    numpy_module: Any,
+) -> dict[str, Any]:
+    """Estimate a visible body's 2D similarity transform from feature tracks.
+
+    This complements dense flow. It does not assume a black background; it
+    simply declines when the visible body has too few stable features.
+    """
+    try:
+        detector = cv2_module.ORB_create(nfeatures=800, fastThreshold=12)
+        keypoints_a, descriptors_a = detector.detectAndCompute(previous, None)
+        keypoints_b, descriptors_b = detector.detectAndCompute(current, None)
+    except (AttributeError, cv2_module.error):
+        keypoints_a, descriptors_a, keypoints_b, descriptors_b = [], None, [], None
+    if descriptors_a is None or descriptors_b is None or len(keypoints_a) < 8 or len(keypoints_b) < 8:
+        return {
+            "status": "low_confidence",
+            "detector": "orb_feature_similarity",
+            "reason": "insufficient visible foreground features",
+            "confidence": 0.0,
+            "feature_count": min(len(keypoints_a), len(keypoints_b)),
+        }
+    matcher = cv2_module.BFMatcher(cv2_module.NORM_HAMMING, crossCheck=True)
+    matches = sorted(matcher.match(descriptors_a, descriptors_b), key=lambda item: item.distance)
+    matches = matches[: min(len(matches), 200)]
+    if len(matches) < 8:
+        return {
+            "status": "low_confidence",
+            "detector": "orb_feature_similarity",
+            "reason": "insufficient feature matches",
+            "confidence": 0.0,
+            "feature_count": len(matches),
+        }
+    source = numpy_module.float32([keypoints_a[item.queryIdx].pt for item in matches])
+    destination = numpy_module.float32([keypoints_b[item.trainIdx].pt for item in matches])
+    matrix, inliers = _estimate_affine(cv2_module.estimateAffinePartial2D, source, destination, cv2_module)
+    if matrix is None or inliers is None:
+        return {
+            "status": "low_confidence",
+            "detector": "orb_feature_similarity",
+            "reason": "feature matches do not support a stable similarity transform",
+            "confidence": 0.0,
+            "feature_count": len(matches),
+        }
+    height, width = previous.shape[:2]
+    center = numpy_module.array([width / 2.0, height / 2.0], dtype=numpy_module.float32)
+    properties = _transform_properties(matrix, numpy_module)
+    translation = _center_translation(matrix, center, numpy_module)
+    magnitude = float(numpy_module.linalg.norm(translation))
+    pivot = _estimate_transform_pivot(matrix, center, numpy_module)
+    inlier_count = int(numpy_module.count_nonzero(inliers))
+    residuals = numpy_module.linalg.norm(
+        _apply_transform(matrix, source[inliers.ravel() > 0], numpy_module)
+        - destination[inliers.ravel() > 0],
+        axis=1,
+    )
+    reprojection_error = float(numpy_module.median(residuals)) if len(residuals) else float("inf")
+    if reprojection_error > 4.0:
+        return {
+            "status": "low_confidence",
+            "detector": "orb_feature_similarity",
+            "reason": "feature transform reprojection error is too high",
+            "confidence": 0.0,
+            "feature_count": len(matches),
+            "inlier_count": inlier_count,
+            "reprojection_error_pixels": reprojection_error,
+        }
+    confidence = (
+        min(1.0, inlier_count / 30.0)
+        * min(1.0, len(matches) / 40.0)
+        * max(0.0, min(1.0, 1.0 - reprojection_error / 4.0))
+    )
+    return {
+        "status": "estimated",
+        "detector": "orb_feature_similarity",
+        "dominant_model": "similarity_transform",
+        "confidence": float(confidence),
+        "feature_count": len(matches),
+        "inlier_count": inlier_count,
+        "reprojection_error_pixels": reprojection_error,
+        "rotation_field": {
+            "mean_degrees": properties["rotation_degrees"],
+            "confidence": float(confidence),
+        },
+        "radial_scale_field": {
+            "mean_ratio": properties["uniform_scale"],
+            "confidence": float(confidence),
+        },
+        "translation_field": {
+            "mean_dx_pixels": float(translation[0]),
+            "mean_dy_pixels": float(translation[1]),
+            "magnitude_pixels": magnitude,
+            "direction_degrees": float(numpy_module.degrees(numpy_module.arctan2(translation[1], translation[0])))
+            if magnitude > 1e-6 else 0.0,
+            "confidence": float(confidence),
+        },
+        "pivot_field": {
+            **pivot,
+            "confidence": float(confidence) if pivot.get("status") == "estimated" else 0.0,
+        },
+        "reflection_or_flip": {
+            "detected": properties["reflection_detected"],
+            "confidence": float(confidence),
+        },
+        "spatial_displacement": {
+            "residual_energy": reprojection_error,
+            "confidence": float(confidence),
+        },
+    }
+
+
+def _summarize_feature_transforms(
+    transforms: list[dict[str, Any]], numpy_module: Any
+) -> dict[str, Any]:
+    valid = [
+        item for item in transforms
+        if item.get("status") == "estimated" and float(item.get("confidence", 0.0)) >= 0.35
+    ]
+    if not valid:
+        return {
+            "status": "needs_review",
+            "detector": "orb_feature_similarity",
+            "reason": "no reliable foreground-body feature transform",
+            "confidence": 0.0,
+        }
+    summary = _summarize_motion_geometry(valid, numpy_module)
+    summary["detector"] = "orb_feature_similarity"
+    summary["feature_pair_count"] = len(valid)
+    summary["confidence"] = float(numpy_module.mean([item.get("confidence", 0.0) for item in valid]))
+    return summary
+
+
+def _summarize_feature_transform_phases(
+    pairs: list[dict[str, Any]],
+    key: str,
+    frame_start: int,
+    frame_end: int,
+    numpy_module: Any,
+) -> dict[str, Any]:
+    """Summarize body transforms without averaging opposed phases together."""
+    span = max(frame_end - frame_start, 1)
+    buckets: dict[str, list[dict[str, Any]]] = {"outgoing": [], "midpoint": [], "incoming": []}
+    for pair in pairs:
+        value = pair.get(key)
+        if not isinstance(value, dict):
+            continue
+        relative = (float(pair.get("from_frame", frame_start)) - frame_start) / span
+        bucket = "outgoing" if relative < 0.45 else "incoming" if relative > 0.55 else "midpoint"
+        buckets[bucket].append(value)
+    return {
+        phase: _summarize_feature_transforms(values, numpy_module)
+        for phase, values in buckets.items()
+    }
 
 
 def _estimate_motion_geometry(
