@@ -659,6 +659,204 @@ def score_optical_flow_motion(
     }
 
 
+def score_salient_centroid_tracking(
+    candidate: Path,
+    reference: Path,
+    width: int,
+    height: int,
+    frame_start: int,
+    frame_end: int,
+    ffmpeg_path: str | None = None,
+    analysis_width: int = 480,
+    analysis_height: int = 270,
+    luminance_threshold: int = 16,
+    border_margin: int = 2,
+    minimum_coverage: float = 0.002,
+    maximum_coverage: float = 0.995,
+    cv2_module: Any | None = None,
+    numpy_module: Any | None = None,
+) -> dict[str, Any]:
+    """Compare where the visible body sits, frame by frame, without fitting a transform.
+
+    This complements `_estimate_foreground_body_transform`.  That estimator
+    derives a pivot as the fixed point of a fitted similarity transform, which
+    becomes ill-conditioned as rotation approaches identity and silently absorbs
+    real translation into the pivot.  An area centroid has no such degeneracy
+    because it fits no model at all.
+
+    Frames whose body is clipped by a frame edge are compared, not skipped.  The
+    centroid distance is a *discrepancy*: matching poses are clipped identically
+    and score zero, so a clipped frame still drives refinement correctly.  What
+    clipping costs is literal interpretation - the distance of a clipped frame is
+    not the body's true displacement - so `clipped_frame_count` reports how much
+    of the window carries that caveat.  Only genuinely degenerate frames are
+    excluded: an empty frame (a black midpoint) has no body to locate, and a
+    frame where both sides fill the view has a trivially identical centroid.
+    """
+    if frame_start < 0 or frame_end < frame_start:
+        raise ValueError("centroid tracking requires a non-empty frame window")
+    if not 0 <= luminance_threshold <= 255:
+        raise ValueError("centroid tracking requires a luminance threshold within 0-255")
+    if border_margin < 0:
+        raise ValueError("centroid tracking requires a non-negative border margin")
+    if not 0.0 <= minimum_coverage < maximum_coverage <= 1.0:
+        raise ValueError("centroid tracking requires minimum_coverage below maximum_coverage")
+    if cv2_module is None or numpy_module is None:
+        try:
+            import cv2 as cv2_module  # type: ignore[import-not-found]
+            import numpy as numpy_module  # type: ignore[import-not-found]
+        except ImportError as error:
+            raise RuntimeError("OpenCV and NumPy are required for centroid tracking") from error
+
+    candidate_frames = discover_frames(candidate)
+    reference_frames = discover_frames(reference)
+    if frame_end >= len(candidate_frames) or frame_end >= len(reference_frames):
+        raise ValueError("centroid tracking window exceeds candidate or reference frame count")
+    resolved_width = min(width, analysis_width)
+    resolved_height = min(height, analysis_height)
+    ffmpeg_executable = ffmpeg_path or shutil.which("ffmpeg")
+
+    candidate_gray = _decode_grayscale_frames(
+        candidate_frames, frame_start, frame_end, resolved_width, resolved_height, ffmpeg_executable, cv2_module, numpy_module
+    )
+    reference_gray = _decode_grayscale_frames(
+        reference_frames, frame_start, frame_end, resolved_width, resolved_height, ffmpeg_executable, cv2_module, numpy_module
+    )
+
+    samples: list[dict[str, Any]] = []
+    distances: list[float] = []
+    coverage_errors: list[float] = []
+    coverage_deltas: list[float] = []
+    exclusions = {"empty": 0, "saturated": 0}
+    clipped_frame_count = 0
+    for offset, (candidate_frame, reference_frame) in enumerate(zip(candidate_gray, reference_gray)):
+        candidate_body = _visible_body_centroid(candidate_frame, luminance_threshold, border_margin, numpy_module)
+        reference_body = _visible_body_centroid(reference_frame, luminance_threshold, border_margin, numpy_module)
+        status = _centroid_sample_status(candidate_body, reference_body, minimum_coverage, maximum_coverage)
+        sample: dict[str, Any] = {
+            "frame_index": frame_start + offset,
+            "status": status,
+            "candidate": candidate_body,
+            "reference": reference_body,
+        }
+        if status == "evaluated":
+            # Report in full-resolution pixels so the number stays comparable
+            # when the analysis resolution changes.
+            offset_dx = (candidate_body["centroid_x"] - reference_body["centroid_x"]) * width
+            offset_dy = (candidate_body["centroid_y"] - reference_body["centroid_y"]) * height
+            distance = math.hypot(offset_dx, offset_dy)
+            coverage_delta = float(candidate_body["coverage"]) - float(reference_body["coverage"])
+            clipped = bool(candidate_body["touches_border"] or reference_body["touches_border"])
+            sample["offset_dx_pixels"] = offset_dx
+            sample["offset_dy_pixels"] = offset_dy
+            sample["distance_pixels"] = distance
+            sample["coverage_delta"] = coverage_delta
+            sample["clipped"] = clipped
+            distances.append(distance)
+            coverage_errors.append(abs(coverage_delta))
+            coverage_deltas.append(coverage_delta)
+            clipped_frame_count += int(clipped)
+        else:
+            exclusions[status] += 1
+        samples.append(sample)
+
+    window_frame_count = len(samples)
+    evaluated_frame_count = len(distances)
+    confidence = evaluated_frame_count / window_frame_count if window_frame_count else 0.0
+    if evaluated_frame_count >= 3 and confidence >= 0.2:
+        status = "succeeded"
+        reason = "compared centroid trajectories over frames carrying a locatable body"
+    elif evaluated_frame_count:
+        status = "low_confidence"
+        reason = "too few comparable frames to drive candidate selection"
+    else:
+        status = "insufficient_evidence"
+        reason = "no frame produced a comparable visible body"
+
+    result: dict[str, Any] = {
+        "scorer": "luminance_mask_centroid_tracking",
+        "status": status,
+        "reason": reason,
+        "analysis_width": resolved_width,
+        "analysis_height": resolved_height,
+        "luminance_threshold": luminance_threshold,
+        "border_margin": border_margin,
+        "frame_range": {"start": frame_start, "end": frame_end},
+        "window_frame_count": window_frame_count,
+        "evaluated_frame_count": evaluated_frame_count,
+        "excluded_frame_counts": exclusions,
+        # How much of the comparison rests on clipped bodies, where the distance
+        # is a valid discrepancy but not a literal displacement.
+        "clipped_frame_count": clipped_frame_count,
+        "confidence": confidence,
+        "samples": samples,
+    }
+    if evaluated_frame_count:
+        result["mean_centroid_distance_pixels"] = sum(distances) / evaluated_frame_count
+        result["max_centroid_distance_pixels"] = max(distances)
+        # Visible-area agreement: an independent, clipping-tolerant read on
+        # whether the body is the right size at the right time.
+        result["mean_coverage_error"] = sum(coverage_errors) / evaluated_frame_count
+        result["mean_coverage_delta"] = sum(coverage_deltas) / evaluated_frame_count
+    return result
+
+
+def _visible_body_centroid(
+    frame: Any,
+    luminance_threshold: int,
+    border_margin: int,
+    numpy_module: Any,
+) -> dict[str, Any]:
+    """Locate the area centroid of everything brighter than the background."""
+    mask = frame > luminance_threshold
+    height, width = mask.shape[:2]
+    pixel_count = int(mask.sum())
+    if not pixel_count:
+        return {
+            "coverage": 0.0,
+            "pixel_count": 0,
+            "touches_border": False,
+            "centroid_x": None,
+            "centroid_y": None,
+        }
+    rows, columns = numpy_module.nonzero(mask)
+    margin = min(border_margin, (min(width, height) - 1) // 2)
+    touches_border = bool(
+        int(columns.min()) <= margin
+        or int(rows.min()) <= margin
+        or int(columns.max()) >= width - 1 - margin
+        or int(rows.max()) >= height - 1 - margin
+    )
+    return {
+        "coverage": pixel_count / float(mask.size),
+        "pixel_count": pixel_count,
+        "touches_border": touches_border,
+        # Normalized so the centroid is independent of analysis resolution.
+        "centroid_x": float(columns.mean()) / max(width - 1, 1),
+        "centroid_y": float(rows.mean()) / max(height - 1, 1),
+    }
+
+
+def _centroid_sample_status(
+    candidate_body: dict[str, Any],
+    reference_body: dict[str, Any],
+    minimum_coverage: float,
+    maximum_coverage: float,
+) -> str:
+    """Classify whether a frame pair carries a usable positional comparison.
+
+    Clipping is not disqualifying - see `score_salient_centroid_tracking`.  Only
+    an absent body or a pair that both fill the view is unusable.
+    """
+    candidate_coverage = float(candidate_body["coverage"])
+    reference_coverage = float(reference_body["coverage"])
+    if candidate_coverage < minimum_coverage or reference_coverage < minimum_coverage:
+        return "empty"
+    if candidate_coverage > maximum_coverage and reference_coverage > maximum_coverage:
+        return "saturated"
+    return "evaluated"
+
+
 def create_motion_visualizations(
     candidate: Path,
     reference: Path,
