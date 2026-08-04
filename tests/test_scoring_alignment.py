@@ -60,6 +60,8 @@ from overlay_harness.evaluator import (
     _score_flow_pair,
     _summarize_regional_motion,
     _summarize_reference_motion,
+    _centroid_sample_status,
+    _visible_body_centroid,
     analyze_sampler_repetition,
     score_frame_sequences,
 )
@@ -103,6 +105,64 @@ class ScoringAlignmentTests(unittest.TestCase):
             _estimate_signed_angular_motion(translation, reliable, 0.75, numpy)["status"],
             "indeterminate",
         )
+
+    def test_visible_body_centroid_is_resolution_independent(self) -> None:
+        import numpy
+
+        # The same body, drawn at two resolutions, must report the same
+        # normalized centroid so the metric survives an analysis-size change.
+        small = numpy.zeros((90, 160), dtype=numpy.uint8)
+        small[20:50, 40:80] = 255
+        large = numpy.zeros((270, 480), dtype=numpy.uint8)
+        large[60:150, 120:240] = 255
+
+        small_body = _visible_body_centroid(small, 16, 2, numpy)
+        large_body = _visible_body_centroid(large, 16, 2, numpy)
+
+        self.assertAlmostEqual(small_body["centroid_x"], large_body["centroid_x"], places=2)
+        self.assertAlmostEqual(small_body["centroid_y"], large_body["centroid_y"], places=2)
+        self.assertAlmostEqual(small_body["coverage"], large_body["coverage"], places=3)
+        self.assertFalse(small_body["touches_border"])
+
+    def test_visible_body_centroid_ignores_background_fringe(self) -> None:
+        import numpy
+
+        # Antialiasing leaves a dim fringe on the black background; it must not
+        # drag the centroid away from the body.
+        frame = numpy.zeros((90, 160), dtype=numpy.uint8)
+        frame[40:50, 70:90] = 255
+        frame[0:90, 0:5] = 7
+
+        body = _visible_body_centroid(frame, 16, 2, numpy)
+
+        self.assertAlmostEqual(body["centroid_x"] * 159, 79.5, places=1)
+        self.assertFalse(body["touches_border"])
+
+    def test_visible_body_centroid_flags_a_body_touching_the_frame_edge(self) -> None:
+        import numpy
+
+        frame = numpy.zeros((90, 160), dtype=numpy.uint8)
+        frame[30:60, 0:40] = 255
+
+        self.assertTrue(_visible_body_centroid(frame, 16, 2, numpy)["touches_border"])
+
+    def test_centroid_sample_status_compares_clipped_frames(self) -> None:
+        # Clipping is a caveat on interpreting the distance, not a reason to
+        # skip the frame: matching poses clip identically and still score zero.
+        clipped = {"coverage": 0.4, "touches_border": True}
+        self.assertEqual(_centroid_sample_status(clipped, clipped, 0.002, 0.995), "evaluated")
+
+    def test_centroid_sample_status_rejects_positionless_frames(self) -> None:
+        body = {"coverage": 0.4, "touches_border": False}
+        empty = {"coverage": 0.0, "touches_border": False}
+        full = {"coverage": 1.0, "touches_border": True}
+
+        self.assertEqual(_centroid_sample_status(empty, body, 0.002, 0.995), "empty")
+        self.assertEqual(_centroid_sample_status(body, empty, 0.002, 0.995), "empty")
+        # Both sides filling the view makes the centroid trivially identical.
+        self.assertEqual(_centroid_sample_status(full, full, 0.002, 0.995), "saturated")
+        # One side full and the other not is a real disagreement, so keep it.
+        self.assertEqual(_centroid_sample_status(full, body, 0.002, 0.995), "evaluated")
 
     def setUp(self) -> None:
         work_root = HARNESS_ROOT / "work"
