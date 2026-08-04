@@ -883,10 +883,10 @@ def score_salient_rotation_tracking(
         reference_image = _decode_grayscale_frame(
             reference_frames[index], resolved_width, resolved_height, ffmpeg_executable, cv2_module, numpy_module
         )
-        candidate_fit = _best_source_rotation(
+        candidate_fit = _best_source_transform(
             candidate_image, sources, detector, matcher, minimum_inliers, cv2_module, numpy_module
         )
-        reference_fit = _best_source_rotation(
+        reference_fit = _best_source_transform(
             reference_image, sources, detector, matcher, minimum_inliers, cv2_module, numpy_module
         )
         samples.append(
@@ -915,6 +915,7 @@ def score_salient_rotation_tracking(
             _unwrap_contiguous(ordered, side, source["index"])
 
     errors: list[float] = []
+    scale_errors: list[float] = []
     for sample in samples:
         candidate_angle = sample["candidate"].get("unwrapped_degrees")
         reference_angle = sample["reference"].get("unwrapped_degrees")
@@ -922,6 +923,11 @@ def score_salient_rotation_tracking(
             error = abs(float(candidate_angle) - float(reference_angle))
             sample["absolute_rotation_error_degrees"] = error
             errors.append(error)
+        candidate_scale = sample["candidate"].get("scale")
+        reference_scale = sample["reference"].get("scale")
+        if isinstance(candidate_scale, (int, float)) and isinstance(reference_scale, (int, float)):
+            sample["absolute_scale_error"] = abs(float(candidate_scale) - float(reference_scale))
+            scale_errors.append(float(sample["absolute_scale_error"]))
 
     window_frame_count = len(samples)
     confidence = len(errors) / window_frame_count if window_frame_count else 0.0
@@ -966,6 +972,10 @@ def score_salient_rotation_tracking(
             and isinstance(sample["candidate"].get("unwrapped_degrees"), (int, float))
         ]
         result["comparable_frame_count"] = len(paired)
+        if scale_errors:
+            # True body scale, free of the clipping that confounds coverage.
+            result["mean_absolute_scale_error"] = sum(scale_errors) / len(scale_errors)
+            result["max_absolute_scale_error"] = max(scale_errors)
         result["reference_peak_rotation_degrees"] = max(value for value, _ in paired) if paired else None
         result["candidate_peak_rotation_degrees"] = max(value for _, value in paired) if paired else None
     return result
@@ -984,7 +994,7 @@ def _decode_grayscale_frame(
     return cv2_module.cvtColor(image, cv2_module.COLOR_RGB2GRAY)
 
 
-def _best_source_rotation(
+def _best_source_transform(
     image: Any,
     sources: list[dict[str, Any]],
     detector: Any,
@@ -997,9 +1007,18 @@ def _best_source_rotation(
 
     Trying both sources rather than assuming a phase boundary keeps the estimate
     honest through the midpoint, where both bodies can be partly visible.
+
+    Reports absolute scale as well as angle.  Scale read off this solve is the
+    body's true scale, whereas scale inferred from visible coverage is confounded
+    by however much of a rotated body the frame happens to clip.
     """
     keypoints, descriptors = detector.detectAndCompute(image, None)
-    best: dict[str, Any] = {"status": "unreliable", "inliers": 0, "wrapped_degrees": None}
+    best: dict[str, Any] = {
+        "status": "unreliable",
+        "inliers": 0,
+        "wrapped_degrees": None,
+        "scale": None,
+    }
     if descriptors is None or len(keypoints) < minimum_inliers:
         return best
     for source in sources:
@@ -1016,11 +1035,15 @@ def _best_source_rotation(
         inlier_count = int(inliers.sum())
         if inlier_count < minimum_inliers or inlier_count <= int(best["inliers"]):
             continue
+        # estimateAffinePartial2D returns [[s*cos, -s*sin, tx], [s*sin, s*cos, ty]].
+        cos_term = float(matrix[0, 0])
+        sin_term = float(matrix[1, 0])
         best = {
             "status": "estimated",
             "source_index": source["index"],
             "inliers": inlier_count,
-            "wrapped_degrees": math.degrees(math.atan2(float(matrix[1, 0]), float(matrix[0, 0]))),
+            "wrapped_degrees": math.degrees(math.atan2(sin_term, cos_term)),
+            "scale": math.hypot(cos_term, sin_term),
         }
     return best
 
