@@ -61,6 +61,7 @@ from overlay_harness.evaluator import (
     _summarize_regional_motion,
     _summarize_reference_motion,
     _centroid_sample_status,
+    _unwrap_contiguous,
     _visible_body_centroid,
     analyze_sampler_repetition,
     score_frame_sequences,
@@ -145,6 +146,39 @@ class ScoringAlignmentTests(unittest.TestCase):
         frame[30:60, 0:40] = 255
 
         self.assertTrue(_visible_body_centroid(frame, 16, 2, numpy)["touches_border"])
+
+    @staticmethod
+    def _rotation_samples(values: list[tuple[int, float | None]]) -> list[dict]:
+        return [
+            {
+                "frame_index": frame,
+                "reference": (
+                    {"status": "estimated", "source_index": 0, "wrapped_degrees": angle}
+                    if angle is not None
+                    else {"status": "unreliable"}
+                ),
+            }
+            for frame, angle in values
+        ]
+
+    def test_unwrap_recovers_turns_past_the_atan2_boundary(self) -> None:
+        # atan2 wraps at +/-180, so a body turning past half a revolution reports a
+        # negative angle.  Without unwrapping, 211 degrees reads as -149.
+        samples = self._rotation_samples([(15, 120.0), (16, 166.0), (17, -148.8), (18, -100.0)])
+        _unwrap_contiguous(samples, "reference", 0)
+        angles = [sample["reference"]["unwrapped_degrees"] for sample in samples]
+        self.assertAlmostEqual(angles[2], 211.2, places=1)
+        self.assertAlmostEqual(angles[3], 260.0, places=1)
+        self.assertTrue(all(b > a for a, b in zip(angles, angles[1:])))
+
+    def test_unwrap_stops_at_a_gap_instead_of_guessing_turns(self) -> None:
+        # Past a missing frame the whole-turn count is unrecoverable, so those
+        # frames must be left un-aggregated rather than silently mis-unwrapped.
+        samples = self._rotation_samples([(15, 10.0), (16, 40.0), (17, None), (18, -170.0)])
+        _unwrap_contiguous(samples, "reference", 0)
+        self.assertEqual(samples[1]["reference"]["unwrap_status"], "anchored")
+        self.assertEqual(samples[3]["reference"]["unwrap_status"], "chain_broken")
+        self.assertNotIn("unwrapped_degrees", samples[3]["reference"])
 
     def test_centroid_sample_status_compares_clipped_frames(self) -> None:
         # Clipping is a caveat on interpreting the distance, not a reason to

@@ -801,6 +801,267 @@ def score_salient_centroid_tracking(
     return result
 
 
+def score_salient_rotation_tracking(
+    candidate: Path,
+    reference: Path,
+    source_directories: list[Path],
+    width: int,
+    height: int,
+    frame_start: int,
+    frame_end: int,
+    ffmpeg_path: str | None = None,
+    analysis_width: int = 960,
+    analysis_height: int = 540,
+    minimum_inliers: int = 20,
+    cv2_module: Any | None = None,
+    numpy_module: Any | None = None,
+) -> dict[str, Any]:
+    """Compare how far the body has TURNED, not how fast it is turning.
+
+    `_estimate_foreground_body_transform` matches consecutive frames, so every
+    angle it reports is a per-pair increment.  A candidate can therefore match the
+    reference's angular velocity closely while accumulating a small fraction of
+    its total rotation, and no differential metric can see the difference.
+
+    Matching each frame against its own untransformed source measures the absolute
+    angle instead.  Because `atan2` wraps at +/-180 degrees, the series is unwrapped
+    along contiguous runs of measured frames anchored at a stable endpoint, where
+    the body is known to be unrotated.  A gap in the run ends the chain: past a gap
+    the number of whole turns is unknowable, so those frames are reported but
+    excluded from the aggregate rather than guessed at.
+    """
+    if frame_start < 0 or frame_end < frame_start:
+        raise ValueError("rotation tracking requires a non-empty frame window")
+    if minimum_inliers < 4:
+        raise ValueError("rotation tracking requires a sane minimum inlier count")
+    if not source_directories:
+        raise ValueError("rotation tracking requires at least one source directory")
+    if cv2_module is None or numpy_module is None:
+        try:
+            import cv2 as cv2_module  # type: ignore[import-not-found]
+            import numpy as numpy_module  # type: ignore[import-not-found]
+        except ImportError as error:
+            raise RuntimeError("OpenCV and NumPy are required for rotation tracking") from error
+
+    candidate_frames = discover_frames(candidate)
+    reference_frames = discover_frames(reference)
+    if frame_end >= len(candidate_frames) or frame_end >= len(reference_frames):
+        raise ValueError("rotation tracking window exceeds candidate or reference frame count")
+    resolved_width = min(width, analysis_width)
+    resolved_height = min(height, analysis_height)
+    ffmpeg_executable = ffmpeg_path or shutil.which("ffmpeg")
+
+    detector = cv2_module.ORB_create(nfeatures=4000, fastThreshold=8)
+    matcher = cv2_module.BFMatcher(cv2_module.NORM_HAMMING, crossCheck=True)
+
+    sources: list[dict[str, Any]] = []
+    for index, directory in enumerate(source_directories):
+        frames = discover_frames(Path(directory))
+        if not frames:
+            continue
+        image = _decode_grayscale_frame(
+            frames[0], resolved_width, resolved_height, ffmpeg_executable, cv2_module, numpy_module
+        )
+        keypoints, descriptors = detector.detectAndCompute(image, None)
+        if descriptors is None:
+            continue
+        sources.append({"index": index, "keypoints": keypoints, "descriptors": descriptors})
+    if not sources:
+        return {
+            "scorer": "orb_absolute_rotation_vs_source",
+            "status": "insufficient_evidence",
+            "reason": "no source image produced usable features",
+            "frame_range": {"start": frame_start, "end": frame_end},
+            "samples": [],
+        }
+
+    samples: list[dict[str, Any]] = []
+    for index in range(frame_start, frame_end + 1):
+        candidate_image = _decode_grayscale_frame(
+            candidate_frames[index], resolved_width, resolved_height, ffmpeg_executable, cv2_module, numpy_module
+        )
+        reference_image = _decode_grayscale_frame(
+            reference_frames[index], resolved_width, resolved_height, ffmpeg_executable, cv2_module, numpy_module
+        )
+        candidate_fit = _best_source_rotation(
+            candidate_image, sources, detector, matcher, minimum_inliers, cv2_module, numpy_module
+        )
+        reference_fit = _best_source_rotation(
+            reference_image, sources, detector, matcher, minimum_inliers, cv2_module, numpy_module
+        )
+        samples.append(
+            {
+                "frame_index": index,
+                "candidate": candidate_fit,
+                "reference": reference_fit,
+            }
+        )
+
+    # Unwrap each source group separately.  The group matching the outgoing source
+    # accumulates rotation with the frame index; the incoming group unwinds toward
+    # zero at the window end, so it is unwrapped in reverse.
+    for source in sources:
+        group = [
+            sample
+            for sample in samples
+            if sample["reference"].get("source_index") == source["index"]
+            or sample["candidate"].get("source_index") == source["index"]
+        ]
+        if not group:
+            continue
+        forward = source["index"] == 0
+        ordered = group if forward else list(reversed(group))
+        for side in ("candidate", "reference"):
+            _unwrap_contiguous(ordered, side, source["index"])
+
+    errors: list[float] = []
+    for sample in samples:
+        candidate_angle = sample["candidate"].get("unwrapped_degrees")
+        reference_angle = sample["reference"].get("unwrapped_degrees")
+        if isinstance(candidate_angle, (int, float)) and isinstance(reference_angle, (int, float)):
+            error = abs(float(candidate_angle) - float(reference_angle))
+            sample["absolute_rotation_error_degrees"] = error
+            errors.append(error)
+
+    window_frame_count = len(samples)
+    confidence = len(errors) / window_frame_count if window_frame_count else 0.0
+    if len(errors) >= 4 and confidence >= 0.2:
+        status = "succeeded"
+        reason = "compared absolute rotation over contiguous, endpoint-anchored frames"
+    elif errors:
+        status = "low_confidence"
+        reason = "too few contiguous frames to drive candidate selection"
+    else:
+        status = "insufficient_evidence"
+        reason = "no frame produced a reliable absolute rotation on both sides"
+
+    result: dict[str, Any] = {
+        "scorer": "orb_absolute_rotation_vs_source",
+        "status": status,
+        "reason": reason,
+        "analysis_width": resolved_width,
+        "analysis_height": resolved_height,
+        "minimum_inliers": minimum_inliers,
+        "frame_range": {"start": frame_start, "end": frame_end},
+        "window_frame_count": window_frame_count,
+        "evaluated_frame_count": len(errors),
+        "confidence": confidence,
+        "samples": samples,
+    }
+    if errors:
+        result["mean_absolute_rotation_error_degrees"] = sum(errors) / len(errors)
+        result["max_absolute_rotation_error_degrees"] = max(errors)
+        # Peaks are taken only over frames measured on BOTH sides.  Each side is
+        # reliable over a different range - the reference body becomes untrackable
+        # once it is small and motion blurred - so peaks over each side's own range
+        # would not be comparable.  This is the headline a rate-based diagnostic
+        # cannot report: how far each body actually turned.
+        paired = [
+            (
+                abs(float(sample["reference"]["unwrapped_degrees"])),
+                abs(float(sample["candidate"]["unwrapped_degrees"])),
+            )
+            for sample in samples
+            if isinstance(sample["reference"].get("unwrapped_degrees"), (int, float))
+            and isinstance(sample["candidate"].get("unwrapped_degrees"), (int, float))
+        ]
+        result["comparable_frame_count"] = len(paired)
+        result["reference_peak_rotation_degrees"] = max(value for value, _ in paired) if paired else None
+        result["candidate_peak_rotation_degrees"] = max(value for _, value in paired) if paired else None
+    return result
+
+
+def _decode_grayscale_frame(
+    frame_path: Path,
+    width: int,
+    height: int,
+    ffmpeg_executable: str | None,
+    cv2_module: Any,
+    numpy_module: Any,
+) -> Any:
+    rgb = decode_frame_rgb(ffmpeg_executable, frame_path, width, height)
+    image = numpy_module.frombuffer(rgb, dtype=numpy_module.uint8).reshape((height, width, 3))
+    return cv2_module.cvtColor(image, cv2_module.COLOR_RGB2GRAY)
+
+
+def _best_source_rotation(
+    image: Any,
+    sources: list[dict[str, Any]],
+    detector: Any,
+    matcher: Any,
+    minimum_inliers: int,
+    cv2_module: Any,
+    numpy_module: Any,
+) -> dict[str, Any]:
+    """Fit the frame against every source and keep the best-supported solve.
+
+    Trying both sources rather than assuming a phase boundary keeps the estimate
+    honest through the midpoint, where both bodies can be partly visible.
+    """
+    keypoints, descriptors = detector.detectAndCompute(image, None)
+    best: dict[str, Any] = {"status": "unreliable", "inliers": 0, "wrapped_degrees": None}
+    if descriptors is None or len(keypoints) < minimum_inliers:
+        return best
+    for source in sources:
+        matches = matcher.match(source["descriptors"], descriptors)
+        if len(matches) < minimum_inliers:
+            continue
+        source_points = numpy_module.float32([source["keypoints"][m.queryIdx].pt for m in matches])
+        frame_points = numpy_module.float32([keypoints[m.trainIdx].pt for m in matches])
+        matrix, inliers = cv2_module.estimateAffinePartial2D(
+            source_points, frame_points, method=cv2_module.RANSAC, ransacReprojThreshold=3.0
+        )
+        if matrix is None or inliers is None:
+            continue
+        inlier_count = int(inliers.sum())
+        if inlier_count < minimum_inliers or inlier_count <= int(best["inliers"]):
+            continue
+        best = {
+            "status": "estimated",
+            "source_index": source["index"],
+            "inliers": inlier_count,
+            "wrapped_degrees": math.degrees(math.atan2(float(matrix[1, 0]), float(matrix[0, 0]))),
+        }
+    return best
+
+
+def _unwrap_contiguous(ordered: list[dict[str, Any]], side: str, source_index: int) -> None:
+    """Unwrap one side's angle series along a contiguous run of measured frames.
+
+    The run is anchored where the body is unrotated, so whole-turn counting starts
+    from a known zero.  A missing frame breaks the chain: beyond it the turn count
+    cannot be recovered, so later frames are left un-aggregated instead of guessed.
+    """
+    turns = 0
+    previous = None
+    previous_frame = None
+    broken = False
+    for sample in ordered:
+        fit = sample[side]
+        wrapped = fit.get("wrapped_degrees")
+        if fit.get("source_index") != source_index or not isinstance(wrapped, (int, float)):
+            # A frame with no reliable solve breaks the run.  Restarting the chain
+            # after it would anchor at an arbitrary angle and invent a turn count,
+            # so everything downstream stays unaggregated.
+            if previous_frame is not None:
+                broken = True
+            continue
+        if broken or (
+            previous_frame is not None and abs(int(sample["frame_index"]) - int(previous_frame)) != 1
+        ):
+            broken = True
+            fit["unwrap_status"] = "chain_broken"
+            continue
+        current = float(wrapped) + 360.0 * turns
+        if previous is not None and current - previous < -180.0:
+            turns += 1
+            current = float(wrapped) + 360.0 * turns
+        fit["unwrapped_degrees"] = current
+        fit["unwrap_status"] = "anchored"
+        previous = current
+        previous_frame = int(sample["frame_index"])
+
+
 def _visible_body_centroid(
     frame: Any,
     luminance_threshold: int,
