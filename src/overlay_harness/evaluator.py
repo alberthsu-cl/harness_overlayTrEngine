@@ -659,6 +659,137 @@ def score_optical_flow_motion(
     }
 
 
+def score_motion_blur_direction(
+    candidate: Path,
+    width: int,
+    height: int,
+    frame_start: int,
+    frame_end: int,
+    motion_model: str,
+    pivot: tuple[float, float] | None = None,
+    ffmpeg_path: str | None = None,
+    analysis_width: int = 320,
+    analysis_height: int = 180,
+    sample_stride: int = 16,
+    patch_radius: int = 7,
+    center_exclusion_fraction: float = 0.08,
+    minimum_coherence: float = 0.3,
+    minimum_gradient_energy: float = 40.0,
+    cv2_module: Any | None = None,
+    numpy_module: Any | None = None,
+) -> dict[str, Any]:
+    """Check whether a candidate's rendered motion-blur streaks point the way its own
+    declared transform implies, independent of any reference footage.
+
+    Existing scorers either fit a rigid-body transform via sparse ORB features
+    (foreground_body_*, salient_rotation_*) or compare aggregate pixel/flow
+    differences (mse, ssim, motion_similarity) - none of them look at which way the
+    blur *streaks* run, so a radial (zoom-style) blur kernel applied to a rotation
+    effect, or vice versa, is invisible to the whole suite even though it is
+    immediately obvious on inspection. This is a self-consistency check, not a
+    candidate-vs-reference comparison: for each sample point it derives the expected
+    local blur direction analytically from `pivot` and `motion_model` (tangential,
+    i.e. perpendicular to the radius, for "rotation"; radial, i.e. along the radius,
+    for "zoom"), measures the actual local streak orientation via the image
+    structure tensor's minor eigenvector (the axis of least intensity variation,
+    which motion blur elongates content along), and scores their agreement.
+    """
+    if motion_model not in ("rotation", "zoom"):
+        raise ValueError('motion_model must be "rotation" or "zoom"')
+    if frame_start < 0 or frame_end < frame_start:
+        raise ValueError("motion blur scoring requires a valid frame window")
+    if analysis_width < 16 or analysis_height < 16:
+        raise ValueError("motion blur scoring has invalid analysis parameters")
+    if cv2_module is None or numpy_module is None:
+        try:
+            import cv2 as cv2_module  # type: ignore[import-not-found]
+            import numpy as numpy_module  # type: ignore[import-not-found]
+        except ImportError as error:
+            raise RuntimeError("OpenCV and NumPy are required for motion-blur-direction scoring") from error
+
+    candidate_frames = discover_frames(candidate)
+    if frame_end >= len(candidate_frames):
+        raise ValueError("motion blur score window exceeds candidate frame count")
+    resolved_width = min(width, analysis_width)
+    resolved_height = min(height, analysis_height)
+    ffmpeg_executable = ffmpeg_path or shutil.which("ffmpeg")
+    gray_frames = _decode_grayscale_frames(
+        candidate_frames, frame_start, frame_end, resolved_width, resolved_height, ffmpeg_executable, cv2_module, numpy_module
+    )
+
+    pivot_x, pivot_y = pivot if pivot is not None else (0.5, 0.5)
+    pivot_pixel = (pivot_x * resolved_width, pivot_y * resolved_height)
+    exclusion_radius = center_exclusion_fraction * min(resolved_width, resolved_height)
+
+    sample_points = [
+        (x, y)
+        for y in range(patch_radius, resolved_height - patch_radius, sample_stride)
+        for x in range(patch_radius, resolved_width - patch_radius, sample_stride)
+        if math.hypot(x - pivot_pixel[0], y - pivot_pixel[1]) >= exclusion_radius
+    ]
+
+    weighted_alignment_sum = 0.0
+    weight_sum = 0.0
+    reliable_sample_count = 0
+    for frame in gray_frames:
+        gradient_x = cv2_module.Sobel(frame, cv2_module.CV_32F, 1, 0, ksize=3)
+        gradient_y = cv2_module.Sobel(frame, cv2_module.CV_32F, 0, 1, ksize=3)
+        for x, y in sample_points:
+            patch_x = gradient_x[y - patch_radius:y + patch_radius + 1, x - patch_radius:x + patch_radius + 1]
+            patch_y = gradient_y[y - patch_radius:y + patch_radius + 1, x - patch_radius:x + patch_radius + 1]
+            sxx = float(numpy_module.sum(patch_x * patch_x))
+            syy = float(numpy_module.sum(patch_y * patch_y))
+            sxy = float(numpy_module.sum(patch_x * patch_y))
+            trace = sxx + syy
+            if trace < minimum_gradient_energy:
+                continue
+            discriminant = math.sqrt(max(0.0, ((sxx - syy) / 2.0) ** 2 + sxy ** 2))
+            eigenvalue_major = trace / 2.0 + discriminant
+            eigenvalue_minor = trace / 2.0 - discriminant
+            coherence = (eigenvalue_major - eigenvalue_minor) / (eigenvalue_major + eigenvalue_minor + 1e-9)
+            if coherence < minimum_coherence:
+                continue
+            # Dominant gradient orientation (perpendicular to the streak, i.e. the
+            # sharp/edge-normal direction); the streak itself runs 90 degrees from it.
+            gradient_angle = 0.5 * math.atan2(2.0 * sxy, sxx - syy)
+            streak_angle = gradient_angle + math.pi / 2.0
+
+            radius_angle = math.atan2(y - pivot_pixel[1], x - pivot_pixel[0])
+            expected_angle = radius_angle + (math.pi / 2.0 if motion_model == "rotation" else 0.0)
+
+            # abs(cos(...)) is invariant to a +-pi ambiguity in either angle, which is
+            # exactly right here: a blur streak is an undirected line, not a vector.
+            alignment = abs(math.cos(streak_angle - expected_angle))
+            weighted_alignment_sum += alignment * coherence
+            weight_sum += coherence
+            reliable_sample_count += 1
+
+    total_samples = len(sample_points) * len(gray_frames)
+    if weight_sum <= 0.0:
+        return {
+            "scorer": "structure_tensor_blur_direction",
+            "status": "insufficient_texture",
+            "reason": "no sample point had enough directional gradient energy to estimate a streak orientation",
+            "motion_model": motion_model,
+            "pivot": [pivot_x, pivot_y],
+            "sample_count": total_samples,
+            "reliable_sample_count": 0,
+            "direction_agreement": None,
+        }
+    return {
+        "scorer": "structure_tensor_blur_direction",
+        "status": "estimated",
+        "motion_model": motion_model,
+        "pivot": [pivot_x, pivot_y],
+        "analysis_width": resolved_width,
+        "analysis_height": resolved_height,
+        "sample_count": total_samples,
+        "reliable_sample_count": reliable_sample_count,
+        "reliable_sample_fraction": reliable_sample_count / total_samples if total_samples else 0.0,
+        "direction_agreement": weighted_alignment_sum / weight_sum,
+    }
+
+
 def score_salient_centroid_tracking(
     candidate: Path,
     reference: Path,
