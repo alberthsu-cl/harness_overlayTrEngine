@@ -487,14 +487,14 @@
       ]
     },
     {
-      "display_name": "Generated Rotate 01",
-      "effect_id": "engine-modelgenerated-rotate-01",
+      "display_name": "Generated Rotate 03",
+      "effect_id": "engine-modelgenerated-rotate-03",
       "effect_source": "generated",
-      "fallback_fx_id": "ModelGenerated\\Rotate_01",
+      "fallback_fx_id": "ModelGenerated\\Rotate_03",
       "family": "unknown",
-      "fx_id": "ModelGenerated\\Rotate_01",
+      "fx_id": "ModelGenerated\\Rotate_03",
       "metadata_status": "discovered",
-      "mode": "engine-discovered-modelgenerated-rotate-01",
+      "mode": "engine-discovered-modelgenerated-rotate-03",
       "retrieval_priority": 100,
       "source_documents": [
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
@@ -502,18 +502,18 @@
       ],
       "style_hints": [
         "engine-discovered",
-        "modelgenerated-rotate-01"
+        "modelgenerated-rotate-03"
       ]
     },
     {
-      "display_name": "Generated Rotate 02",
-      "effect_id": "engine-modelgenerated-rotate-02",
+      "display_name": "Generated ZoomBlur 01",
+      "effect_id": "engine-modelgenerated-zoomblur-01",
       "effect_source": "generated",
-      "fallback_fx_id": "ModelGenerated\\Rotate_02",
+      "fallback_fx_id": "ModelGenerated\\ZoomBlur_01",
       "family": "unknown",
-      "fx_id": "ModelGenerated\\Rotate_02",
+      "fx_id": "ModelGenerated\\ZoomBlur_01",
       "metadata_status": "discovered",
-      "mode": "engine-discovered-modelgenerated-rotate-02",
+      "mode": "engine-discovered-modelgenerated-zoomblur-01",
       "retrieval_priority": 100,
       "source_documents": [
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
@@ -521,7 +521,83 @@
       ],
       "style_hints": [
         "engine-discovered",
-        "modelgenerated-rotate-02"
+        "modelgenerated-zoomblur-01"
+      ]
+    },
+    {
+      "display_name": "Generated SpinBlur 01",
+      "effect_id": "engine-modelgenerated-spinblur-01",
+      "effect_source": "generated",
+      "fallback_fx_id": "ModelGenerated\\SpinBlur_01",
+      "family": "unknown",
+      "fx_id": "ModelGenerated\\SpinBlur_01",
+      "metadata_status": "discovered",
+      "mode": "engine-discovered-modelgenerated-spinblur-01",
+      "retrieval_priority": 100,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp"
+      ],
+      "style_hints": [
+        "engine-discovered",
+        "modelgenerated-spinblur-01"
+      ]
+    },
+    {
+      "display_name": "Generated RadialWipe 01",
+      "effect_id": "engine-modelgenerated-radialwipe-01",
+      "effect_source": "generated",
+      "fallback_fx_id": "ModelGenerated\\RadialWipe_01",
+      "family": "unknown",
+      "fx_id": "ModelGenerated\\RadialWipe_01",
+      "metadata_status": "discovered",
+      "mode": "engine-discovered-modelgenerated-radialwipe-01",
+      "retrieval_priority": 100,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp"
+      ],
+      "style_hints": [
+        "engine-discovered",
+        "modelgenerated-radialwipe-01"
+      ]
+    },
+    {
+      "display_name": "Generated GlitchSlice 01",
+      "effect_id": "engine-modelgenerated-glitchslice-01",
+      "effect_source": "generated",
+      "fallback_fx_id": "ModelGenerated\\GlitchSlice_01",
+      "family": "unknown",
+      "fx_id": "ModelGenerated\\GlitchSlice_01",
+      "metadata_status": "discovered",
+      "mode": "engine-discovered-modelgenerated-glitchslice-01",
+      "retrieval_priority": 100,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp"
+      ],
+      "style_hints": [
+        "engine-discovered",
+        "modelgenerated-glitchslice-01"
+      ]
+    },
+    {
+      "display_name": "Generated GlitchCross 01",
+      "effect_id": "engine-modelgenerated-glitchcross-01",
+      "effect_source": "generated",
+      "fallback_fx_id": "ModelGenerated\\GlitchCross_01",
+      "family": "unknown",
+      "fx_id": "ModelGenerated\\GlitchCross_01",
+      "metadata_status": "discovered",
+      "mode": "engine-discovered-modelgenerated-glitchcross-01",
+      "retrieval_priority": 100,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp"
+      ],
+      "style_hints": [
+        "engine-discovered",
+        "modelgenerated-glitchcross-01"
       ]
     },
     {
@@ -562,7 +638,7 @@
       ]
     }
   ],
-  "registration_count": 29,
+  "registration_count": 33,
   "retrieval_index": {
     "app-swipe": "builtin-ui-app-swipe",
     "blur": "builtin-blur",
@@ -622,7 +698,7 @@
     "upgrow": "builtin-blur-upgrow"
   },
   "source_manifest": "harness/configs/effect_catalog_sources.json",
-  "source_manifest_sha256": "8fdcbef053d5e746f490be873e3020e43d45f94354e136cb3cfda49c9946ebf5",
+  "source_manifest_sha256": "233a48b4ccc64bfca3113451b9cf20b00f4945ae2c4feed9685439c82b6bdc90",
   "source_manifest_version": 1,
   "source_root": "harness"
 }

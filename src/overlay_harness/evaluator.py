@@ -392,6 +392,236 @@ def score_frame_sequences(
     )
 
 
+def score_dense_rgb_slices(
+    candidate: Path,
+    reference: Path,
+    width: int,
+    height: int,
+    frame_start: int = 0,
+    frame_end: int | None = None,
+    ffmpeg_path: str | None = None,
+    analysis_width: int = 320,
+    analysis_height: int = 180,
+) -> dict[str, Any]:
+    """Compare dense, spatially sliced RGB separation against the reference.
+
+    The diagnostic deliberately measures closeness to the reference descriptor;
+    it does not reward unbounded slice counts or channel offsets.  This keeps a
+    full-frame chromatic aberration or excessive random striping from gaming the
+    metric simply by being "more glitchy".
+    """
+    try:
+        import numpy  # type: ignore[import-not-found]
+    except ImportError as error:
+        raise RuntimeError("NumPy is required for dense RGB-slice scoring") from error
+
+    candidate_frames = discover_frames(candidate)
+    reference_frames = discover_frames(reference)
+    pair_count = min(len(candidate_frames), len(reference_frames))
+    resolved_end = pair_count - 1 if frame_end is None else min(frame_end, pair_count - 1)
+    if frame_start < 0 or resolved_end < frame_start:
+        return {
+            "artifact_type": "dense_rgb_slice_score",
+            "status": "not_applicable",
+            "reason": "no frame pairs are available in the requested transition window",
+        }
+
+    resolved_width = min(width, analysis_width)
+    resolved_height = min(height, analysis_height)
+    ffmpeg_executable = ffmpeg_path or shutil.which("ffmpeg")
+    pairs: list[dict[str, Any]] = []
+    for index in range(frame_start, resolved_end + 1):
+        candidate_rgb = _decode_frame_rgb_opencv(
+            candidate_frames[index], resolved_width, resolved_height
+        ) or decode_frame_rgb(
+            ffmpeg_executable, candidate_frames[index], resolved_width, resolved_height
+        )
+        reference_rgb = _decode_frame_rgb_opencv(
+            reference_frames[index], resolved_width, resolved_height
+        ) or decode_frame_rgb(
+            ffmpeg_executable, reference_frames[index], resolved_width, resolved_height
+        )
+        candidate_image = numpy.frombuffer(candidate_rgb, dtype=numpy.uint8).reshape(
+            (resolved_height, resolved_width, 3)
+        )
+        reference_image = numpy.frombuffer(reference_rgb, dtype=numpy.uint8).reshape(
+            (resolved_height, resolved_width, 3)
+        )
+        candidate_descriptor = _describe_dense_rgb_slice_frame(candidate_image, numpy)
+        reference_descriptor = _describe_dense_rgb_slice_frame(reference_image, numpy)
+        similarity = _compare_dense_rgb_slice_descriptors(
+            candidate_descriptor, reference_descriptor, numpy
+        )
+        pairs.append(
+            {
+                "frame_index": index,
+                "candidate": _public_dense_rgb_slice_descriptor(candidate_descriptor),
+                "reference": _public_dense_rgb_slice_descriptor(reference_descriptor),
+                **similarity,
+            }
+        )
+
+    reference_activity = [
+        float(pair["reference"]["rgb_separation_magnitude"])
+        + float(pair["reference"]["slice_boundary_strength"])
+        for pair in pairs
+    ]
+    active_floor = max(0.035, float(numpy.percentile(reference_activity, 40)))
+    active_pairs = [
+        pair for pair, activity in zip(pairs, reference_activity) if activity >= active_floor
+    ]
+    if not active_pairs:
+        active_pairs = pairs
+    weights = numpy.asarray(
+        [
+            max(
+                0.01,
+                float(pair["reference"]["rgb_separation_magnitude"])
+                + float(pair["reference"]["slice_boundary_strength"]),
+            )
+            for pair in active_pairs
+        ],
+        dtype=numpy.float64,
+    )
+    weights /= max(float(weights.sum()), 1e-9)
+
+    def weighted(metric: str) -> float:
+        return float(
+            sum(float(pair[metric]) * float(weight) for pair, weight in zip(active_pairs, weights))
+        )
+
+    slice_similarity = weighted("slice_structure_similarity")
+    rgb_similarity = weighted("rgb_separation_similarity")
+    coherence = weighted("rgb_slice_coherence")
+    composite = float(max(0.0, slice_similarity * rgb_similarity * coherence) ** (1.0 / 3.0))
+    reference_rgb_signal = float(
+        numpy.median([pair["reference"]["rgb_separation_magnitude"] for pair in active_pairs])
+    )
+    reference_slice_signal = float(
+        numpy.median([pair["reference"]["slice_boundary_strength"] for pair in active_pairs])
+    )
+    signal_confidence = min(1.0, reference_rgb_signal / 0.12) * min(
+        1.0, reference_slice_signal / 0.08
+    )
+    coverage_confidence = min(1.0, len(active_pairs) / max(3.0, len(pairs) * 0.35))
+    confidence = float(signal_confidence * coverage_confidence)
+    return {
+        "artifact_type": "dense_rgb_slice_score",
+        "artifact_version": 1,
+        "status": "estimated" if confidence >= 0.35 else "low_confidence",
+        "confidence": confidence,
+        "analysis_resolution": {"width": resolved_width, "height": resolved_height},
+        "active_frame_count": len(active_pairs),
+        "evaluated_frame_count": len(pairs),
+        "slice_structure_similarity": slice_similarity,
+        "rgb_separation_similarity": rgb_similarity,
+        "rgb_slice_coherence": coherence,
+        "dense_rgb_slice_similarity": composite,
+        "reference_signal": {
+            "rgb_separation_magnitude": reference_rgb_signal,
+            "slice_boundary_strength": reference_slice_signal,
+        },
+        "pairs": pairs,
+    }
+
+
+def _describe_dense_rgb_slice_frame(image: Any, numpy_module: Any) -> dict[str, Any]:
+    image_float = image.astype(numpy_module.float32) / 255.0
+    luma = image_float @ numpy_module.asarray((0.299, 0.587, 0.114), dtype=numpy_module.float32)
+    channel_dx = numpy_module.abs(numpy_module.diff(image_float, axis=1, prepend=image_float[:, :1]))
+    channel_dy = numpy_module.abs(numpy_module.diff(image_float, axis=0, prepend=image_float[:1, :]))
+    channel_edges = numpy_module.sqrt(channel_dx * channel_dx + channel_dy * channel_dy)
+    edge_strength = channel_edges.max(axis=2)
+    edge_threshold = max(0.025, float(numpy_module.percentile(edge_strength, 65)))
+    reliable_edges = edge_strength >= edge_threshold
+    disagreement = (
+        numpy_module.abs(channel_edges[:, :, 0] - channel_edges[:, :, 1])
+        + numpy_module.abs(channel_edges[:, :, 1] - channel_edges[:, :, 2])
+        + numpy_module.abs(channel_edges[:, :, 0] - channel_edges[:, :, 2])
+    ) / 3.0
+    separation_map = numpy_module.where(
+        reliable_edges,
+        numpy_module.clip(disagreement / (edge_strength + 0.04), 0.0, 1.0),
+        0.0,
+    )
+
+    luma_dy = numpy_module.abs(numpy_module.diff(luma, axis=0, prepend=luma[:1]))
+    row_separation = separation_map.mean(axis=1)
+    row_boundaries = luma_dy.mean(axis=1)
+    row_profile = 0.7 * row_separation + 0.3 * numpy_module.clip(row_boundaries * 4.0, 0.0, 1.0)
+    kernel_size = max(1, int(round(image.shape[0] / 180.0)))
+    if kernel_size > 1:
+        kernel = numpy_module.ones(kernel_size, dtype=numpy_module.float32) / kernel_size
+        row_profile = numpy_module.convolve(row_profile, kernel, mode="same")
+    median = float(numpy_module.median(row_profile))
+    mad = float(numpy_module.median(numpy_module.abs(row_profile - median)))
+    active_rows = row_profile > median + max(0.008, 1.25 * mad)
+    starts = numpy_module.logical_and(active_rows, numpy_module.logical_not(numpy_module.r_[False, active_rows[:-1]]))
+    slice_count = int(starts.sum())
+    slice_coverage = float(active_rows.mean())
+    slice_boundary_strength = float(numpy_module.percentile(row_profile, 85) - median)
+    rgb_magnitude = float(separation_map[reliable_edges].mean()) if reliable_edges.any() else 0.0
+    rgb_coverage = float((separation_map > 0.18).mean())
+    active_rgb = float(separation_map[active_rows].mean()) if active_rows.any() else 0.0
+    inactive_rgb = float(separation_map[~active_rows].mean()) if (~active_rows).any() else 0.0
+    intrinsic_coherence = active_rgb / max(active_rgb + inactive_rgb, 1e-6)
+    profile_scale = max(float(row_profile.max()), 1e-6)
+    return {
+        "slice_count": slice_count,
+        "slice_density": float(slice_count / max(image.shape[0], 1)),
+        "slice_coverage": slice_coverage,
+        "slice_boundary_strength": slice_boundary_strength,
+        "rgb_separation_magnitude": rgb_magnitude,
+        "rgb_separation_coverage": rgb_coverage,
+        "intrinsic_coherence": float(intrinsic_coherence),
+        "row_profile": (row_profile / profile_scale).astype(numpy_module.float32),
+    }
+
+
+def _compare_dense_rgb_slice_descriptors(
+    candidate: dict[str, Any], reference: dict[str, Any], numpy_module: Any
+) -> dict[str, float]:
+    def closeness(current: float, target: float, floor: float) -> float:
+        scale = max(abs(target) * 0.5, floor)
+        return float(math.exp(-abs(current - target) / scale))
+
+    candidate_profile = candidate["row_profile"]
+    reference_profile = reference["row_profile"]
+    profile_distance = float(numpy_module.mean(numpy_module.abs(candidate_profile - reference_profile)))
+    profile_similarity = float(math.exp(-profile_distance / 0.22))
+    density_similarity = closeness(candidate["slice_density"], reference["slice_density"], 0.012)
+    coverage_similarity = closeness(candidate["slice_coverage"], reference["slice_coverage"], 0.08)
+    boundary_similarity = closeness(
+        candidate["slice_boundary_strength"], reference["slice_boundary_strength"], 0.025
+    )
+    slice_similarity = float(
+        (profile_similarity * density_similarity * coverage_similarity * boundary_similarity) ** 0.25
+    )
+    magnitude_similarity = closeness(
+        candidate["rgb_separation_magnitude"], reference["rgb_separation_magnitude"], 0.04
+    )
+    rgb_coverage_similarity = closeness(
+        candidate["rgb_separation_coverage"], reference["rgb_separation_coverage"], 0.025
+    )
+    rgb_similarity = float((magnitude_similarity * rgb_coverage_similarity) ** 0.5)
+    coherence_similarity = closeness(
+        candidate["intrinsic_coherence"], reference["intrinsic_coherence"], 0.12
+    )
+    return {
+        "slice_structure_similarity": slice_similarity,
+        "rgb_separation_similarity": rgb_similarity,
+        "rgb_slice_coherence": coherence_similarity,
+    }
+
+
+def _public_dense_rgb_slice_descriptor(descriptor: dict[str, Any]) -> dict[str, float | int]:
+    return {
+        key: value
+        for key, value in descriptor.items()
+        if key != "row_profile"
+    }
+
+
 def score_horizontal_band_motion(
     candidate: Path,
     reference: Path,
