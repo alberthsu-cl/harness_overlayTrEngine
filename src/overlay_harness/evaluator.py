@@ -147,7 +147,7 @@ def analyze_grid_density(
     analysis_width: int = 480,
     analysis_height: int = 270,
     min_cell_px: int = 20,
-    max_cell_px: int = 250,
+    max_cell_px: int = 960,
 ) -> dict[str, Any]:
     """Estimate a masked-grid transition's cell density (column/row counts).
 
@@ -217,14 +217,20 @@ def analyze_grid_density(
 
     min_cell_col = max(4, round(min_cell_px * resolved_width / width))
     max_cell_col = max(min_cell_col + 1, min(round(max_cell_px * resolved_width / width), resolved_width // 2))
-    col_period, col_confidence = _dominant_period(column_energy, min_cell_col, max_cell_col, numpy)
+    col_period, col_confidence, col_hit_floor = _dominant_period(column_energy, min_cell_col, max_cell_col, numpy)
 
     min_cell_row = max(4, round(min_cell_px * resolved_height / height))
     max_cell_row = max(min_cell_row + 1, min(round(max_cell_px * resolved_height / height), resolved_height // 2))
-    row_period, row_confidence = _dominant_period(row_energy, min_cell_row, max_cell_row, numpy)
+    row_period, row_confidence, row_hit_floor = _dominant_period(row_energy, min_cell_row, max_cell_row, numpy)
 
-    confidence = min(col_confidence, row_confidence)
-    status = "estimated" if confidence >= 0.5 else "low_confidence"
+    # A period found right at the search floor is a classic autocorrelation
+    # artifact of short-range self-similarity in noise (photo/JPEG texture),
+    # not a detected period - it can carry a *higher* raw confidence ratio
+    # than a genuine but softer-edged grid signal, so it must be checked
+    # separately rather than folded into the confidence threshold alone.
+    hit_floor = col_hit_floor or row_hit_floor
+    confidence = 0.0 if hit_floor else min(col_confidence, row_confidence)
+    status = "estimated" if confidence >= 0.15 else "low_confidence"
     return {
         "artifact_type": "grid_density_diagnostics",
         "status": status,
@@ -232,8 +238,14 @@ def analyze_grid_density(
         "reason": (
             "revealed/not-revealed partition edges show a clear periodic grid"
             if status == "estimated"
-            else "diff-to-endpoint signal did not separate a clear periodic grid from source content; "
-            "treat the estimate below as a rough hint only and verify visually before trusting it"
+            else (
+                "the strongest period found sits at the search floor, which is a signature of "
+                "noise self-similarity rather than a detected grid; treat the estimate below as "
+                "unreliable and verify visually before trusting it"
+                if hit_floor
+                else "diff-to-endpoint signal did not separate a clear periodic grid from source content; "
+                "treat the estimate below as a rough hint only and verify visually before trusting it"
+            )
         ),
         "frame_range": {"start": frame_start, "end": resolved_end},
         "frames_used": frames_used,
@@ -248,18 +260,30 @@ def analyze_grid_density(
     }
 
 
-def _dominant_period(profile: Any, min_period: int, max_period: int, numpy_module: Any) -> tuple[int, float]:
+def _dominant_period(
+    profile: Any, min_period: int, max_period: int, numpy_module: Any
+) -> tuple[int, float, bool]:
+    """Return (period, confidence, hit_floor).
+
+    hit_floor is True when the strongest lag sits within the first ~15% of
+    the search window (or 2px, whichever is larger) - short-range
+    self-similarity in unstructured noise always autocorrelates strongly at
+    the smallest allowed lag, so a peak parked at the floor is evidence the
+    search range contains no genuine period, not evidence of a short one.
+    """
     centered = profile - profile.mean()
     n = len(centered)
     autocorr = numpy_module.correlate(centered, centered, mode="full")[n - 1 :]
     zero_lag = autocorr[0] if autocorr[0] != 0 else 1.0
     if max_period <= min_period:
-        return max(min_period, 1), 0.0
+        return max(min_period, 1), 0.0, True
     search = autocorr[min_period:max_period]
     best_offset = int(numpy_module.argmax(search))
     best_lag = min_period + best_offset
     confidence = float(search[best_offset] / zero_lag)
-    return best_lag, max(0.0, confidence)
+    floor_margin = max(2, round((max_period - min_period) * 0.15))
+    hit_floor = best_offset < floor_margin
+    return best_lag, max(0.0, confidence), hit_floor
 
 
 def _representative_source_frame(directory: Path) -> Path | None:
