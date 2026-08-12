@@ -136,6 +136,132 @@ def analyze_edge_content_policy(
     }
 
 
+def analyze_grid_density(
+    reference: Path,
+    source_b_directory: Path,
+    width: int,
+    height: int,
+    frame_start: int = 0,
+    frame_end: int | None = None,
+    ffmpeg_path: str | None = None,
+    analysis_width: int = 480,
+    analysis_height: int = 270,
+    min_cell_px: int = 20,
+    max_cell_px: int = 250,
+) -> dict[str, Any]:
+    """Estimate a masked-grid transition's cell density (column/row counts).
+
+    Diffs each transition frame against the clean, fully-revealed source_b
+    endpoint: static photo or pattern texture inside a cell is identical in
+    both and cancels out, leaving only the still-not-yet-revealed region
+    (still showing source A) as a large diff. That revealed/not-revealed
+    partition is exactly grid-aligned, so the dominant autocorrelation period
+    of its own edges - not the raw pixel gradient - estimates the cell pitch
+    without being confused by unrelated source texture (wood grain,
+    photographic detail).
+
+    Dense photographic texture can still leak through the diff itself, so
+    this is not reliable for every sample; status/confidence reflect that
+    rather than asserting a number regardless. Treat "low_confidence" results
+    as a rough hint to verify visually, not a trusted measurement.
+    """
+    try:
+        import cv2  # type: ignore[import-not-found]
+        import numpy  # type: ignore[import-not-found]
+    except ImportError as error:
+        raise RuntimeError("OpenCV and NumPy are required for grid-density diagnostics") from error
+
+    reference_frames = discover_frames(reference)
+    source_b_frame = (
+        _representative_source_frame(source_b_directory) if source_b_directory.is_dir() else None
+    )
+    if not reference_frames or source_b_frame is None:
+        return {
+            "artifact_type": "grid_density_diagnostics",
+            "status": "not_applicable",
+            "reason": "prepared reference frames and a prepared source_b are required",
+        }
+    resolved_end = len(reference_frames) - 1 if frame_end is None else min(frame_end, len(reference_frames) - 1)
+    if frame_start < 0 or resolved_end < frame_start:
+        return {
+            "artifact_type": "grid_density_diagnostics",
+            "status": "not_applicable",
+            "reason": "grid-density analysis requires at least one transition frame",
+        }
+
+    resolved_width = min(width, analysis_width)
+    resolved_height = min(height, analysis_height)
+    ffmpeg_executable = ffmpeg_path or shutil.which("ffmpeg")
+    b_image = _decode_rgb_array(
+        source_b_frame, resolved_width, resolved_height, ffmpeg_executable, cv2, numpy
+    ).astype(numpy.float64)
+
+    column_energy = numpy.zeros(resolved_width, dtype=numpy.float64)
+    row_energy = numpy.zeros(resolved_height, dtype=numpy.float64)
+    frames_used: list[int] = []
+    for index in range(frame_start, resolved_end + 1):
+        frame_image = _decode_rgb_array(
+            reference_frames[index], resolved_width, resolved_height, ffmpeg_executable, cv2, numpy
+        ).astype(numpy.float64)
+        diff_to_b = numpy.abs(frame_image - b_image).sum(axis=2)
+        not_revealed = (diff_to_b > diff_to_b.mean()).astype(numpy.float64)
+        sigma = max(2.0, resolved_width / 128.0)
+        smoothed = cv2.GaussianBlur(not_revealed, (0, 0), sigmaX=sigma)
+        not_revealed = (smoothed > 0.5).astype(numpy.float64)
+        gx = cv2.Sobel(not_revealed, cv2.CV_64F, 1, 0, ksize=3)
+        gy = cv2.Sobel(not_revealed, cv2.CV_64F, 0, 1, ksize=3)
+        magnitude = numpy.abs(gx) + numpy.abs(gy)
+        column_energy += magnitude.sum(axis=0)
+        row_energy += magnitude.sum(axis=1)
+        frames_used.append(index)
+
+    min_cell_col = max(4, round(min_cell_px * resolved_width / width))
+    max_cell_col = max(min_cell_col + 1, min(round(max_cell_px * resolved_width / width), resolved_width // 2))
+    col_period, col_confidence = _dominant_period(column_energy, min_cell_col, max_cell_col, numpy)
+
+    min_cell_row = max(4, round(min_cell_px * resolved_height / height))
+    max_cell_row = max(min_cell_row + 1, min(round(max_cell_px * resolved_height / height), resolved_height // 2))
+    row_period, row_confidence = _dominant_period(row_energy, min_cell_row, max_cell_row, numpy)
+
+    confidence = min(col_confidence, row_confidence)
+    status = "estimated" if confidence >= 0.5 else "low_confidence"
+    return {
+        "artifact_type": "grid_density_diagnostics",
+        "status": status,
+        "confidence": round(confidence, 4),
+        "reason": (
+            "revealed/not-revealed partition edges show a clear periodic grid"
+            if status == "estimated"
+            else "diff-to-endpoint signal did not separate a clear periodic grid from source content; "
+            "treat the estimate below as a rough hint only and verify visually before trusting it"
+        ),
+        "frame_range": {"start": frame_start, "end": resolved_end},
+        "frames_used": frames_used,
+        "analysis_width": resolved_width,
+        "analysis_height": resolved_height,
+        "estimated_columns": round(resolved_width / col_period, 2),
+        "estimated_rows": round(resolved_height / row_period, 2),
+        "column_period_px": col_period,
+        "row_period_px": row_period,
+        "column_confidence": round(col_confidence, 4),
+        "row_confidence": round(row_confidence, 4),
+    }
+
+
+def _dominant_period(profile: Any, min_period: int, max_period: int, numpy_module: Any) -> tuple[int, float]:
+    centered = profile - profile.mean()
+    n = len(centered)
+    autocorr = numpy_module.correlate(centered, centered, mode="full")[n - 1 :]
+    zero_lag = autocorr[0] if autocorr[0] != 0 else 1.0
+    if max_period <= min_period:
+        return max(min_period, 1), 0.0
+    search = autocorr[min_period:max_period]
+    best_offset = int(numpy_module.argmax(search))
+    best_lag = min_period + best_offset
+    confidence = float(search[best_offset] / zero_lag)
+    return best_lag, max(0.0, confidence)
+
+
 def _representative_source_frame(directory: Path) -> Path | None:
     frames = discover_frames(directory)
     return frames[len(frames) // 2] if frames else None
