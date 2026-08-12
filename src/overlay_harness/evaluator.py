@@ -203,13 +203,7 @@ def analyze_grid_density(
         frame_image = _decode_rgb_array(
             reference_frames[index], resolved_width, resolved_height, ffmpeg_executable, cv2, numpy
         ).astype(numpy.float64)
-        diff_to_b = numpy.abs(frame_image - b_image).sum(axis=2)
-        not_revealed = (diff_to_b > diff_to_b.mean()).astype(numpy.float64)
-        sigma = max(2.0, resolved_width / 128.0)
-        smoothed = cv2.GaussianBlur(not_revealed, (0, 0), sigmaX=sigma)
-        not_revealed = (smoothed > 0.5).astype(numpy.float64)
-        gx = cv2.Sobel(not_revealed, cv2.CV_64F, 1, 0, ksize=3)
-        gy = cv2.Sobel(not_revealed, cv2.CV_64F, 0, 1, ksize=3)
+        _, gx, gy = _revealed_partition_boundary(frame_image, b_image, resolved_width, cv2, numpy)
         magnitude = numpy.abs(gx) + numpy.abs(gy)
         column_energy += magnitude.sum(axis=0)
         row_energy += magnitude.sum(axis=1)
@@ -257,6 +251,169 @@ def analyze_grid_density(
         "row_period_px": row_period,
         "column_confidence": round(col_confidence, 4),
         "row_confidence": round(row_confidence, 4),
+    }
+
+
+def _revealed_partition_boundary(
+    frame_image: Any, b_image: Any, resolved_width: int, cv2_module: Any, numpy_module: Any
+) -> tuple[Any, Any, Any]:
+    """Binary revealed/not-revealed partition and its Sobel gradient components.
+
+    Shared by analyze_grid_density (which autocorrelates the gradient
+    magnitude to find the grid pitch) and analyze_edge_glow (which samples
+    the original frame's brightness at the gradient locations to check for a
+    rendered highlight along the boundary).
+    """
+    diff_to_b = numpy_module.abs(frame_image - b_image).sum(axis=2)
+    not_revealed = (diff_to_b > diff_to_b.mean()).astype(numpy_module.float64)
+    sigma = max(2.0, resolved_width / 128.0)
+    smoothed = cv2_module.GaussianBlur(not_revealed, (0, 0), sigmaX=sigma)
+    not_revealed = (smoothed > 0.5).astype(numpy_module.float64)
+    gx = cv2_module.Sobel(not_revealed, cv2_module.CV_64F, 1, 0, ksize=3)
+    gy = cv2_module.Sobel(not_revealed, cv2_module.CV_64F, 0, 1, ksize=3)
+    return not_revealed, gx, gy
+
+
+def analyze_edge_glow(
+    reference: Path,
+    source_b_directory: Path,
+    width: int,
+    height: int,
+    frame_start: int = 0,
+    frame_end: int | None = None,
+    ffmpeg_path: str | None = None,
+    analysis_width: int = 480,
+    analysis_height: int = 270,
+    sample_offset_px: int = 30,
+    glow_threshold: float = 10.0,
+) -> dict[str, Any]:
+    """Detect a rendered highlight drawn along a masked transition's own boundary.
+
+    A masked-grid or masked-region reveal can draw a bright seam along its
+    own mask edges as part of the effect - visually distinct from the alpha
+    blend between source A and source B, and easy to mistake for a pattern
+    "baked into" the source content. This samples the original reference
+    frame's brightness immediately on both sides of the revealed/not-revealed
+    boundary (the same boundary analyze_grid_density locates) and checks
+    whether the boundary itself is brighter than both neighbors. Alpha
+    blending alone can only interpolate between two source colors and can
+    never exceed both, so that pattern is only consistent with an added
+    highlight, not a blend artifact - it does not depend on knowing the grid
+    pitch, so it still works when analyze_grid_density itself is
+    low-confidence for this sample.
+    """
+    try:
+        import cv2  # type: ignore[import-not-found]
+        import numpy  # type: ignore[import-not-found]
+    except ImportError as error:
+        raise RuntimeError("OpenCV and NumPy are required for edge-glow diagnostics") from error
+
+    reference_frames = discover_frames(reference)
+    source_b_frame = (
+        _representative_source_frame(source_b_directory) if source_b_directory.is_dir() else None
+    )
+    if not reference_frames or source_b_frame is None:
+        return {
+            "artifact_type": "edge_glow_diagnostics",
+            "status": "not_applicable",
+            "reason": "prepared reference frames and a prepared source_b are required",
+        }
+    resolved_end = len(reference_frames) - 1 if frame_end is None else min(frame_end, len(reference_frames) - 1)
+    if frame_start < 0 or resolved_end < frame_start:
+        return {
+            "artifact_type": "edge_glow_diagnostics",
+            "status": "not_applicable",
+            "reason": "edge-glow analysis requires at least one transition frame",
+        }
+
+    resolved_width = min(width, analysis_width)
+    resolved_height = min(height, analysis_height)
+    offset = max(2, round(sample_offset_px * resolved_width / width))
+    ffmpeg_executable = ffmpeg_path or shutil.which("ffmpeg")
+    b_image = _decode_rgb_array(
+        source_b_frame, resolved_width, resolved_height, ffmpeg_executable, cv2, numpy
+    ).astype(numpy.float64)
+
+    boundary_pixel_count = 0
+    brighter_than_both_count = 0
+    glow_hits = 0
+    boundary_deltas: list[float] = []
+    frames_used: list[int] = []
+    for index in range(frame_start, resolved_end + 1):
+        frame_image = _decode_rgb_array(
+            reference_frames[index], resolved_width, resolved_height, ffmpeg_executable, cv2, numpy
+        ).astype(numpy.float64)
+        _, gx, gy = _revealed_partition_boundary(frame_image, b_image, resolved_width, cv2, numpy)
+        boundary = (numpy.abs(gx) + numpy.abs(gy)) > 0
+        rows, cols = numpy.nonzero(boundary)
+        frames_used.append(index)
+        if rows.size == 0:
+            continue
+        brightness = frame_image.mean(axis=2)
+        vertical_ish = numpy.abs(gx[rows, cols]) >= numpy.abs(gy[rows, cols])
+        for is_vertical, row_idx, col_idx in zip(vertical_ish, rows, cols):
+            if is_vertical:
+                near, far = col_idx - offset, col_idx + offset
+                if near < 0 or far > resolved_width - 1:
+                    continue
+                side_a, side_b = brightness[row_idx, near], brightness[row_idx, far]
+            else:
+                near, far = row_idx - offset, row_idx + offset
+                if near < 0 or far > resolved_height - 1:
+                    continue
+                side_a, side_b = brightness[near, col_idx], brightness[far, col_idx]
+            center = brightness[row_idx, col_idx]
+            boundary_pixel_count += 1
+            if center > side_a and center > side_b:
+                brighter_than_both_count += 1
+                delta = float(center - max(side_a, side_b))
+                boundary_deltas.append(delta)
+                if delta >= glow_threshold:
+                    glow_hits += 1
+
+    if boundary_pixel_count == 0:
+        return {
+            "artifact_type": "edge_glow_diagnostics",
+            "status": "not_applicable",
+            "reason": "no revealed/not-revealed boundary was found to sample",
+            "frame_range": {"start": frame_start, "end": resolved_end},
+            "frames_used": frames_used,
+        }
+
+    glow_fraction = glow_hits / boundary_pixel_count
+    brighter_fraction = brighter_than_both_count / boundary_pixel_count
+    mean_delta = sum(boundary_deltas) / len(boundary_deltas) if boundary_deltas else 0.0
+    # A mid-transition mask boundary is not just the physical grid lines: cells
+    # reveal with their own soft edge (SoftRectangle-style growth), and that
+    # soft edge adds boundary points of its own to the diff-based partition
+    # that carry no highlight. Real, visually-confirmed glow lines in this
+    # project's own samples only ever cleared ~25-30% brighter_fraction once
+    # that noise is mixed in, never near 100%, so the decision is a two-part
+    # gate against that calibration - a real signal at all (brighter_fraction)
+    # with real magnitude (mean_delta) - rather than a single high fraction.
+    detected = brighter_fraction >= 0.15 and mean_delta >= glow_threshold
+    status = "detected" if detected else "not_detected"
+    return {
+        "artifact_type": "edge_glow_diagnostics",
+        "status": status,
+        "reason": (
+            "a meaningful share of the boundary is brighter than both of its neighboring regions, by "
+            "an average magnitude at or above the glow threshold, consistent with a rendered highlight "
+            "along the mask edge rather than the alpha blend alone"
+            if status == "detected"
+            else "the boundary is not brighter than both neighboring regions often enough, or not by "
+            "enough magnitude, to distinguish a rendered edge highlight from the ordinary blend"
+        ),
+        "frame_range": {"start": frame_start, "end": resolved_end},
+        "frames_used": frames_used,
+        "analysis_width": resolved_width,
+        "analysis_height": resolved_height,
+        "sample_offset_px": offset,
+        "glow_threshold": glow_threshold,
+        "boundary_pixel_count": boundary_pixel_count,
+        "glow_fraction": round(glow_fraction, 4),
+        "brighter_than_both_neighbors_fraction": round(brighter_fraction, 4),
+        "mean_brightness_delta": round(mean_delta, 2),
     }
 
 
