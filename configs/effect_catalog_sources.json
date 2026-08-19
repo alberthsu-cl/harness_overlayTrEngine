@@ -674,6 +674,29 @@
       "wrapper_hint": "TrModelGeneratedCardTumble01"
     },
     {
+      "display_name": "Generated PulseWarp 01",
+      "effect_id": "engine-modelgenerated-pulsewarp-01",
+      "effect_source": "generated",
+      "fallback_fx_id": "ModelGenerated\\PulseWarp_01",
+      "family": "unknown",
+      "fx_id": "ModelGenerated\\PulseWarp_01",
+      "metadata_status": "discovered",
+      "mode": "engine-discovered-modelgenerated-pulsewarp-01",
+      "retrieval_priority": 100,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedPulseWarp01.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedPulseWarp01.h",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedPulseWarp01_ps.hlsl"
+      ],
+      "style_hints": [
+        "engine-discovered",
+        "modelgenerated-pulsewarp-01"
+      ],
+      "wrapper_hint": "TrModelGeneratedPulseWarp01"
+    },
+    {
       "effect_id": "generated-seamless-placeholder",
       "effect_source": "generated",
       "fallback_fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",

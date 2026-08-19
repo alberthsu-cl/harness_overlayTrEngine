@@ -674,6 +674,29 @@
       "wrapper_hint": "TrModelGeneratedCardTumble01"
     },
     {
+      "display_name": "Generated PulseWarp 01",
+      "effect_id": "engine-modelgenerated-pulsewarp-01",
+      "effect_source": "generated",
+      "fallback_fx_id": "ModelGenerated\\PulseWarp_01",
+      "family": "unknown",
+      "fx_id": "ModelGenerated\\PulseWarp_01",
+      "metadata_status": "discovered",
+      "mode": "engine-discovered-modelgenerated-pulsewarp-01",
+      "retrieval_priority": 100,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedPulseWarp01.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedPulseWarp01.h",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedPulseWarp01_ps.hlsl"
+      ],
+      "style_hints": [
+        "engine-discovered",
+        "modelgenerated-pulsewarp-01"
+      ],
+      "wrapper_hint": "TrModelGeneratedPulseWarp01"
+    },
+    {
       "effect_id": "generated-seamless-placeholder",
       "effect_source": "generated",
       "fallback_fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
@@ -711,7 +734,7 @@
       ]
     }
   ],
-  "registration_count": 35,
+  "registration_count": 36,
   "retrieval_index": {
     "app-swipe": "builtin-ui-app-swipe",
     "blur": "builtin-blur",
@@ -771,7 +794,7 @@
     "upgrow": "builtin-blur-upgrow"
   },
   "source_manifest": "harness/configs/effect_catalog_sources.json",
-  "source_manifest_sha256": "bc355d5f6a736b3ec4e110f93b935c65b03a2b80e55c236381c6ac2599bb89aa",
+  "source_manifest_sha256": "4507e6d985214c18039059f40a47248a8f2597422ac12a7d491e8708cac391bb",
   "source_manifest_version": 1,
   "source_root": "harness"
 }
