@@ -441,7 +441,10 @@
       "retrieval_priority": 100,
       "source_documents": [
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
-        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp"
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedHorizontalSplitBlur02.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedHorizontalSplitBlur02.h",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedHorizontalSplitBlur02_ps.hlsl"
       ],
       "style_hints": [
         "engine-discovered",
@@ -460,7 +463,10 @@
       "retrieval_priority": 100,
       "source_documents": [
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
-        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp"
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedVerticalSplitBlur01.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedVerticalSplitBlur01.h",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedVerticalSplitBlur01_ps.hlsl"
       ],
       "style_hints": [
         "engine-discovered",
@@ -479,7 +485,10 @@
       "retrieval_priority": 100,
       "source_documents": [
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
-        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp"
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedDiagonalFlip01.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedDiagonalFlip01.h",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedDiagonalFlip01_ps.hlsl"
       ],
       "style_hints": [
         "engine-discovered",
@@ -498,7 +507,10 @@
       "retrieval_priority": 100,
       "source_documents": [
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
-        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp"
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedRotate03.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedRotate03.h",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedRotate03_ps.hlsl"
       ],
       "style_hints": [
         "engine-discovered",
@@ -517,7 +529,10 @@
       "retrieval_priority": 100,
       "source_documents": [
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
-        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp"
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedZoomBlur01.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedZoomBlur01.h",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedZoomBlur01_ps.hlsl"
       ],
       "style_hints": [
         "engine-discovered",
@@ -536,7 +551,10 @@
       "retrieval_priority": 100,
       "source_documents": [
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
-        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp"
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedSpinBlur01.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedSpinBlur01.h",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedSpinBlur01_ps.hlsl"
       ],
       "style_hints": [
         "engine-discovered",
@@ -544,61 +562,93 @@
       ]
     },
     {
-      "display_name": "Generated RadialWipe 01",
-      "effect_id": "engine-modelgenerated-radialwipe-01",
+      "display_name": "Generated GlitchMatrix 01",
+      "effect_id": "engine-modelgenerated-glitchmatrix-01",
       "effect_source": "generated",
-      "fallback_fx_id": "ModelGenerated\\RadialWipe_01",
+      "fallback_fx_id": "ModelGenerated\\GlitchMatrix_01",
       "family": "unknown",
-      "fx_id": "ModelGenerated\\RadialWipe_01",
+      "fx_id": "ModelGenerated\\GlitchMatrix_01",
       "metadata_status": "discovered",
-      "mode": "engine-discovered-modelgenerated-radialwipe-01",
+      "mode": "engine-discovered-modelgenerated-glitchmatrix-01",
       "retrieval_priority": 100,
       "source_documents": [
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
-        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp"
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedGlitchMatrix01.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedGlitchMatrix01.h",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedGlitchMatrix01_ps.hlsl"
       ],
       "style_hints": [
         "engine-discovered",
-        "modelgenerated-radialwipe-01"
+        "modelgenerated-glitchmatrix-01"
       ]
     },
     {
-      "display_name": "Generated GlitchSlice 01",
-      "effect_id": "engine-modelgenerated-glitchslice-01",
+      "display_name": "Generated GridReveal 01",
+      "effect_id": "engine-modelgenerated-gridreveal-01",
       "effect_source": "generated",
-      "fallback_fx_id": "ModelGenerated\\GlitchSlice_01",
+      "fallback_fx_id": "ModelGenerated\\GridReveal_01",
       "family": "unknown",
-      "fx_id": "ModelGenerated\\GlitchSlice_01",
+      "fx_id": "ModelGenerated\\GridReveal_01",
       "metadata_status": "discovered",
-      "mode": "engine-discovered-modelgenerated-glitchslice-01",
+      "mode": "engine-discovered-modelgenerated-gridreveal-01",
       "retrieval_priority": 100,
       "source_documents": [
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
-        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp"
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedGridReveal01.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedGridReveal01.h",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedGridReveal01_ps.hlsl"
       ],
       "style_hints": [
         "engine-discovered",
-        "modelgenerated-glitchslice-01"
+        "modelgenerated-gridreveal-01"
       ]
     },
     {
-      "display_name": "Generated GlitchCross 01",
-      "effect_id": "engine-modelgenerated-glitchcross-01",
+      "display_name": "Generated CardFall 01",
+      "effect_id": "engine-modelgenerated-cardfall-01",
       "effect_source": "generated",
-      "fallback_fx_id": "ModelGenerated\\GlitchCross_01",
+      "fallback_fx_id": "ModelGenerated\\CardFall_01",
       "family": "unknown",
-      "fx_id": "ModelGenerated\\GlitchCross_01",
+      "fx_id": "ModelGenerated\\CardFall_01",
       "metadata_status": "discovered",
-      "mode": "engine-discovered-modelgenerated-glitchcross-01",
+      "mode": "engine-discovered-modelgenerated-cardfall-01",
       "retrieval_priority": 100,
       "source_documents": [
         "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
-        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp"
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedCardFall01.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedCardFall01.h",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedCardFall01_ps.hlsl"
       ],
       "style_hints": [
         "engine-discovered",
-        "modelgenerated-glitchcross-01"
+        "modelgenerated-cardfall-01"
       ]
+    },
+    {
+      "display_name": "Generated DelugeWipe 01",
+      "effect_id": "engine-modelgenerated-delugewipe-01",
+      "effect_source": "generated",
+      "fallback_fx_id": "ModelGenerated\\DelugeWipe_01",
+      "family": "unknown",
+      "fx_id": "ModelGenerated\\DelugeWipe_01",
+      "metadata_status": "discovered",
+      "mode": "engine-discovered-modelgenerated-delugewipe-01",
+      "retrieval_priority": 100,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedDelugeWipe01.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedDelugeWipe01.h",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedDelugeWipe01_ps.hlsl"
+      ],
+      "style_hints": [
+        "engine-discovered",
+        "modelgenerated-delugewipe-01"
+      ],
+      "wrapper_hint": "TrModelGeneratedDelugeWipe01"
     },
     {
       "effect_id": "generated-seamless-placeholder",
