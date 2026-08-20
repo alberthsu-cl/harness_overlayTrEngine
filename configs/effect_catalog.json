@@ -697,6 +697,29 @@
       "wrapper_hint": "TrModelGeneratedPulseWarp01"
     },
     {
+      "display_name": "Generated DefocusFlash 01",
+      "effect_id": "engine-modelgenerated-defocusflash-01",
+      "effect_source": "generated",
+      "fallback_fx_id": "ModelGenerated\\DefocusFlash_01",
+      "family": "unknown",
+      "fx_id": "ModelGenerated\\DefocusFlash_01",
+      "metadata_status": "discovered",
+      "mode": "engine-discovered-modelgenerated-defocusflash-01",
+      "retrieval_priority": 100,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedDefocusFlash01.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedDefocusFlash01.h",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedDefocusFlash01_ps.hlsl"
+      ],
+      "style_hints": [
+        "engine-discovered",
+        "modelgenerated-defocusflash-01"
+      ],
+      "wrapper_hint": "TrModelGeneratedDefocusFlash01"
+    },
+    {
       "effect_id": "generated-seamless-placeholder",
       "effect_source": "generated",
       "fallback_fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
@@ -734,7 +757,7 @@
       ]
     }
   ],
-  "registration_count": 36,
+  "registration_count": 37,
   "retrieval_index": {
     "app-swipe": "builtin-ui-app-swipe",
     "blur": "builtin-blur",
@@ -794,7 +817,7 @@
     "upgrow": "builtin-blur-upgrow"
   },
   "source_manifest": "harness/configs/effect_catalog_sources.json",
-  "source_manifest_sha256": "4507e6d985214c18039059f40a47248a8f2597422ac12a7d491e8708cac391bb",
+  "source_manifest_sha256": "656239732740bb0f4005ed2832277db07a036515ee06003a8266f86d19b377cb",
   "source_manifest_version": 1,
   "source_root": "harness"
 }
