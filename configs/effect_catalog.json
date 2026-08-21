@@ -720,6 +720,29 @@
       "wrapper_hint": "TrModelGeneratedDefocusFlash01"
     },
     {
+      "display_name": "Generated SheetTwist 01",
+      "effect_id": "engine-modelgenerated-sheettwist-01",
+      "effect_source": "generated",
+      "fallback_fx_id": "ModelGenerated\\SheetTwist_01",
+      "family": "unknown",
+      "fx_id": "ModelGenerated\\SheetTwist_01",
+      "metadata_status": "discovered",
+      "mode": "engine-discovered-modelgenerated-sheettwist-01",
+      "retrieval_priority": 100,
+      "source_documents": [
+        "overlaytrengine/OverlayTrPlugInFx/FxInfo.h",
+        "overlaytrengine/OverlayTrPlugInFx/OverlayTrPlugInFx.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedSheetTwist01.cpp",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedSheetTwist01.h",
+        "overlaytrengine/OverlayTrPlugInFx/ModelGenerated/TrModelGeneratedSheetTwist01_ps.hlsl"
+      ],
+      "style_hints": [
+        "engine-discovered",
+        "modelgenerated-sheettwist-01"
+      ],
+      "wrapper_hint": "TrModelGeneratedSheetTwist01"
+    },
+    {
       "effect_id": "generated-seamless-placeholder",
       "effect_source": "generated",
       "fallback_fx_id": "CES_PlugIn_Seamless.dll\\DSP_TR_SeamlessSliding_LC",
@@ -757,7 +780,7 @@
       ]
     }
   ],
-  "registration_count": 37,
+  "registration_count": 38,
   "retrieval_index": {
     "app-swipe": "builtin-ui-app-swipe",
     "blur": "builtin-blur",
@@ -817,7 +840,7 @@
     "upgrow": "builtin-blur-upgrow"
   },
   "source_manifest": "harness/configs/effect_catalog_sources.json",
-  "source_manifest_sha256": "656239732740bb0f4005ed2832277db07a036515ee06003a8266f86d19b377cb",
+  "source_manifest_sha256": "9c1ba7a4b542d351548bfce08c9cf72371b47fcd23d8b89314b8a54823e8ee0a",
   "source_manifest_version": 1,
   "source_root": "harness"
 }
